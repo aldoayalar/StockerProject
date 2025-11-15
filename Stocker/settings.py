@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'core.apps.CoreConfig',
+    'materiales.apps.MaterialesConfig',
 ]
 
 MIDDLEWARE = [
@@ -74,8 +76,12 @@ WSGI_APPLICATION = 'Stocker.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'stocker',
+        'USER': 'usuario',
+        'PASSWORD': 'mamarracho',
+        'HOST': 'localhost',
+        'PORT': '3307',
     }
 }
 
