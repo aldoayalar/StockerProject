@@ -1,0 +1,126 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block title %}Stocker | Técnico{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .dashboard-sideBar-UserInfo {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+        }
+        .dashboard-sideBar-UserInfo figure {
+            margin: 0;
+        }
+        .dashboard-sideBar-UserInfo i {
+            font-size: 50px;
+            color: #fff;
+        }
+        .dashboard-sideBar-UserInfo figcaption {
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .dashboard-sideBar-UserInfo figcaption small {
+            display: block;
+            font-size: 12px;
+            color: #ddd;
+        }
+        /* Reducción del tamaño del icono de apagado */
+        .dashboard-sideBar-UserInfo .btn-exit-system i {
+            font-size: 20px;
+            color: #fff;
+        }
+
+        /* Centrando la tabla y agregando bordes */
+        .table-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px; /* Puedes ajustar la altura según necesites */
+        }
+
+        .table-responsive {
+            width: 80%; /* Ajusta el ancho de la tabla según prefieras */
+            margin: 0 auto;
+        }
+
+        /* Estilos para la tabla con bordes */
+        .table-bordered th, .table-bordered td {
+            border: 1px solid #dee2e6;
+        }
+    </style>
+{% endblock %}
+
+{% block user_info %}
+    <figure class="full-box text-center">
+        <i class="zmdi zmdi-account-circle"></i>
+        <!-- Nombre de usuario y rol -->
+        <figcaption class="text-titles">
+            {{ user.username }}<br>
+            <small><!-- Aqui va el rol mamarracho--></small>
+        </figcaption>
+    </figure>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <!-- Menú específico para el rol de Técnico -->
+    <ul class="list-unstyled full-box dashboard-sideBar-Menu">
+        <li>
+            <a href="#!" class="btn-sideBar-SubMenu">
+                <i class="zmdi zmdi-storage zmdi-hc-fw"></i> Materiales <i class="zmdi zmdi-caret-down pull-right"></i>
+            </a>
+            <ul class="list-unstyled full-box">
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-file-plus zmdi-hc-fw"></i> Solicitud</a>
+                </li>
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-assignment-return zmdi-hc-fw"></i> Recepción</a>
+                </li>  
+            </ul>
+        </li>
+        <li>
+            <a href="#!" class="btn-sideBar-SubMenu">
+                <i class="zmdi zmdi-archive zmdi-hc-fw"></i> Historial <i class="zmdi zmdi-caret-down pull-right"></i>
+            </a>
+            <ul class="list-unstyled full-box">
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-format-list-bulleted zmdi-hc-fw"></i> Solicitudes de Materiales</a>
+                </li>
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-collection-item zmdi-hc-fw"></i> Recepciones de Materiales</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+{% endblock %}
+
+{% block contenido %}
+    <!-- Contenedor de la tabla centrada -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Solicitud</th>
+                        <th>Local</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- mamarracho aqui va la cnx a la bbdd -->
+                    <!-- eso del for -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <p class="mb-0">© 2024 Accesorios Frigoríficos Santiago. Todos los derechos reservados.</p>
+{% endblock %}
+
+{% block extra_js %}
+    <!-- Scripts adicionales específicos para esta página, si es necesario -->
+{% endblock %}

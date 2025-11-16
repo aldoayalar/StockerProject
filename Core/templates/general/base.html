@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>{% block title %}Inicio{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <style>
+        /* Asegura que el contenedor principal abarque toda la ventana */
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Contenedor que abarca todo excepto el footer */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* El contenido principal (SideBar y ContentPage) ocupa el espacio disponible */
+        .dashboard-contentPage {
+            flex: 1;
+        }
+
+        /* Ajustes para el footer */
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px 0;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="main-container">
+        <!-- SideBar -->
+        <section class="full-box cover dashboard-sideBar">
+            <div class="full-box dashboard-sideBar-bg btn-menu-dashboard"></div>
+            <div class="full-box dashboard-sideBar-ct">
+                <!-- SideBar Title -->
+                <div class="full-box text-center dashboard-sideBar-title">
+                    <!-- Logotipo de Afrisan -->
+                    <img class="img" src="{% static 'images/afrisanlogo.png' %}" style="max-width: 80%; height: auto;">
+                </div>
+                <!-- SideBar User info -->
+                <div class="full-box dashboard-sideBar-UserInfo">
+                    {% block user_info %}
+                    <!-- Contenido específico de usuario que puede ser sobreescrito en otras plantillas -->
+                    {% endblock %}
+                    <ul class="full-box list-unstyled text-center">
+                        <li>
+                            <a href="#!" class="btn-exit-system">
+                                <i class="zmdi zmdi-power"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- SideBar Menu -->
+                <ul class="list-unstyled full-box dashboard-sideBar-Menu">
+                    {% block sidebar_menu %}
+                    <!-- Aquí puedes agregar elementos específicos para cada rol -->
+                    {% endblock %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- Content page-->
+        <section class="full-box dashboard-contentPage">
+            <!-- NavBar -->
+            <nav class="full-box dashboard-Navbar">
+                <ul class="full-box list-unstyled text-right">
+                    <li class="pull-left">
+                        <a href="#!" class="btn-menu-dashboard"><i class="zmdi zmdi-more-vert"></i></a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Contenido principal -->
+            <div class="content">
+                {% block contenido %}
+                <!-- Contenido específico de cada vista va aquí -->
+                {% endblock %}
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            {% block footer %}
+            <p class="mb-0">© 2024 Accesorios Frigoríficos Santiago. Todos los derechos reservados.</p>
+            {% endblock %}
+        </div>
+    </footer>
+
+    <!-- Include JavaScript files to enable toggle functionality -->
+    <script src="{% static 'js/jquery-3.1.1.min.js' %}"></script>
+    <script src="{% static 'js/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'js/material.min.js' %}"></script>
+    <script src="{% static 'js/ripples.min.js' %}"></script>
+    <script src="{% static 'js/jquery.mCustomScrollbar.concat.min.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}
+    <script>
+        $.material.init();
+    </script>
+    {% endblock %}
+</body>
+</html>

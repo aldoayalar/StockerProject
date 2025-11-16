@@ -1,0 +1,115 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block title %}Stocker | Bodega{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .dashboard-sideBar-UserInfo {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+        }
+        .dashboard-sideBar-UserInfo figure {
+            margin: 0;
+        }
+        .dashboard-sideBar-UserInfo i {
+            font-size: 50px;
+            color: #fff;
+        }
+        .dashboard-sideBar-UserInfo figcaption {
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .dashboard-sideBar-UserInfo figcaption small {
+            display: block;
+            font-size: 12px;
+            color: #ddd;
+        }
+        /* Reducción del tamaño del icono de apagado */
+        .dashboard-sideBar-UserInfo .btn-exit-system i {
+            font-size: 20px; /* Tamaño más pequeño para el icono de apagado */
+            color: #fff;
+        }
+        /* Centrando la tabla y agregando bordes */
+        .table-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px; /* Puedes ajustar la altura según necesites */
+        }
+
+        .table-responsive {
+            width: 80%; /* Ajusta el ancho de la tabla según prefieras */
+            margin: 0 auto;
+        }
+
+        /* Estilos para la tabla con bordes */
+        .table-bordered th, .table-bordered td {
+            border: 1px solid #dee2e6;
+        }
+    </style>
+{% endblock %}
+
+{% block user_info %}
+    <figure class="full-box text-center">
+        <i class="zmdi zmdi-account-circle"></i>
+        <!-- Nombre de usuario y rol -->
+        <figcaption class="text-titles">
+            {{ user.username }}<br>
+            <small><!-- Aquí va el rol obtenido desde la BBDD --></small>
+        </figcaption>
+    </figure>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <!-- Menú específico para el rol de Técnico -->
+    <ul class="list-unstyled full-box dashboard-sideBar-Menu">
+        <li>
+            <a href="#!" class="btn-sideBar-SubMenu">
+                <i class="zmdi zmdi-wrench zmdi-hc-fw"></i> Materiales <i class="zmdi zmdi-caret-down pull-right"></i>
+            </a>
+            <ul class="list-unstyled full-box">
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-plus zmdi-hc-fw"></i> Ingreso Material</a>
+                </li>
+                <li>
+                    <a href="#!"><i class="zmdi zmdi-plus zmdi-hc-fw"></i> Registrar Nuevo Material</a>
+                </li>  
+            </ul>
+        </li>
+    </ul>
+{% endblock %}
+
+{% block contenido %}
+    <!-- Contenedor de la tabla centrada -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Material</th>
+                        <th>Cantidad</th>
+                        <th>Stock Critico</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- mamarracho aqui va la cnx a la bbdd -->
+                    <!-- eso del for ID=material_id, Material=nombre(tb_material) -->
+                    <!-- Cantidad=cantidad_actual,stock_critico -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <p class="mb-0">© 2024 Accesorios Frigoríficos Santiago. Todos los derechos reservados.</p>
+{% endblock %}
+
+{% block extra_js %}
+    <!-- Scripts adicionales específicos para esta página, si es necesario -->
+{% endblock %}
+
