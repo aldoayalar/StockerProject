@@ -14,5 +14,8 @@ urlpatterns = [
 
     # Urls de Vistas basadas en funcionalidades
     path('historial_tecnico/', views.historial_tecnico, name='historial_tecnico'),
-    path('solicitud/', views.solicitud, name='solicitud')
+    path('solicitud/', views.solicitud, name='solicitud'),
+    path('inventario/', views.inventario, name='inventario'),
+    path('material/<int:id>/', views.detalle_material, name='detalle_material'),
+    path('material/<int:id>/editar/', views.editar_material, name='editar_material'),
 ]

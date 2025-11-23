@@ -1,0 +1,233 @@
+[
+  {
+    "model": "core.material",
+    "pk": 1,
+    "fields": {
+      "codigo": "REF001",
+      "descripcion": "Gas Refrigerante R410A",
+      "unidad_medida": "Kg",
+      "categoria": "Refrigerantes",
+      "ubicacion": "Bodega A1"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 2,
+    "fields": {
+      "codigo": "REF002",
+      "descripcion": "Compresor 2 HP",
+      "unidad_medida": "Unidad",
+      "categoria": "Compresores",
+      "ubicacion": "Bodega C3"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 3,
+    "fields": {
+      "codigo": "REF003",
+      "descripcion": "Válvula de expansión termostática",
+      "unidad_medida": "Unidad",
+      "categoria": "Válvulas",
+      "ubicacion": "Estante B5"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 4,
+    "fields": {
+      "codigo": "REF004",
+      "descripcion": "Filtro deshidratador 5/8\"",
+      "unidad_medida": "Unidad",
+      "categoria": "Filtros",
+      "ubicacion": "Bodega E2"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 5,
+    "fields": {
+      "codigo": "REF005",
+      "descripcion": "Aceite refrigerante POE 68",
+      "unidad_medida": "Litro",
+      "categoria": "Aceites",
+      "ubicacion": "Estante F1"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 6,
+    "fields": {
+      "codigo": "REF006",
+      "descripcion": "Cobre Tubo 3/8\" x 5m",
+      "unidad_medida": "Metro",
+      "categoria": "Tuberías",
+      "ubicacion": "Bodega D4"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 7,
+    "fields": {
+      "codigo": "REF007",
+      "descripcion": "Cable eléctrico 2x1,5mm",
+      "unidad_medida": "Metro",
+      "categoria": "Cables",
+      "ubicacion": "Estante H2"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 1,
+    "fields": {
+      "codigo": "REF001",
+      "descripcion": "Gas Refrigerante R410A",
+      "unidad_medida": "Kg",
+      "categoria": "Refrigerantes",
+      "ubicacion": "Bodega A1"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 2,
+    "fields": {
+      "codigo": "REF002",
+      "descripcion": "Compresor 2 HP",
+      "unidad_medida": "Unidad",
+      "categoria": "Compresores",
+      "ubicacion": "Bodega C3"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 3,
+    "fields": {
+      "codigo": "REF003",
+      "descripcion": "Válvula de expansión termostática",
+      "unidad_medida": "Unidad",
+      "categoria": "Válvulas",
+      "ubicacion": "Estante B5"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 4,
+    "fields": {
+      "codigo": "REF004",
+      "descripcion": "Filtro deshidratador 5/8\"",
+      "unidad_medida": "Unidad",
+      "categoria": "Filtros",
+      "ubicacion": "Bodega E2"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 5,
+    "fields": {
+      "codigo": "REF005",
+      "descripcion": "Aceite refrigerante POE 68",
+      "unidad_medida": "Litro",
+      "categoria": "Aceites",
+      "ubicacion": "Estante F1"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 6,
+    "fields": {
+      "codigo": "REF006",
+      "descripcion": "Cobre Tubo 3/8\" x 5m",
+      "unidad_medida": "Metro",
+      "categoria": "Tuberías",
+      "ubicacion": "Bodega D4"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 7,
+    "fields": {
+      "codigo": "REF007",
+      "descripcion": "Cable eléctrico 2x1,5mm",
+      "unidad_medida": "Metro",
+      "categoria": "Cables",
+      "ubicacion": "Estante H2"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 1,
+    "fields": {
+      "material": 1,
+      "stock_actual": 20,
+      "stock_min_dinamico": 5,
+      "stock_seguridad": 10,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 2,
+    "fields": {
+      "material": 2,
+      "stock_actual": 7,
+      "stock_min_dinamico": 2,
+      "stock_seguridad": 4,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 3,
+    "fields": {
+      "material": 3,
+      "stock_actual": 15,
+      "stock_min_dinamico": 4,
+      "stock_seguridad": 7,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 4,
+    "fields": {
+      "material": 4,
+      "stock_actual": 10,
+      "stock_min_dinamico": 3,
+      "stock_seguridad": 5,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 5,
+    "fields": {
+      "material": 5,
+      "stock_actual": 25,
+      "stock_min_dinamico": 8,
+      "stock_seguridad": 12,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 6,
+    "fields": {
+      "material": 6,
+      "stock_actual": 50,
+      "stock_min_dinamico": 10,
+      "stock_seguridad": 20,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 7,
+    "fields": {
+      "material": 7,
+      "stock_actual": 80,
+      "stock_min_dinamico": 15,
+      "stock_seguridad": 30,
+      "actualizado_en": "2025-11-23T12:00:00Z"
+    }
+  }
+]

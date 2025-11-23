@@ -1,0 +1,28 @@
+{% extends 'general/base.html' %}
+{% block contenido %}
+  <h2>Editar Material: {{ material.descripcion }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div>
+      <label>Código:</label>
+      <input type="text" name="codigo" value="{{ material.codigo }}">
+    </div>
+    <div>
+      <label>Descripción:</label>
+      <input type="text" name="descripcion" value="{{ material.descripcion }}">
+    </div>
+    <div>
+      <label>Unidad de medida:</label>
+      <input type="text" name="unidad_medida" value="{{ material.unidad_medida }}">
+    </div>
+    <div>
+      <label>Categoría:</label>
+      <input type="text" name="categoria" value="{{ material.categoria }}">
+    </div>
+    <div>
+      <label>Ubicación:</label>
+      <input type="text" name="ubicacion" value="{{ material.ubicacion }}">
+    </div>
+    <button type="submit">Guardar cambios</button>
+  </form>
+{% endblock %}

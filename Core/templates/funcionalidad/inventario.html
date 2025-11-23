@@ -1,11 +1,44 @@
 {% extends "general/base.html" %}
 {% load static %}
-<!--Titulo de la pagina-->
+Inventario actual
 {% block titulo %} {% endblock %}
 
 <!--Contenido-->
 {% block contenido %} 
 
-<!--Acá solo HTML body-->
+<div class="container mt-4">
+  <h2>Inventario de Materiales</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th>Stock Actual</th>
+        <th>Stock Crítico</th>
+        <th>Ubicación</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in inventario %}
+      <tr>
+        <td>{{ item.material.codigo }}</td>
+        <td>{{ item.material.descripcion }}</td>
+        <td>{{ item.stock_actual }}</td>
+        <td>{{ item.stock_seguridad }}</td>
+        <td>{{ item.material.ubicacion }}</td>
+        <td>
+          <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm">Ver</a>
+          <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm">Editar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6">No hay registros de inventario.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
 {% endblock %}
