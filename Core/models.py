@@ -20,18 +20,18 @@ class Usuario(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
 
 class Material(models.Model):
-    codigo = models.CharField(max_length=50)
+    codigo = models.CharField(max_length=50, unique=True)
     descripcion = models.TextField()
-    unidad_medida = models.CharField(max_length=20)
-    categoria = models.CharField(max_length=100)
-    ubicacion = models.CharField(max_length=100)
+    unidad_medida = models.CharField(max_length=30)
+    categoria = models.CharField(max_length=30)
+    ubicacion = models.CharField(max_length=30)
 
 class Inventario(models.Model):
     material = models.OneToOneField(Material, on_delete=models.CASCADE)
-    stock_actual = models.FloatField()
-    stock_min_dinamico = models.FloatField()
-    stock_seguridad = models.FloatField()
+    stock_actual = models.PositiveIntegerField()
+    stock_seguridad = models.PositiveIntegerField()
     actualizado_en = models.DateTimeField(auto_now=True)
+
 
 class Mensual(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)

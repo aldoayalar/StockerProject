@@ -1,44 +1,59 @@
 {% extends "general/base.html" %}
 {% load static %}
+
+{% block titulo %}
 Inventario actual
-{% block titulo %} {% endblock %}
+{% endblock %}
 
-<!--Contenido-->
-{% block contenido %} 
-
+{% block contenido %}
 <div class="container mt-4">
-  <h2>Inventario de Materiales</h2>
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Descripción</th>
-        <th>Stock Actual</th>
-        <th>Stock Crítico</th>
-        <th>Ubicación</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in inventario %}
-      <tr>
-        <td>{{ item.material.codigo }}</td>
-        <td>{{ item.material.descripcion }}</td>
-        <td>{{ item.stock_actual }}</td>
-        <td>{{ item.stock_seguridad }}</td>
-        <td>{{ item.material.ubicacion }}</td>
-        <td>
-          <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm">Ver</a>
-          <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm">Editar</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="6">No hay registros de inventario.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card shadow">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h4><i class="fas fa-warehouse"></i> Inventario de Materiales</h4>
+      <a href="{% url 'ingreso_material' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-plus"></i> Nuevo Material
+      </a>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col"><i class="fas fa-barcode"></i> Código</th>
+            <th scope="col"><i class="fas fa-info-circle"></i> Descripción</th>
+            <th scope="col"><i class="fas fa-cubes"></i> Stock Actual</th>
+            <th scope="col"><i class="fas fa-exclamation-triangle"></i> Stock Crítico</th>
+            <th scope="col"><i class="fas fa-map-marker-alt"></i> Ubicación</th>
+            <th scope="col"><i class="fas fa-cog"></i> Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in inventario %}
+          <tr {% if item.stock_actual <= item.stock_seguridad %} class="table-danger" {% endif %}>
+            <td><span class="badge bg-secondary">{{ item.material.codigo }}</span></td>
+            <td>{{ item.material.descripcion }}</td>
+            <td>{{ item.stock_actual }}</td>
+            <td>{{ item.stock_seguridad }}</td>
+            <td>{{ item.material.ubicacion }}</td>
+            <td>
+              <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
+                <i class="fas fa-eye"></i>
+              </a>
+              <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm" title="Editar">
+                <i class="fas fa-edit"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">No hay registros de inventario.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-light">
+      <span class="text-danger"><i class="fas fa-exclamation-circle"></i> Resaltados en rojo: materiales en stock crítico.</span>
+    </div>
+  </div>
 </div>
-
 {% endblock %}

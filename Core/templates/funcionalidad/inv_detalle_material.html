@@ -1,8 +1,48 @@
-<h2>Detalle de Material</h2>
-<ul>
-  <li>Código: {{ material.codigo }}</li>
-  <li>Descripción: {{ material.descripcion }}</li>
-  <li>Unidad: {{ material.unidad_medida }}</li>
-  <li>Categoría: {{ material.categoria }}</li>
-  <li>Ubicación: {{ material.ubicacion }}</li>
-</ul>
+{% extends 'general/base.html' %}
+{% load static %}
+
+{% block contenido %}
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-info text-white">
+      <h4>
+        <i class="fas fa-cube"></i> Detalle del Material
+      </h4>
+    </div>
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <strong><i class="fas fa-barcode"></i> Código:</strong>
+          <span class="badge bg-primary">{{ material.codigo }}</span>
+        </div>
+        <div class="col-md-6">
+          <strong><i class="fas fa-tags"></i> Categoría:</strong>
+          {{ material.categoria }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <strong><i class="fas fa-info-circle"></i> Descripción:</strong>
+        <div class="bg-light p-2 rounded">{{ material.descripcion }}</div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <strong><i class="fas fa-ruler"></i> Unidad de medida:</strong>
+          {{ material.unidad_medida }}
+        </div>
+        <div class="col-md-6">
+          <strong><i class="fas fa-map-marker-alt"></i> Ubicación:</strong>
+          {{ material.ubicacion }}
+        </div>
+      </div>
+    </div>
+    <div class="card-footer bg-light d-flex justify-content-between">
+      <a href="{% url 'editar_material' material.id %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Editar
+      </a>
+      <a href="{% url 'inventario' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
