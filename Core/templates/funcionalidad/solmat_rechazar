@@ -1,0 +1,44 @@
+{% extends 'general/base.html' %}
+{% block contenido %}
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-danger text-white">
+      <h4><i class="fas fa-ban"></i> Rechazar Solicitud</h4>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-3">Solicitante:</dt>
+        <dd class="col-sm-9">{{ solicitud.solicitante.username }}</dd>
+        
+        <dt class="col-sm-3">Material:</dt>
+        <dd class="col-sm-9">{{ solicitud.material.descripcion }}</dd>
+        
+        <dt class="col-sm-3">Cantidad:</dt>
+        <dd class="col-sm-9">{{ solicitud.cantidad }}</dd>
+        
+        <dt class="col-sm-3">Motivo:</dt>
+        <dd class="col-sm-9">{{ solicitud.motivo }}</dd>
+      </dl>
+      
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="observaciones" class="form-label">
+            <i class="fas fa-comment"></i> Observaciones (motivo del rechazo)
+          </label>
+          <textarea class="form-control" id="observaciones" name="observaciones" 
+                    rows="3" required placeholder="Explica el motivo del rechazo..."></textarea>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Cancelar
+          </a>
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-ban"></i> Confirmar Rechazo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

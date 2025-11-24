@@ -26,7 +26,7 @@ def chofer(request):
 def gerente(request):
     return render(request, 'rol/gerente.html')
 #----------------------------------------------------------------------------------------
-# Vista Login
+# ==================== AUTENTICACIÓN ====================
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -64,14 +64,15 @@ def historial_tecnico(request):
 def solicitud(request):
     return render(request, 'funcionalidad/solicitud.html')
 
-#inventario
+# ==================== INVENTARIO ====================
+
 @login_required
 def inventario(request):
     # Verificar stock crítico cada vez que se cargue el inventario
     #verificar_stock_critico(request.user)
     
     inventario = Inventario.objects.select_related('material').all()
-    return render(request, 'funcionalidad/inventario.html', {'inventario': inventario})
+    return render(request, 'funcionalidad/inv_inventario.html', {'inventario': inventario})
 
 @login_required
 def detalle_material(request, id):
@@ -157,17 +158,6 @@ def ingreso_material(request):
         form = MaterialInventarioForm(initial={'codigo': codigo_sugerido})
     return render(request, 'funcionalidad/inv_ingreso_material.html', {'form': form})
 
-def marcar_leida(request, id):
-    notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
-    notificacion.leida = True
-    notificacion.save()
-    if notificacion.url:
-        return redirect(notificacion.url)
-    return redirect('inventario')
-
-def marcar_todas_leidas(request):
-    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
-    return redirect('inventario')
 '''
 def verificar_stock_critico(usuario):
     """Genera notificaciones para materiales con stock crítico"""
@@ -188,3 +178,104 @@ def verificar_stock_critico(usuario):
                 url=f'/material/{item.material.id}/'
             )
 '''
+
+# ==================== SOLICITUDES DE MATERIALES ====================
+@login_required
+def crear_solicitud(request):
+    if request.method == 'POST':
+        form = SolicitudForm(request.POST)
+        if form.is_valid():
+            solicitud = form.save(commit=False)
+            solicitud.solicitante = request.user
+            solicitud.save()
+            
+            # Crear notificación para bodega/gerente
+            usuarios_bodega = User.objects.filter(groups__name__in=['Bodega', 'Gerente'], is_active=True).distinct()
+            if not usuarios_bodega.exists():
+                usuarios_bodega = User.objects.filter(is_staff=True, is_active=True)
+            
+            for usuario in usuarios_bodega:
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    tipo='solicitud_pendiente',
+                    mensaje=f'Nueva solicitud de {request.user.username}: {solicitud.material.descripcion} ({solicitud.cantidad} unidades)',
+                    url='/solicitudes/'
+                )
+            
+            messages.success(request, 'Solicitud creada exitosamente')
+            return redirect('mis_solicitudes')
+    else:
+        form = SolicitudForm()
+    
+    return render(request, 'funcionalidad/solmat_solicitud.html', {'form': form})
+
+@login_required
+def mis_solicitudes(request):
+    solicitudes = Solicitud.objects.filter(solicitante=request.user)
+    return render(request, 'funcionalidad/solmat_mis_solicitudes.html', {'solicitudes': solicitudes})
+
+@login_required
+def gestionar_solicitudes(request):
+    solicitudes = Solicitud.objects.all().select_related('solicitante', 'material')
+    return render(request, 'funcionalidad/solmat_gestionar.html', {'solicitudes': solicitudes})
+
+@login_required
+def aprobar_solicitud(request, id):
+    solicitud = get_object_or_404(Solicitud, id=id)
+    solicitud.estado = 'aprobada'
+    solicitud.respondido_por = request.user
+    solicitud.fecha_respuesta = timezone.now()
+    solicitud.save()
+    
+    # Notificar al solicitante
+    Notificacion.objects.create(
+        usuario=solicitud.solicitante,
+        tipo='aprobacion',
+        mensaje=f'Tu solicitud de {solicitud.material.descripcion} ha sido aprobada',
+        url='/mis-solicitudes/'
+    )
+    
+    messages.success(request, 'Solicitud aprobada exitosamente')
+    return redirect('gestionar_solicitudes')
+
+@login_required
+def rechazar_solicitud(request, id):
+    solicitud = get_object_or_404(Solicitud, id=id)
+    
+    if request.method == 'POST':
+        observaciones = request.POST.get('observaciones')
+        solicitud.estado = 'rechazada'
+        solicitud.respondido_por = request.user
+        solicitud.fecha_respuesta = timezone.now()
+        solicitud.observaciones = observaciones
+        solicitud.save()
+        
+        # Notificar al solicitante
+        Notificacion.objects.create(
+            usuario=solicitud.solicitante,
+            tipo='aprobacion',
+            mensaje=f'Tu solicitud de {solicitud.material.descripcion} ha sido rechazada',
+            url='/mis-solicitudes/'
+        )
+        
+        messages.warning(request, 'Solicitud rechazada')
+        return redirect('gestionar_solicitudes')
+    
+    return render(request, 'funcionalidad/solmat_rechazar.html', {'solicitud': solicitud})
+
+
+# ==================== NOTIFICACIONES ====================
+
+@login_required
+def marcar_leida(request, id):
+    notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
+    notificacion.leida = True
+    notificacion.save()
+    if notificacion.url:
+        return redirect(notificacion.url)
+    return redirect('inventario')
+
+@login_required
+def marcar_todas_leidas(request):
+    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
+    return redirect('inventario')
