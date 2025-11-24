@@ -1,11 +1,12 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import Inventario, Material, Notificacion
-from .forms import MaterialForm, MaterialInventarioForm
+from .models import Inventario, Material, Notificacion, Solicitud
+from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 
 #----------------------------------------------------------------------------------------
 # Vistas según roles
@@ -180,7 +181,7 @@ def verificar_stock_critico(usuario):
 '''
 
 # ==================== SOLICITUDES DE MATERIALES ====================
-@login_required
+@login_required # Crear nueva solicitud (Técnico)
 def crear_solicitud(request):
     if request.method == 'POST':
         form = SolicitudForm(request.POST)
@@ -209,17 +210,17 @@ def crear_solicitud(request):
     
     return render(request, 'funcionalidad/solmat_solicitud.html', {'form': form})
 
-@login_required
+@login_required # Ver mis solicitudes (Técnico)
 def mis_solicitudes(request):
     solicitudes = Solicitud.objects.filter(solicitante=request.user)
     return render(request, 'funcionalidad/solmat_mis_solicitudes.html', {'solicitudes': solicitudes})
 
-@login_required
+@login_required # Gestionar solicitudes (Bodega/Gerente)
 def gestionar_solicitudes(request):
     solicitudes = Solicitud.objects.all().select_related('solicitante', 'material')
     return render(request, 'funcionalidad/solmat_gestionar.html', {'solicitudes': solicitudes})
 
-@login_required
+@login_required # Aprobar solicitud
 def aprobar_solicitud(request, id):
     solicitud = get_object_or_404(Solicitud, id=id)
     solicitud.estado = 'aprobada'
@@ -238,7 +239,7 @@ def aprobar_solicitud(request, id):
     messages.success(request, 'Solicitud aprobada exitosamente')
     return redirect('gestionar_solicitudes')
 
-@login_required
+@login_required # Rechazar solicitud
 def rechazar_solicitud(request, id):
     solicitud = get_object_or_404(Solicitud, id=id)
     

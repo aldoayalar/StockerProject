@@ -3,154 +3,195 @@
     "model": "core.material",
     "pk": 1,
     "fields": {
-      "codigo": "REF001",
+      "codigo": "MAT0001",
       "descripcion": "Gas Refrigerante R410A",
-      "unidad_medida": "Kg",
-      "categoria": "Refrigerantes",
-      "ubicacion": "Bodega A1"
+      "unidad_medida": "kg",
+      "categoria": "insumo",
+      "ubicacion": "Bodega A1",
+      "fecha_creacion": "2025-11-20T10:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 2,
     "fields": {
-      "codigo": "REF002",
+      "codigo": "MAT0002",
       "descripcion": "Compresor 2 HP",
-      "unidad_medida": "Unidad",
-      "categoria": "Compresores",
-      "ubicacion": "Bodega C3"
+      "unidad_medida": "unidad",
+      "categoria": "equipo",
+      "ubicacion": "Bodega C3",
+      "fecha_creacion": "2025-11-20T10:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 3,
     "fields": {
-      "codigo": "REF003",
+      "codigo": "MAT0003",
       "descripcion": "Válvula de expansión termostática",
-      "unidad_medida": "Unidad",
-      "categoria": "Válvulas",
-      "ubicacion": "Estante B5"
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Estante B5",
+      "fecha_creacion": "2025-11-20T11:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 4,
     "fields": {
-      "codigo": "REF004",
-      "descripcion": "Filtro deshidratador 5/8\"",
-      "unidad_medida": "Unidad",
-      "categoria": "Filtros",
-      "ubicacion": "Bodega E2"
+      "codigo": "MAT0004",
+      "descripcion": "Filtro deshidratador 5/8",
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Bodega E2",
+      "fecha_creacion": "2025-11-20T11:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 5,
     "fields": {
-      "codigo": "REF005",
+      "codigo": "MAT0005",
       "descripcion": "Aceite refrigerante POE 68",
-      "unidad_medida": "Litro",
-      "categoria": "Aceites",
-      "ubicacion": "Estante F1"
+      "unidad_medida": "litro",
+      "categoria": "insumo",
+      "ubicacion": "Estante F1",
+      "fecha_creacion": "2025-11-20T12:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 6,
     "fields": {
-      "codigo": "REF006",
-      "descripcion": "Cobre Tubo 3/8\" x 5m",
-      "unidad_medida": "Metro",
-      "categoria": "Tuberías",
-      "ubicacion": "Bodega D4"
+      "codigo": "MAT0006",
+      "descripcion": "Tubo de cobre 3/8 pulgadas",
+      "unidad_medida": "metro",
+      "categoria": "insumo",
+      "ubicacion": "Bodega D4",
+      "fecha_creacion": "2025-11-20T12:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
     "pk": 7,
     "fields": {
-      "codigo": "REF007",
-      "descripcion": "Cable eléctrico 2x1,5mm",
-      "unidad_medida": "Metro",
-      "categoria": "Cables",
-      "ubicacion": "Estante H2"
+      "codigo": "MAT0007",
+      "descripcion": "Cable eléctrico 2x1.5mm",
+      "unidad_medida": "metro",
+      "categoria": "insumo",
+      "ubicacion": "Estante H2",
+      "fecha_creacion": "2025-11-20T13:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 1,
+    "pk": 8,
     "fields": {
-      "codigo": "REF001",
-      "descripcion": "Gas Refrigerante R410A",
-      "unidad_medida": "Kg",
-      "categoria": "Refrigerantes",
-      "ubicacion": "Bodega A1"
+      "codigo": "MAT0008",
+      "descripcion": "Manómetro digital",
+      "unidad_medida": "unidad",
+      "categoria": "herramienta",
+      "ubicacion": "Caja de herramientas 1",
+      "fecha_creacion": "2025-11-21T09:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 2,
+    "pk": 9,
     "fields": {
-      "codigo": "REF002",
-      "descripcion": "Compresor 2 HP",
-      "unidad_medida": "Unidad",
-      "categoria": "Compresores",
-      "ubicacion": "Bodega C3"
+      "codigo": "MAT0009",
+      "descripcion": "Bomba de vacío 4 CFM",
+      "unidad_medida": "unidad",
+      "categoria": "equipo",
+      "ubicacion": "Bodega C1",
+      "fecha_creacion": "2025-11-21T09:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 3,
+    "pk": 10,
     "fields": {
-      "codigo": "REF003",
-      "descripcion": "Válvula de expansión termostática",
-      "unidad_medida": "Unidad",
-      "categoria": "Válvulas",
-      "ubicacion": "Estante B5"
+      "codigo": "MAT0010",
+      "descripcion": "Termostato digital",
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Estante B3",
+      "fecha_creacion": "2025-11-21T10:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 4,
+    "pk": 11,
     "fields": {
-      "codigo": "REF004",
-      "descripcion": "Filtro deshidratador 5/8\"",
-      "unidad_medida": "Unidad",
-      "categoria": "Filtros",
-      "ubicacion": "Bodega E2"
+      "codigo": "MAT0011",
+      "descripcion": "Condensador 12000 BTU",
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Bodega C2",
+      "fecha_creacion": "2025-11-21T10:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 5,
+    "pk": 12,
     "fields": {
-      "codigo": "REF005",
-      "descripcion": "Aceite refrigerante POE 68",
-      "unidad_medida": "Litro",
-      "categoria": "Aceites",
-      "ubicacion": "Estante F1"
+      "codigo": "MAT0012",
+      "descripcion": "Motor ventilador 1/4 HP",
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Bodega C3",
+      "fecha_creacion": "2025-11-21T11:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 6,
+    "pk": 13,
     "fields": {
-      "codigo": "REF006",
-      "descripcion": "Cobre Tubo 3/8\" x 5m",
-      "unidad_medida": "Metro",
-      "categoria": "Tuberías",
-      "ubicacion": "Bodega D4"
+      "codigo": "MAT0013",
+      "descripcion": "Capacitor 45 MFD",
+      "unidad_medida": "unidad",
+      "categoria": "repuesto",
+      "ubicacion": "Estante B1",
+      "fecha_creacion": "2025-11-21T11:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
     "model": "core.material",
-    "pk": 7,
+    "pk": 14,
     "fields": {
-      "codigo": "REF007",
-      "descripcion": "Cable eléctrico 2x1,5mm",
-      "unidad_medida": "Metro",
-      "categoria": "Cables",
-      "ubicacion": "Estante H2"
+      "codigo": "MAT0014",
+      "descripcion": "Soldadura 15% plata",
+      "unidad_medida": "unidad",
+      "categoria": "insumo",
+      "ubicacion": "Estante F2",
+      "fecha_creacion": "2025-11-21T12:00:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.material",
+    "pk": 15,
+    "fields": {
+      "codigo": "MAT0015",
+      "descripcion": "Llave inglesa 12 pulgadas",
+      "unidad_medida": "unidad",
+      "categoria": "herramienta",
+      "ubicacion": "Caja de herramientas 2",
+      "fecha_creacion": "2025-11-21T12:30:00Z",
+      "fecha_modificacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -159,9 +200,9 @@
     "fields": {
       "material": 1,
       "stock_actual": 20,
-      "stock_min_dinamico": 5,
       "stock_seguridad": 10,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T10:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -170,9 +211,9 @@
     "fields": {
       "material": 2,
       "stock_actual": 7,
-      "stock_min_dinamico": 2,
       "stock_seguridad": 4,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T10:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -181,9 +222,9 @@
     "fields": {
       "material": 3,
       "stock_actual": 15,
-      "stock_min_dinamico": 4,
       "stock_seguridad": 7,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T11:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -191,10 +232,10 @@
     "pk": 4,
     "fields": {
       "material": 4,
-      "stock_actual": 10,
-      "stock_min_dinamico": 3,
+      "stock_actual": 3,
       "stock_seguridad": 5,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T11:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -203,9 +244,9 @@
     "fields": {
       "material": 5,
       "stock_actual": 25,
-      "stock_min_dinamico": 8,
       "stock_seguridad": 12,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T12:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -214,9 +255,9 @@
     "fields": {
       "material": 6,
       "stock_actual": 50,
-      "stock_min_dinamico": 10,
       "stock_seguridad": 20,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T12:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   },
   {
@@ -225,9 +266,97 @@
     "fields": {
       "material": 7,
       "stock_actual": 80,
-      "stock_min_dinamico": 15,
       "stock_seguridad": 30,
-      "actualizado_en": "2025-11-23T12:00:00Z"
+      "fecha_creacion": "2025-11-20T13:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 8,
+    "fields": {
+      "material": 8,
+      "stock_actual": 5,
+      "stock_seguridad": 2,
+      "fecha_creacion": "2025-11-21T09:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 9,
+    "fields": {
+      "material": 9,
+      "stock_actual": 3,
+      "stock_seguridad": 2,
+      "fecha_creacion": "2025-11-21T09:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 10,
+    "fields": {
+      "material": 10,
+      "stock_actual": 12,
+      "stock_seguridad": 5,
+      "fecha_creacion": "2025-11-21T10:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 11,
+    "fields": {
+      "material": 11,
+      "stock_actual": 4,
+      "stock_seguridad": 3,
+      "fecha_creacion": "2025-11-21T10:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 12,
+    "fields": {
+      "material": 12,
+      "stock_actual": 8,
+      "stock_seguridad": 4,
+      "fecha_creacion": "2025-11-21T11:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 13,
+    "fields": {
+      "material": 13,
+      "stock_actual": 20,
+      "stock_seguridad": 10,
+      "fecha_creacion": "2025-11-21T11:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 14,
+    "fields": {
+      "material": 14,
+      "stock_actual": 15,
+      "stock_seguridad": 8,
+      "fecha_creacion": "2025-11-21T12:00:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.inventario",
+    "pk": 15,
+    "fields": {
+      "material": 15,
+      "stock_actual": 6,
+      "stock_seguridad": 3,
+      "fecha_creacion": "2025-11-21T12:30:00Z",
+      "fecha_actualizacion": "2025-11-23T12:00:00Z"
     }
   }
 ]
