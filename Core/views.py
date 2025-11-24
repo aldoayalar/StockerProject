@@ -3,37 +3,69 @@ from .models import Inventario, Material, Notificacion
 from .forms import MaterialForm, MaterialInventarioForm
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 #----------------------------------------------------------------------------------------
 # Vistas según roles
 
+@login_required
 def tecnico(request):
     return render(request, 'rol/tecnico.html')
 
+@login_required
 def bodega(request):
     return render(request, 'rol/bodega.html')
 
+@login_required
 def chofer(request):
     return render(request, 'rol/chofer.html')
 
+@login_required
 def gerente(request):
     return render(request, 'rol/gerente.html')
 #----------------------------------------------------------------------------------------
 # Vista Login
 
-def login(request):
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('inventario')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            # Redirigir a la página que intentaba acceder o al inventario
+            next_url = request.GET.get('next', 'inventario')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Usuario o contraseña incorrectos')
+            
+    # Se ejecuta cuando el método es GET (primera vez que cargas la página)
     return render(request, 'general/login.html')
+        
+def logout_view(request):
+    logout(request)
+    messages.success(request, 'Has cerrado sesión exitosamente')
+    return redirect('login')
 
 #----------------------------------------------------------------------------------------
 # Vista según funcionalidad
 
+@login_required
 def historial_tecnico(request):
     return render(request, 'funcionalidad/historial_tecnico.html')
 
+@login_required
 def solicitud(request):
     return render(request, 'funcionalidad/solicitud.html')
 
 #inventario
+@login_required
 def inventario(request):
     # Verificar stock crítico cada vez que se cargue el inventario
     #verificar_stock_critico(request.user)
@@ -41,10 +73,12 @@ def inventario(request):
     inventario = Inventario.objects.select_related('material').all()
     return render(request, 'funcionalidad/inventario.html', {'inventario': inventario})
 
+@login_required
 def detalle_material(request, id):
     material = get_object_or_404(Material, id=id)
     return render(request, 'funcionalidad/inv_detalle_material.html', {'material': material})
 
+@login_required
 def editar_material(request, id):
     material = get_object_or_404(Material, id=id)
     material = get_object_or_404(Material, id=id)
@@ -97,6 +131,7 @@ def ingreso_material(request):
         form = MaterialForm()
     return render(request, 'funcionalidad/inv_ingreso_material.html', {'form': form})
 '''
+@login_required
 def ingreso_material(request):
     # Calcular código sugerido
     last_material = Material.objects.order_by('-id').first()

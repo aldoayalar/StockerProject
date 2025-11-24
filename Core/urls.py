@@ -4,7 +4,8 @@ from . import views
 urlpatterns = [
 
     # Url de Vista del login
-    path('', views.login, name='login'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
 
     # Urls de Vistas basadas en roles
     path('tecnico/', views.tecnico, name='tecnico'),
