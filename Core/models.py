@@ -1,7 +1,5 @@
-from django.db import models
-
-# Create your models here.
-from django.db import models
+from django.db import models, migrations
+from django.contrib.auth.models import User
 
 class Rol(models.Model):
     nombre = models.CharField(max_length=50)
@@ -51,10 +49,22 @@ class Alerta(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
 
 class Notificacion(models.Model):
-    alerta = models.ForeignKey(Alerta, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    descripcion = models.TextField()
+    TIPO_CHOICES = [
+        ('stock_critico', 'Stock Crítico'),
+        ('solicitud_pendiente', 'Solicitud Pendiente'),
+        ('material_nuevo', 'Material Nuevo'),
+        ('aprobacion', 'Aprobación Requerida'),
+    ]
+    
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    tipo = models.CharField(
+        max_length=30, 
+        choices=TIPO_CHOICES,
+        default='material_nuevo'
+    )
+    mensaje = models.TextField()
     leida = models.BooleanField(default=False)
+    url = models.CharField(max_length=200, blank=True, null=True)
     creada_en = models.DateTimeField(auto_now_add=True)
 
 class Solicitud(models.Model):
@@ -75,3 +85,14 @@ class Movimiento(models.Model):
     cantidad = models.FloatField()
     fecha = models.DateTimeField(auto_now_add=True)
     detalle = models.TextField(null=True, blank=True)
+    
+class Migration(migrations.Migration):
+    operations = [
+        migrations.RenameField(
+            model_name='notificacion',
+            old_name='descripcion',
+            new_name='mensaje',
+        ),
+    ]
+    
+

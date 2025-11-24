@@ -19,4 +19,8 @@ urlpatterns = [
     path('material/<int:id>/', views.detalle_material, name='detalle_material'),
     path('material/<int:id>/editar/', views.editar_material, name='editar_material'),
     path('ingreso-material/', views.ingreso_material, name='ingreso_material'),
+    
+    #Notificaciones
+    path('notificacion/<int:id>/leer/', views.marcar_leida, name='marcar_leida'),
+    path('notificaciones/leer-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
 ]

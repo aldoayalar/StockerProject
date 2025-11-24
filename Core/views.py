@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import Inventario, Material
+from .models import Inventario, Material, Notificacion
 from .forms import MaterialForm, MaterialInventarioForm
+from django.db import models
+from django.contrib.auth.models import User
 
 #----------------------------------------------------------------------------------------
 # Vistas según roles
@@ -33,6 +35,9 @@ def solicitud(request):
 
 #inventario
 def inventario(request):
+    # Verificar stock crítico cada vez que se cargue el inventario
+    #verificar_stock_critico(request.user)
+    
     inventario = Inventario.objects.select_related('material').all()
     return render(request, 'funcionalidad/inventario.html', {'inventario': inventario})
 
@@ -116,3 +121,35 @@ def ingreso_material(request):
         # Pre-cargar el código sugerido en el form
         form = MaterialInventarioForm(initial={'codigo': codigo_sugerido})
     return render(request, 'funcionalidad/inv_ingreso_material.html', {'form': form})
+
+def marcar_leida(request, id):
+    notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
+    notificacion.leida = True
+    notificacion.save()
+    if notificacion.url:
+        return redirect(notificacion.url)
+    return redirect('inventario')
+
+def marcar_todas_leidas(request):
+    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
+    return redirect('inventario')
+'''
+def verificar_stock_critico(usuario):
+    """Genera notificaciones para materiales con stock crítico"""
+    items_criticos = Inventario.objects.filter(
+        stock_actual__lte=models.F('stock_seguridad')
+    )
+    for item in items_criticos:
+        # Evitar duplicados
+        if not Notificacion.objects.filter(
+            tipo='stock_critico',
+            mensaje__contains=item.material.descripcion,
+            leida=False
+        ).exists():
+            Notificacion.objects.create(
+                usuario=usuario,
+                tipo='stock_critico',
+                mensaje=f'Stock crítico: {item.material.descripcion} - Quedan {item.stock_actual} unidades',
+                url=f'/material/{item.material.id}/'
+            )
+'''
