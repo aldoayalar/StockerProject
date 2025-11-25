@@ -1,53 +1,115 @@
-{% extends 'general/base.html' %}
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Mis Solicitudes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .solicitud-card {
+        transition: transform 0.2s;
+        border-left: 4px solid #6c757d;
+    }
+    .solicitud-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .solicitud-card.pendiente {
+        border-left-color: #ffc107;
+    }
+    .solicitud-card.aprobada {
+        border-left-color: #28a745;
+    }
+    .solicitud-card.rechazada {
+        border-left-color: #dc3545;
+    }
+    .solicitud-card.despachada {
+        border-left-color: #17a2b8;
+    }
+    .material-item {
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
 {% block contenido %}
-<div class="container mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-      <h4><i class="fas fa-list"></i> Mis Solicitudes</h4>
-      <a href="{% url 'crear_solicitud' %}" class="btn btn-success btn-sm">
-        <i class="fas fa-plus"></i> Nueva Solicitud
-      </a>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-list"></i> Mis Solicitudes</h2>
+        <a href="{% url 'crear_solicitud' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nueva Solicitud
+        </a>
     </div>
-    <div class="card-body p-0">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Material</th>
-            <th>Cantidad</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Observaciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for solicitud in solicitudes %}
-          <tr>
-            <td>{{ solicitud.id }}</td>
-            <td>{{ solicitud.material.descripcion }}</td>
-            <td>{{ solicitud.cantidad }}</td>
-            <td>
-              {% if solicitud.estado == 'pendiente' %}
-              <span class="badge bg-warning text-dark">Pendiente</span>
-              {% elif solicitud.estado == 'aprobada' %}
-              <span class="badge bg-success">Aprobada</span>
-              {% elif solicitud.estado == 'rechazada' %}
-              <span class="badge bg-danger">Rechazada</span>
-              {% else %}
-              <span class="badge bg-primary">Despachada</span>
-              {% endif %}
-            </td>
-            <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-            <td>{{ solicitud.observaciones|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted">No tienes solicitudes registradas</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+
+    {% if solicitudes %}
+        <div class="row">
+            {% for solicitud in solicitudes %}
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="card solicitud-card {{ solicitud.estado }} shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><strong>Solicitud #{{ solicitud.id }}</strong></span>
+                        {% if solicitud.estado == 'pendiente' %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% elif solicitud.estado == 'aprobada' %}
+                            <span class="badge bg-success">Aprobada</span>
+                        {% elif solicitud.estado == 'rechazada' %}
+                            <span class="badge bg-danger">Rechazada</span>
+                        {% elif solicitud.estado == 'despachada' %}
+                            <span class="badge bg-info">Despachada</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">
+                            <i class="far fa-calendar-alt"></i> 
+                            {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                        </p>
+                        
+                        <p class="mb-2"><strong>Motivo:</strong></p>
+                        <p class="text-muted small">{{ solicitud.motivo|truncatewords:15 }}</p>
+                        
+                        <hr>
+                        
+                        <p class="mb-2"><strong>Materiales ({{ solicitud.total_items }}):</strong></p>
+                        {% for detalle in solicitud.detalles.all|slice:":3" %}
+                        <div class="material-item small">
+                            <i class="fas fa-box"></i> {{ detalle.material.descripcion }}
+                            <span class="float-end badge bg-secondary">x{{ detalle.cantidad }}</span>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if solicitud.total_items > 3 %}
+                        <p class="text-muted small mt-2">
+                            <i class="fas fa-ellipsis-h"></i> Y {{ solicitud.total_items|add:"-3" }} más...
+                        </p>
+                        {% endif %}
+                        
+                        {% if solicitud.observaciones %}
+                        <div class="alert alert-info mt-3 mb-0 small">
+                            <strong>Observaciones:</strong><br>
+                            {{ solicitud.observaciones|truncatewords:10 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-light">
+                        <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-sm btn-primary w-100">
+                            <i class="fas fa-eye"></i> Ver Detalle
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h5>No tienes solicitudes registradas</h5>
+            <p class="mb-3">Crea tu primera solicitud para empezar a gestionar materiales</p>
+            <a href="{% url 'crear_solicitud' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Crear Primera Solicitud
+            </a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

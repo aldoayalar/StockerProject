@@ -1,0 +1,176 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Dashboard - Stocker{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid mt-4 px-3 px-md-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <div>
+      <h1 class="mb-2"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+      <p class="lead mb-0">Bienvenido, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+    </div>
+    <div class="mt-2 mt-md-0">
+      <span class="badge bg-primary">{{ user.get_role_display|default:"Usuario" }}</span>
+    </div>
+  </div>
+
+    <!-- Tarjetas de KPI - Responsive -->
+    <div class="row mt-4">
+    <!-- Total Materiales -->
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
+        <div class="card shadow-sm border-start border-primary border-4 h-100">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 text-primary">{{ total_materiales }}</h3>
+                <p class="text-muted mb-0"><small>Total Materiales</small></p>
+            </div>
+            <div class="text-primary fs-1">
+                <i class="fas fa-boxes"></i>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Total Usuarios -->
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
+        <div class="card shadow-sm border-start border-success border-4 h-100">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 text-success">{{ total_usuarios }}</h3>
+                <p class="text-muted mb-0"><small>Usuarios Activos</small></p>
+            </div>
+            <div class="text-success fs-1">
+                <i class="fas fa-users"></i>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Solicitudes Pendientes -->
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
+        <div class="card shadow-sm border-start border-warning border-4 h-100">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 text-warning">{{ solicitudes_pendientes }}</h3>
+                <p class="text-muted mb-0"><small>Solicitudes Pendientes</small></p>
+            </div>
+            <div class="text-warning fs-1">
+                <i class="fas fa-clock"></i>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Materiales Críticos -->
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
+        <div class="card shadow-sm border-start border-danger border-4 h-100">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 text-danger">{{ materiales_criticos }}</h3>
+                <p class="text-muted mb-0"><small>Stock Crítico</small></p>
+            </div>
+            <div class="text-danger fs-1">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Solicitudes Recientes - Responsive -->
+    <div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-history"></i> Solicitudes Recientes</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Solicitante</th>
+                    <th>Material</th>
+                    <th>Cantidad</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for solicitud in solicitudes_recientes %}
+                <tr>
+                    <td>{{ solicitud.id }}</td>
+                    <td>{{ solicitud.solicitante.username }}</td>
+                    <td>{{ solicitud.material.descripcion }}</td>
+                    <td>{{ solicitud.cantidad }}</td>
+                    <td>
+                    {% if solicitud.estado == 'pendiente' %}
+                        <span class="badge bg-warning text-dark">Pendiente</span>
+                    {% elif solicitud.estado == 'aprobada' %}
+                        <span class="badge bg-success">Aprobada</span>
+                    {% elif solicitud.estado == 'rechazada' %}
+                        <span class="badge bg-danger">Rechazada</span>
+                    {% else %}
+                        <span class="badge bg-primary">{{ solicitud.estado }}</span>
+                    {% endif %}
+                    </td>
+                    <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No hay solicitudes recientes</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+  <!-- Accesos Rápidos - Responsive -->
+    <div class="row mt-4 mb-4">
+    <div class="col-12 col-md-6 col-lg-4 mb-3">
+        <div class="card shadow-sm h-100">
+        <div class="card-body text-center">
+            <i class="fas fa-warehouse fa-3x text-primary mb-3"></i>
+            <h5>Inventario</h5>
+            <p class="text-muted">Consulta y gestiona el inventario</p>
+            <a href="{% url 'inventario' %}" class="btn btn-primary">Ver Inventario</a>
+        </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-4 mb-3">
+        <div class="card shadow-sm h-100">
+        <div class="card-body text-center">
+            <i class="fas fa-clipboard-list fa-3x text-success mb-3"></i>
+            <h5>Solicitudes</h5>
+            <p class="text-muted">Gestiona solicitudes de materiales</p>
+            <a href="{% url 'mis_solicitudes' %}" class="btn btn-success">Ver Solicitudes</a>
+        </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-4 mb-3">
+        <div class="card shadow-sm h-100">
+        <div class="card-body text-center">
+            <i class="fas fa-plus-circle fa-3x text-info mb-3"></i>
+            <h5>Nuevo Material</h5>
+            <p class="text-muted">Agregar un nuevo material</p>
+            <a href="{% url 'ingreso_material' %}" class="btn btn-info">Agregar Material</a>
+        </div>
+        </div>
+    </div>
+    </div>
+    {% endblock %}

@@ -1,13 +1,6 @@
 /*========= Importando hojas de estilo =========*/
-/* Bootstrap 3.3.7 */
-@import url('./bootstrap.min.css');
-/* Material desing for Bootstrap */
-@import url('./bootstrap-material-design.min.css');
-@import url('./ripples.min.css');
 /* Sweet Alert 2 */
 @import url('./sweetalert2.css');
-/* Malihu jQuery custom content scroller 3.1.5 */
-@import url('./jquery.mCustomScrollbar.css');
 /* Material Design Iconic Font 2.2.0 */
 @import url('./material-design-iconic-font.min.css');
 /*============ Fonts */
@@ -37,13 +30,17 @@
 body, html{
 	background-color: #fff;
 	width: 100%;
-	height: 100%;
+	height: 95vh;
 	margin: 0;
 	padding: 0;
 	position: relative;
 	font-size: 16px;
 	font-family: 'RobotoCondensed';
 	overflow: hidden;
+}
+body {
+  overflow-y: hidden;
+  height: 95vh;
 }
 .full-box{
 	margin: 0;
@@ -81,7 +78,7 @@ body, html{
 .dashboard-contentPage{
 	position: absolute;
 	top: 0;
-	height: 100%;
+	height: 95vh;
 	transition: all .3s ease-in-out;
 }
 /*sideBar*/
@@ -528,49 +525,6 @@ body, html{
   }
 }
 
-/*======= MEDIA QUERIES*/
-@media (max-width: 767px){
-	.dashboard-sideBar{
-		width: 100%;
-		z-index: 99;
-		background-image: none;
-		background-color: transparent;
-		border-right: none;
-		opacity: 0;
-		pointer-events: none;
-		overflow: hidden;
-	}
-	.dashboard-sideBar-ct,
-	.dashboard-sideBar-bg{
-		position: absolute;
-		top: 0;
-		left: 0;
-	}
-	.dashboard-sideBar-ct{
-		background-color: #000;
-		border-right: 1px solid rgba(255, 255, 255, .3);
-		z-index: 3;
-		max-width: 270px;
-		width: 100%;
-		transition: all .3s ease-in-out;
-		transform: translateX(-270px);
-	}
-	.dashboard-sideBar-bg{
-		height: 100%;
-		background-color: rgba(0, 0, 0, .6);
-		z-index: 2;
-	}
-	.dashboard-contentPage{
-		padding-left: 0;
-	}
-	.show-sidebar{
-		pointer-events: auto !important;
-		opacity: 1 !important;
-	}
-	.show-sidebar > .dashboard-sideBar-ct{
-		transform: translateX(0) !important;
-	}
-}
 @media (min-width: 768px) and (max-width: 991px){
 	.hide-sidebar{
 		pointer-events: none;
@@ -603,4 +557,64 @@ body, html{
 	.no-paddin-left{
 		padding-left: 0;
 	}
+}
+@media (max-width: 768px) {
+    .inventario-scroll .table {
+        min-width: 600px;
+    }
+}
+.inventario-scroll {
+    max-height: 60vh;      /* Cambia 60vh según el espacio disponible */
+    overflow-y: auto;
+    overflow-x: auto;
+}
+.inventario-scroll .table {
+    min-width: 900px;      /* Aumenta si tienes más columnas */
+}
+/* Opcional: Encabezado fijo al desplazarse */
+.inventario-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: #fff;      /* O ajusta según tu diseño */
+    z-index: 2;
+}
+/* Dashboard Responsive */
+.dashboard-kpi-card {
+    transition: transform 0.2s;
+}
+
+.dashboard-kpi-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Ajuste de tamaños de texto en móvil */
+@media (max-width: 576px) {
+    .dashboard-kpi-card h3 {
+        font-size: 1.5rem;
+    }
+    
+    .dashboard-kpi-card .fs-1 {
+        font-size: 2rem !important;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    .lead {
+        font-size: 1rem;
+    }
+}
+
+/* Ajuste de padding en contenedor principal */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+/* Tablas responsivas */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
 }

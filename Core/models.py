@@ -1,5 +1,6 @@
 from django.db import models, migrations
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Rol(models.Model):
     nombre = models.CharField(max_length=50)
@@ -37,10 +38,8 @@ class Material(models.Model):
     unidad_medida = models.CharField(max_length=20, choices=UNIDAD_CHOICES, default='unidad')
     categoria = models.CharField(max_length=50, choices=CATEGORIA_CHOICES, default='insumo')
     ubicacion = models.CharField(max_length=100, blank=True, null=True)
-    
-    # Timestamps automáticos
-    fecha_creacion = models.DateTimeField(auto_now_add=True)  # Solo al crear
-    fecha_modificacion = models.DateTimeField(auto_now=True)  # Se actualiza siempre
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
     
     class Meta:
         verbose_name_plural = "Materiales"
@@ -53,8 +52,6 @@ class Inventario(models.Model):
     material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='inventario')
     stock_actual = models.IntegerField(default=0)
     stock_seguridad = models.IntegerField(default=5)
-    
-    # Timestamps
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     
@@ -95,8 +92,6 @@ class Notificacion(models.Model):
     mensaje = models.TextField()
     leida = models.BooleanField(default=False)
     url = models.CharField(max_length=200, blank=True, null=True)
-    
-    # Timestamps
     creada_en = models.DateTimeField(auto_now_add=True)
     actualizada_en = models.DateTimeField(auto_now=True)
     
@@ -106,16 +101,11 @@ class Notificacion(models.Model):
     def __str__(self):
         return f"{self.tipo} - {self.usuario.username}"
     
-class Migration(migrations.Migration):
-    operations = [
-        migrations.RenameField(
-            model_name='notificacion',
-            old_name='descripcion',
-            new_name='mensaje',
-        ),
-    ]
 
 class Solicitud(models.Model):
+    """
+    Cabecera de la solicitud (ahora sin material ni cantidad directa)
+    """
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
         ('aprobada', 'Aprobada'),
@@ -124,46 +114,56 @@ class Solicitud(models.Model):
     ]
     
     solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes')
-    material = models.ForeignKey('Material', on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField()
     motivo = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    
-    # Timestamps automáticos
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)  # Nuevo
-    
-    respondido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_respondidas')
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    respondido_por = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='solicitudes_respondidas'
+    )
     observaciones = models.TextField(blank=True, null=True)
     
     class Meta:
         ordering = ['-fecha_solicitud']
     
     def __str__(self):
-        return f"Solicitud #{self.id} - {self.material.descripcion} ({self.estado})"
+        return f"Solicitud #{self.id} - {self.solicitante.username} ({self.estado})"
     
-    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes')
-    material = models.ForeignKey('Material', on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField()  # <-- Agrega default=1
-    motivo = models.TextField()
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    fecha_solicitud = models.DateTimeField(auto_now_add=True)
-    fecha_respuesta = models.DateTimeField(null=True, blank=True)
-    respondido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_respondidas')
-    observaciones = models.TextField(blank=True, null=True)
+    def total_items(self):
+        """Retorna el número total de ítems en esta solicitud"""
+        return self.detalles.count()
     
-    class Meta:
-        ordering = ['-fecha_solicitud']
-    
-    def __str__(self):
-        return f"Solicitud #{self.id} - {self.material.descripcion} ({self.estado})"
+    def total_cantidad(self):
+        """Retorna la cantidad total solicitada"""
+        return sum(detalle.cantidad for detalle in self.detalles.all())
 
 class DetalleSolicitud(models.Model):
+    """
+    Detalle de cada material solicitado en una solicitud
+    """
     solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, related_name='detalles')
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    cantidad_solicitada = models.FloatField()
-    cantidad_entregada = models.FloatField(null=True, blank=True)
+    cantidad = models.PositiveIntegerField()
+    cantidad_aprobada = models.PositiveIntegerField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Detalles de Solicitud"
+        unique_together = ('solicitud', 'material')  # Un material solo puede aparecer una vez por solicitud
+    
+    def __str__(self):
+        return f"{self.material.descripcion} - Cant: {self.cantidad}"
+    
+    def stock_disponible(self):
+        """Retorna el stock disponible del material"""
+        try:
+            return self.material.inventario.stock_actual
+        except:
+            return 0
 
 class Movimiento(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)

@@ -1,0 +1,244 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Historial de Solicitudes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: #f8f9fa;
+        border-left: 4px solid #3498db;
+    }
+    .stats-card {
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-3px);
+    }
+    .badge-estado {
+        font-size: 0.875rem;
+        padding: 0.35em 0.65em;
+    }
+    .table-actions a {
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history"></i> Historial de Solicitudes</h2>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stats-card shadow-sm border-start border-info border-4">
+                <div class="card-body">
+                    <h5 class="text-info mb-0">{{ stats.total }}</h5>
+                    <small class="text-muted">Total Solicitudes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stats-card shadow-sm border-start border-warning border-4">
+                <div class="card-body">
+                    <h5 class="text-warning mb-0">{{ stats.pendientes }}</h5>
+                    <small class="text-muted">Pendientes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stats-card shadow-sm border-start border-success border-4">
+                <div class="card-body">
+                    <h5 class="text-success mb-0">{{ stats.aprobadas }}</h5>
+                    <small class="text-muted">Aprobadas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card stats-card shadow-sm border-start border-danger border-4">
+                <div class="card-body">
+                    <h5 class="text-danger mb-0">{{ stats.rechazadas }}</h5>
+                    <small class="text-muted">Rechazadas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card filter-card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" id="filtro-form">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <label class="form-label">{{ form.fecha_desde.label }}</label>
+                        {{ form.fecha_desde }}
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label class="form-label">{{ form.fecha_hasta.label }}</label>
+                        {{ form.fecha_hasta }}
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label">{{ form.estado.label }}</label>
+                        {{ form.estado }}
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label">{{ form.material.label }}</label>
+                        {{ form.material }}
+                    </div>
+                    {% if user.is_staff %}
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label">{{ form.solicitante.label }}</label>
+                        {{ form.solicitante }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.buscar.label }}</label>
+                        {{ form.buscar }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{% url 'historial_solicitudes' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de resultados -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Resultados ({{ page_obj.paginator.count }} solicitudes)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Solicitante</th>
+                            <th>Material</th>
+                            <th>Cantidad</th>
+                            <th>Estado</th>
+                            <th>Fecha Solicitud</th>
+                            <th>Respondido Por</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for solicitud in solicitudes %}
+                        <tr>
+                            <td><strong>#{{ solicitud.id }}</strong></td>
+                            <td>{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</td>
+                            <td>{{ solicitud.material.descripcion }}</td>
+                            <td><span class="badge bg-secondary">{{ solicitud.cantidad }}</span></td>
+                            <td>
+                                {% if solicitud.estado == 'pendiente' %}
+                                    <span class="badge badge-estado bg-warning text-dark">Pendiente</span>
+                                {% elif solicitud.estado == 'aprobada' %}
+                                    <span class="badge badge-estado bg-success">Aprobada</span>
+                                {% elif solicitud.estado == 'rechazada' %}
+                                    <span class="badge badge-estado bg-danger">Rechazada</span>
+                                {% elif solicitud.estado == 'despachada' %}
+                                    <span class="badge badge-estado bg-info">Despachada</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if solicitud.respondido_por %}
+                                    {{ solicitud.respondido_por.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-actions">
+                                <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalleSolicitud{{ solicitud.id }}" title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                No se encontraron solicitudes con los filtros aplicados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Primera</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modales de detalle (uno por cada solicitud) -->
+{% for solicitud in solicitudes %}
+<div class="modal fade" id="detalleSolicitud{{ solicitud.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Detalle Solicitud #{{ solicitud.id }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Solicitante:</strong> {{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</p>
+                <p><strong>Material:</strong> {{ solicitud.material.descripcion }}</p>
+                <p><strong>Cantidad:</strong> {{ solicitud.cantidad }}</p>
+                <p><strong>Motivo:</strong> {{ solicitud.motivo }}</p>
+                <p><strong>Estado:</strong> {{ solicitud.get_estado_display }}</p>
+                <p><strong>Fecha:</strong> {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                {% if solicitud.respondido_por %}
+                <p><strong>Respondido por:</strong> {{ solicitud.respondido_por.username }}</p>
+                <p><strong>Fecha respuesta:</strong> {{ solicitud.fecha_respuesta|date:"d/m/Y H:i" }}</p>
+                {% endif %}
+                {% if solicitud.observaciones %}
+                <p><strong>Observaciones:</strong> {{ solicitud.observaciones }}</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

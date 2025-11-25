@@ -103,7 +103,7 @@
             top: 0;
             min-width: 180px;
             margin-left: -20px;
-            background: #2c3e50;
+            background: #18334dff;
             border: none;
             z-index: 2000;
         }
@@ -193,33 +193,71 @@
             
             <div class="sidebar-user">
                 {% block user_info %}
-                <i class="fas fa-user-circle"></i>
-                <p class="mb-0"><strong>Usuario</strong></p>
-                <small>Rol del Sistema</small>
+                    <i class="fas fa-user-circle"></i>
+                    <p class="mb-0">
+                        <strong>
+                            {% if user.is_authenticated %}
+                            {{ user.get_full_name|default:user.username }}
+                                {% else %}
+                                    Invitado
+                                {% endif %}
+                        </strong>
+                    </p>
+                    <small>
+                        {% if user.is_authenticated %}
+                            {% if user.is_superuser %}
+                                Administrador
+                            {% elif user.is_staff %}
+                                Staff
+                            {% else %}
+                                Usuario
+                            {% endif %}
+                        {% else %}
+                            Rol del Sistema
+                        {% endif %}
+                    </small>
                 {% endblock %}
             </div>
 
             <ul class="sidebar-menu">
                 {% block sidebar_menu %}
-                <li><a href="{% url 'inventario' %}"><i class="fas fa-warehouse"></i> Inventario</a></li>
-                <li><a href="{% url 'ingreso_material' %}"><i class="fas fa-plus-circle"></i> Nuevo Material</a></li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-clipboard-list"></i> Solicitudes
-                    </a>
+                 <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+    <li><a href="{% url 'inventario' %}"><i class="fas fa-warehouse"></i> Inventario</a></li>
+    <li><a href="{% url 'ingreso_material' %}"><i class="fas fa-plus-circle"></i> Nuevo Material</a></li>
+    
+    <!-- Menú desplegable de Solicitudes -->
+    <li class="dropdown">
+        <a class="dropdown-toggle" href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-clipboard-list"></i> Solicitudes
+        </a>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'crear_solicitud' %}">Nueva Solicitud</a></li>
+            <li><a class="dropdown-item" href="{% url 'mis_solicitudes' %}">Mis Solicitudes</a></li>
+            <li><a class="dropdown-item" href="{% url 'historial_solicitudes' %}"><i class="fas fa-history"></i> Historial</a></li>
+            {% if user.is_staff %}
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}">Gestionar Solicitudes</a></li>
+            {% endif %}
+        </ul>
+    </li>
+    
+    <li><a href="#"><i class="fas fa-chart-line"></i> Reportes</a></li>
+    
+    <!-- Configuración con Cambiar Contraseña -->
+    <li class="dropdown">
+        <a class="dropdown-toggle" href="#" id="sidebarConfigMenu" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-cog"></i> Configuración
+        </a>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'cambiar_password' %}">
+                <i class="fas fa-key"></i> Cambiar Contraseña
+            </a></li>
+        </ul>
+    </li>
+</ul>
 
-                    <ul class="dropdown-menu" aria-labelledby="sidebarSolicitudesMenu" style="background: #2c3e50; border: none;">
-                        <li><a class="dropdown-item text-white" style="background: transparent;" href="{% url 'crear_solicitud' %}"><i class="fas fa-plus"></i> Nueva Solicitud</a></li>
-                        <li><a class="dropdown-item text-white" style="background: transparent;" href="{% url 'mis_solicitudes' %}"><i class="fas fa-list-alt"></i> Mis Solicitudes</a></li>
-                    {% if user.is_staff %}
-                        <li><hr class="dropdown-divider" style="border-color: #34495e;"></li>
-                        <li><a class="dropdown-item text-white" style="background: transparent;" href="{% url 'gestionar_solicitudes' %}"><i class="fas fa-tasks"></i> Gestionar Solicitudes</a></li>
-                    {% endif %}
-                    </ul>
-                </li>
-                <li><a href="#"><i class="fas fa-history"></i> Historial</a></li>
-                <li><a href="#"><i class="fas fa-chart-line"></i> Reportes</a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> Configuración</a></li>
+<div class="sidebar-menu mt-auto">
+    
                 {% endblock %}
             </ul>
 

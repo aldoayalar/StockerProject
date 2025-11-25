@@ -1,5 +1,10 @@
 from django import forms
-from .models import Material, Inventario, Solicitud
+from .models import Material, Inventario, Solicitud, DetalleSolicitud
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
+
 
 class MaterialForm(forms.ModelForm):
     class Meta:
@@ -30,21 +35,190 @@ class MaterialInventarioForm(forms.ModelForm):
         }
         
 class SolicitudForm(forms.ModelForm):
-    material = forms.ModelChoiceField(
-        queryset=Material.objects.all(),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        empty_label="Selecciona un material"
+    """
+    Formulario para la cabecera de la solicitud
+    """
+    motivo = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Describe el motivo de tu solicitud...'
+        }),
+        label='Motivo de la solicitud'
     )
     
     class Meta:
         model = Solicitud
-        fields = ['material', 'cantidad', 'motivo']
-        widgets = {
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
-            'motivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-        labels = {
-            'material': 'Material solicitado',
-            'cantidad': 'Cantidad',
-            'motivo': 'Motivo de la solicitud',
-        }
+        fields = ['motivo']
+        
+class DetalleSolicitudForm(forms.ModelForm):
+    """
+    Formulario para cada detalle (material) de la solicitud
+    """
+    material = forms.ModelChoiceField(
+        queryset=Material.objects.all().order_by('descripcion'),
+        widget=forms.Select(attrs={
+            'class': 'form-select material-select',
+        }),
+        label='Material',
+        empty_label='Seleccionar material...'
+    )
+    
+    cantidad = forms.IntegerField(
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': 1,
+            'placeholder': 'Cantidad'
+        }),
+        label='Cantidad'
+    )
+    
+    class Meta:
+        model = DetalleSolicitud
+        fields = ['material', 'cantidad']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mostrar stock disponible en el label del material
+        self.fields['material'].label_from_instance = self.material_label_with_stock
+    
+    @staticmethod
+    def material_label_with_stock(obj):
+        try:
+            stock = obj.inventario.stock_actual
+            return f"{obj.descripcion} (Stock: {stock})"
+        except:
+            return f"{obj.descripcion} (Sin inventario)"
+        
+# Formset para manejar múltiples detalles
+DetalleSolicitudFormSet = inlineformset_factory(
+    Solicitud,
+    DetalleSolicitud,
+    form=DetalleSolicitudForm,
+    extra=1,  # Número de formularios vacíos iniciales
+    min_num=1,  # Mínimo 1 material
+    max_num=10,  # Máximo 10 materiales por solicitud
+    validate_min=True,
+    validate_max=True,
+    can_delete=True
+)
+        
+class FiltroSolicitudesForm(forms.Form):
+    """
+    Formulario para filtrar solicitudes en el historial
+    """
+    fecha_desde = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'placeholder': 'Fecha desde'
+        }),
+        label='Desde'
+    )
+    
+    fecha_hasta = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'placeholder': 'Fecha hasta'
+        }),
+        label='Hasta'
+    )
+    
+    estado = forms.ChoiceField(
+        required=False,
+        choices=[('', 'Todos los estados')] + Solicitud.ESTADO_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Estado'
+    )
+    
+    material = forms.ModelChoiceField(
+        required=False,
+        queryset=Material.objects.all().order_by('descripcion'),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'data-placeholder': 'Todos los materiales'
+        }),
+        label='Material',
+        empty_label='Todos los materiales'
+    )
+    
+    solicitante = forms.ModelChoiceField(
+        required=False,
+        queryset=User.objects.filter(is_active=True).order_by('username'),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Solicitante',
+        empty_label='Todos los usuarios'
+    )
+    
+    buscar = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por ID o motivo...'
+        }),
+        label='Búsqueda'
+    )
+        
+class CambiarPasswordForm(PasswordChangeForm):
+    """
+    Formulario personalizado para cambiar contraseña
+    """
+    old_password = forms.CharField(
+        label='Contraseña actual',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingresa tu contraseña actual',
+            'autocomplete': 'current-password'
+        })
+    )
+    new_password1 = forms.CharField(
+        label='Nueva contraseña',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingresa tu nueva contraseña',
+            'autocomplete': 'new-password'
+        }),
+        help_text='Mínimo 8 caracteres. No puede ser completamente numérica.'
+    )
+    new_password2 = forms.CharField(
+        label='Confirmar nueva contraseña',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirma tu nueva contraseña',
+            'autocomplete': 'new-password'
+        })
+    )
+
+    def clean_new_password2(self):
+        """
+        Validación personalizada que elimina espacios en blanco
+        """
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+        
+        # Eliminar espacios en blanco al inicio y final
+        if password1:
+            password1 = password1.strip()
+        if password2:
+            password2 = password2.strip()
+        
+        if password1 and password2:
+            if password1 != password2:
+                raise ValidationError(
+                    "Las dos contraseñas no coinciden. Verifica que sean exactamente iguales.",
+                    code='password_mismatch',
+                )
+        return password2
+
+    class Meta:
+        model = User
+        fields = ['old_password', 'new_password1', 'new_password2']
+        
