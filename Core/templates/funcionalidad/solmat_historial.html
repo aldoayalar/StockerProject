@@ -135,42 +135,49 @@
                     </thead>
                     <tbody>
                         {% for solicitud in solicitudes %}
-                        <tr>
-                            <td><strong>#{{ solicitud.id }}</strong></td>
-                            <td>{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</td>
-                            <td>{{ solicitud.material.descripcion }}</td>
-                            <td><span class="badge bg-secondary">{{ solicitud.cantidad }}</span></td>
-                            <td>
-                                {% if solicitud.estado == 'pendiente' %}
-                                    <span class="badge badge-estado bg-warning text-dark">Pendiente</span>
-                                {% elif solicitud.estado == 'aprobada' %}
-                                    <span class="badge badge-estado bg-success">Aprobada</span>
-                                {% elif solicitud.estado == 'rechazada' %}
-                                    <span class="badge badge-estado bg-danger">Rechazada</span>
-                                {% elif solicitud.estado == 'despachada' %}
-                                    <span class="badge badge-estado bg-info">Despachada</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                {% if solicitud.respondido_por %}
-                                    {{ solicitud.respondido_por.username }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="table-actions">
-                                <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalleSolicitud{{ solicitud.id }}" title="Ver detalle">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                No se encontraron solicitudes con los filtros aplicados.
-                            </td>
-                        </tr>
+                            <tr>
+                                <td class="text-center">#{{ solicitud.id }}</td>
+                                <td>{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</td>
+                                <td>
+                                    {% if solicitud.detalles.count == 1 %}
+                                        {{ solicitud.detalles.first.material.descripcion }}
+                                    {% else %}
+                                        Múltiples ({{ solicitud.detalles.count }})
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if solicitud.detalles.count == 1 %}
+                                        {{ solicitud.detalles.first.cantidad }}
+                                    {% else %}
+                                        {{ solicitud.total_cantidad }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if solicitud.estado == 'pendiente' %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif solicitud.estado == 'aprobada' %}
+                                        <span class="badge bg-success">Aprobada</span>
+                                    {% elif solicitud.estado == 'rechazada' %}
+                                        <span class="badge bg-danger">Rechazada</span>
+                                    {% elif solicitud.estado == 'despachada' %}
+                                        <span class="badge bg-info">Despachada</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                                <td class="text-center">
+                                    {% if solicitud.respondido_por %}
+                                        {{ solicitud.respondido_por.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+
                         {% endfor %}
                     </tbody>
                 </table>

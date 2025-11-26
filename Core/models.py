@@ -1,12 +1,19 @@
-from django.db import models, migrations
+# models.py - ESTRUCTURA ORIGINAL
+
+from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+# ==================== ROL ====================
+
 class Rol(models.Model):
     nombre = models.CharField(max_length=50)
-
+    
     def __str__(self):
         return self.nombre
+
+
+# ==================== USUARIO (tu modelo personalizado) ====================
 
 class Usuario(models.Model):
     nombre = models.CharField(max_length=100)
@@ -17,6 +24,12 @@ class Usuario(models.Model):
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.nombre} {self.apellido}"
+
+
+# ==================== MATERIALES ====================
 
 class Material(models.Model):
     UNIDAD_CHOICES = [
@@ -48,6 +61,9 @@ class Material(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
 
+
+# ==================== INVENTARIO ====================
+
 class Inventario(models.Model):
     material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='inventario')
     stock_actual = models.IntegerField(default=0)
@@ -62,6 +78,8 @@ class Inventario(models.Model):
         return f"Inventario: {self.material.descripcion} - Stock: {self.stock_actual}"
 
 
+# ==================== MENSUAL ====================
+
 class Mensual(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
     cantidad_promedio = models.FloatField()
@@ -70,6 +88,15 @@ class Mensual(models.Model):
     lead_time_calculado = models.IntegerField()
     stock_min_calculado = models.FloatField()
     fecha_calculo = models.DateTimeField()
+    
+    class Meta:
+        verbose_name_plural = "Mensuales"
+    
+    def __str__(self):
+        return f"Mensual - {self.material.codigo}"
+
+
+# ==================== ALERTA ====================
 
 class Alerta(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
@@ -78,6 +105,96 @@ class Alerta(models.Model):
     stock_min = models.FloatField()
     observacion = models.TextField(blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name_plural = "Alertas"
+    
+    def __str__(self):
+        return f"Alerta - {self.material.codigo}"
+
+
+# ==================== SOLICITUD (AHORA CON DETALLES) ====================
+
+class Solicitud(models.Model):
+    """
+    Cabecera de la solicitud - SIN material directo
+    """
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+        ('despachada', 'Despachada'),
+    ]
+    
+    # IMPORTANTE: Cambio solicitante a usar tu modelo Usuario personalizado
+    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes')
+    motivo = models.TextField()
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    fecha_respuesta = models.DateTimeField(null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    respondido_por = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='solicitudes_respondidas'
+    )
+    observaciones = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-fecha_solicitud']
+    
+    def __str__(self):
+        return f"Solicitud #{self.id} - {self.solicitante.username}"
+    
+    def total_items(self):
+        return self.detalles.count()
+    
+    def total_cantidad(self):
+        return sum(detalle.cantidad for detalle in self.detalles.all())
+
+
+# ==================== DETALLE SOLICITUD ====================
+
+class DetalleSolicitud(models.Model):
+    solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, related_name='detalles')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField()
+    cantidad_aprobada = models.PositiveIntegerField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Detalles de Solicitud"
+        unique_together = ('solicitud', 'material')
+    
+    def __str__(self):
+        return f"{self.material.descripcion} - Cant: {self.cantidad}"
+    
+    def stock_disponible(self):
+        try:
+            return self.material.inventario.stock_actual
+        except:
+            return 0
+
+
+# ==================== MOVIMIENTO ====================
+
+class Movimiento(models.Model):
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=50)
+    cantidad = models.FloatField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    detalle = models.TextField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Movimientos"
+    
+    def __str__(self):
+        return f"{self.tipo} - {self.material.codigo}"
+
+
+# ==================== NOTIFICACION ====================
 
 class Notificacion(models.Model):
     TIPO_CHOICES = [
@@ -100,79 +217,3 @@ class Notificacion(models.Model):
     
     def __str__(self):
         return f"{self.tipo} - {self.usuario.username}"
-    
-
-class Solicitud(models.Model):
-    """
-    Cabecera de la solicitud (ahora sin material ni cantidad directa)
-    """
-    ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('aprobada', 'Aprobada'),
-        ('rechazada', 'Rechazada'),
-        ('despachada', 'Despachada'),
-    ]
-    
-    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes')
-    motivo = models.TextField()
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    fecha_solicitud = models.DateTimeField(auto_now_add=True)
-    fecha_respuesta = models.DateTimeField(null=True, blank=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
-    respondido_por = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='solicitudes_respondidas'
-    )
-    observaciones = models.TextField(blank=True, null=True)
-    
-    class Meta:
-        ordering = ['-fecha_solicitud']
-    
-    def __str__(self):
-        return f"Solicitud #{self.id} - {self.solicitante.username} ({self.estado})"
-    
-    def total_items(self):
-        """Retorna el número total de ítems en esta solicitud"""
-        return self.detalles.count()
-    
-    def total_cantidad(self):
-        """Retorna la cantidad total solicitada"""
-        return sum(detalle.cantidad for detalle in self.detalles.all())
-
-class DetalleSolicitud(models.Model):
-    """
-    Detalle de cada material solicitado en una solicitud
-    """
-    solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, related_name='detalles')
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField()
-    cantidad_aprobada = models.PositiveIntegerField(null=True, blank=True)
-    
-    class Meta:
-        verbose_name_plural = "Detalles de Solicitud"
-        unique_together = ('solicitud', 'material')  # Un material solo puede aparecer una vez por solicitud
-    
-    def __str__(self):
-        return f"{self.material.descripcion} - Cant: {self.cantidad}"
-    
-    def stock_disponible(self):
-        """Retorna el stock disponible del material"""
-        try:
-            return self.material.inventario.stock_actual
-        except:
-            return 0
-
-class Movimiento(models.Model):
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    tipo = models.CharField(max_length=50)
-    cantidad = models.FloatField()
-    fecha = models.DateTimeField(auto_now_add=True)
-    detalle = models.TextField(null=True, blank=True)
-    
-
-    
-

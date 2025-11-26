@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 
 from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud
-from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet
+from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
 
 #----------------------------------------------------------------------------------------
 # Vistas según roles
@@ -119,18 +119,23 @@ def detalle_material(request, id):
 @login_required
 def editar_material(request, id):
     material = get_object_or_404(Material, id=id)
-    material = get_object_or_404(Material, id=id)
+    
     if request.method == 'POST':
-        # Captura datos del formulario
-        material.codigo = request.POST.get('codigo')
-        material.descripcion = request.POST.get('descripcion')
-        material.unidad_medida = request.POST.get('unidad_medida')
-        material.categoria = request.POST.get('categoria')
-        material.ubicacion = request.POST.get('ubicacion')
-        material.save()
-        # Luego de guardar, redirige a alguna vista
-        return redirect('inventario')
-    return render(request, 'funcionalidad/inv_editar_material.html', {'material': material})
+        form = EditarMaterialForm(request.POST, instance=material)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Material {material.codigo} actualizado exitosamente.')
+            return redirect('inventario')
+        else:
+            messages.error(request, 'Por favor corrige los errores del formulario.')
+    else:
+        form = EditarMaterialForm(instance=material)
+    
+    return render(request, 'funcionalidad/inv_editar_material.html', {
+        'form': form,
+        'material': material
+    })
+
 
 
 @login_required
@@ -215,7 +220,7 @@ def mis_solicitudes(request):
     context = {
         'solicitudes': solicitudes,
     }
-    return render(request, 'funcionalidad/mis_solicitudes.html', context)
+    return render(request, 'funcionalidad/solmat_mis_solicitudes.html', context)
 
 @login_required
 def detalle_solicitud(request, solicitud_id):
@@ -350,7 +355,8 @@ def historial_solicitudes(request):
         # Filtro por material
         material = form.cleaned_data.get('material')
         if material:
-            solicitudes = solicitudes.filter(material=material)
+            solicitudes = solicitudes.filter(detalles__material=material).distinct()
+
         
         # Filtro por solicitante (solo para staff)
         if request.user.is_staff:
@@ -369,8 +375,9 @@ def historial_solicitudes(request):
     
     # Ordenar por fecha (más recientes primero)
     solicitudes = solicitudes.select_related(
-        'solicitante', 'material', 'respondido_por'
-    ).order_by('-fecha_solicitud')
+        'solicitante', 'respondido_por'
+    ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
+
     
     # Paginación (15 por página)
     paginator = Paginator(solicitudes, 15)
@@ -435,10 +442,11 @@ def dashboard(request):
     )['total'] or 0
     
     # Solicitudes recientes (últimas 5)
-    solicitudes_recientes = Solicitud.objects.select_related(
-        'solicitante', 'material'
-    ).order_by('-fecha_solicitud')[:5]
     
+    solicitudes_recientes = Solicitud.objects.select_related(
+        'solicitante'
+    ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
+
     context = {
         'total_materiales': total_materiales,
         'total_usuarios': total_usuarios,

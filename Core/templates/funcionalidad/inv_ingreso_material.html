@@ -13,6 +13,12 @@
           <div class="col-md-4 mb-3">
              <label for="id_codigo" class="form-label"><i class="fas fa-barcode"></i> Código</label>
                 {{ form.codigo }}
+                <!-- Mostrar errores del campo código -->
+                  {% if form.codigo.errors %}
+                      <div class="text-danger small mt-1">
+                          {{ form.codigo.errors }}
+                      </div>
+                  {% endif %}
                 <span class="form-text text-muted">
                     Se genera automáticamente, pero puedes modificarlo si lo necesitas.
                  </span>

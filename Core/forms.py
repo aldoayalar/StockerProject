@@ -19,9 +19,18 @@ class MaterialForm(forms.ModelForm):
         }
 
 class MaterialInventarioForm(forms.ModelForm):
-    # Campos adicionales del stock inicial
-    stock_actual = forms.IntegerField(min_value=0, required=True, label="Stock Inicial")
-    stock_seguridad = forms.IntegerField(min_value=0, required=True, label="Stock Crítico")
+    stock_actual = forms.IntegerField(
+        min_value=0, 
+        required=True, 
+        label="Stock Inicial",
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    stock_seguridad = forms.IntegerField(
+        min_value=0, 
+        required=True, 
+        label="Stock Crítico",
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
     
     class Meta:
         model = Material
@@ -29,10 +38,60 @@ class MaterialInventarioForm(forms.ModelForm):
         widgets = {
             'codigo': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'unidad_medida': forms.TextInput(attrs={'class': 'form-control'}),
-            'categoria': forms.TextInput(attrs={'class': 'form-control'}),
+            'unidad_medida': forms.Select(attrs={'class': 'form-select'}),  # ✅ Select
+            'categoria': forms.Select(attrs={'class': 'form-select'}),      # ✅ Select
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
         }
+        
+        def clean_codigo(self):
+            """
+            Valida que el código no exista ya en la base de datos
+            """
+            codigo = self.cleaned_data.get('codigo')
+            # Verificar si el código ya existe
+            if Material.objects.filter(codigo=codigo).exists():
+                raise ValidationError(
+                    f'El código "{codigo}" ya está registrado. Por favor usa otro código.'
+                )
+            
+            # Siempre devolver el valor limpio
+            return codigo
+        
+class EditarMaterialForm(forms.ModelForm):
+    """
+    Formulario para editar un material existente
+    """
+    class Meta:
+        model = Material
+        fields = ['codigo', 'descripcion', 'unidad_medida', 'categoria', 'ubicacion']
+        widgets = {
+            'codigo': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'unidad_medida': forms.Select(attrs={'class': 'form-select'}),
+            'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.instance_id = kwargs.get('instance').id if kwargs.get('instance') else None
+        super().__init__(*args, **kwargs)
+    
+    def clean_codigo(self):
+        """
+        Valida que el código no exista, excepto para el material actual
+        """
+        codigo = self.cleaned_data.get('codigo')
+        
+        # Verificar si existe otro material con ese código (excluyendo el actual)
+        exists = Material.objects.filter(codigo=codigo).exclude(id=self.instance_id).exists()
+        
+        if exists:
+            raise ValidationError(
+                f'El código "{codigo}" ya está registrado en otro material. Por favor usa otro código.'
+            )
+        
+        return codigo
+
         
 class SolicitudForm(forms.ModelForm):
     """

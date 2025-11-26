@@ -15,45 +15,65 @@
         
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label for="codigo" class="form-label">
+            <label for="id_codigo" class="form-label">
               <i class="fas fa-barcode"></i> Código
             </label>
-            <input type="text" class="form-control" id="codigo" name="codigo" 
-                   value="{{ material.codigo }}" required>
+            {{ form.codigo }}
+            {% if form.codigo.errors %}
+              <div class="text-danger small mt-1">
+                {{ form.codigo.errors }}
+              </div>
+            {% endif %}
           </div>
 
           <div class="col-md-6 mb-3">
-            <label for="categoria" class="form-label">
+            <label for="id_categoria" class="form-label">
               <i class="fas fa-tags"></i> Categoría
             </label>
-            <input type="text" class="form-control" id="categoria" name="categoria" 
-                   value="{{ material.categoria }}" required>
+            {{ form.categoria }}
+            {% if form.categoria.errors %}
+              <div class="text-danger small mt-1">
+                {{ form.categoria.errors }}
+              </div>
+            {% endif %}
           </div>
         </div>
 
         <div class="mb-3">
-          <label for="descripcion" class="form-label">
+          <label for="id_descripcion" class="form-label">
             <i class="fas fa-info-circle"></i> Descripción
           </label>
-          <textarea class="form-control" id="descripcion" name="descripcion" 
-                    rows="2" required>{{ material.descripcion }}</textarea>
+          {{ form.descripcion }}
+          {% if form.descripcion.errors %}
+            <div class="text-danger small mt-1">
+              {{ form.descripcion.errors }}
+            </div>
+          {% endif %}
         </div>
 
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label for="unidad_medida" class="form-label">
+            <label for="id_unidad_medida" class="form-label">
               <i class="fas fa-ruler"></i> Unidad de medida
             </label>
-            <input type="text" class="form-control" id="unidad_medida" name="unidad_medida" 
-                   value="{{ material.unidad_medida }}" required>
+            {{ form.unidad_medida }}
+            {% if form.unidad_medida.errors %}
+              <div class="text-danger small mt-1">
+                {{ form.unidad_medida.errors }}
+              </div>
+            {% endif %}
           </div>
 
           <div class="col-md-6 mb-3">
-            <label for="ubicacion" class="form-label">
+            <label for="id_ubicacion" class="form-label">
               <i class="fas fa-map-marker-alt"></i> Ubicación
             </label>
-            <input type="text" class="form-control" id="ubicacion" name="ubicacion" 
-                   value="{{ material.ubicacion }}" required>
+            {{ form.ubicacion }}
+            {% if form.ubicacion.errors %}
+              <div class="text-danger small mt-1">
+                {{ form.ubicacion.errors }}
+              </div>
+            {% endif %}
           </div>
         </div>
 
