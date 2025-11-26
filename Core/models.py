@@ -1,5 +1,3 @@
-# models.py - ESTRUCTURA ORIGINAL
-
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -217,3 +215,16 @@ class Notificacion(models.Model):
     
     def __str__(self):
         return f"{self.tipo} - {self.usuario.username}"
+
+class MLResult(models.Model):
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='resultados_ml')
+    demanda_promedio = models.FloatField()
+    desviacion = models.FloatField()
+    leadtime_dias = models.IntegerField()
+    stock_min_calculado = models.IntegerField()
+    version_modelo = models.CharField(max_length=40, default='v1.0')
+    fecha_calculo = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'ml_result'
+        ordering = ['-fecha_calculo']

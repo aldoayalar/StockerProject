@@ -1,0 +1,2837 @@
+[
+  {
+    "model": "core.solicitud",
+    "pk": 1,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo equipo refrigeración comercial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-15T10:30:00Z",
+      "fecha_respuesta": "2025-06-15T11:00:00Z",
+      "fecha_actualizacion": "2025-06-15T11:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 1,
+    "fields": {
+      "solicitud": 1,
+      "material": 1,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 2,
+    "fields": {
+      "solicitud": 1,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 2,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación sistema refrigeración industrial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-20T14:20:00Z",
+      "fecha_respuesta": "2025-06-20T15:00:00Z",
+      "fecha_actualizacion": "2025-06-20T15:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 3,
+    "fields": {
+      "solicitud": 2,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 4,
+    "fields": {
+      "solicitud": 2,
+      "material": 3,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 3,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación urgente compresor",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-05T09:15:00Z",
+      "fecha_respuesta": "2025-07-05T09:45:00Z",
+      "fecha_actualizacion": "2025-07-05T09:45:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 5,
+    "fields": {
+      "solicitud": 3,
+      "material": 1,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 6,
+    "fields": {
+      "solicitud": 3,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 4,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento cámara frigorífica",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-18T11:30:00Z",
+      "fecha_respuesta": "2025-07-18T12:00:00Z",
+      "fecha_actualizacion": "2025-07-18T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 7,
+    "fields": {
+      "solicitud": 4,
+      "material": 2,
+      "cantidad": 6
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 8,
+    "fields": {
+      "solicitud": 4,
+      "material": 5,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 5,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-02T08:45:00Z",
+      "fecha_respuesta": "2025-08-02T09:15:00Z",
+      "fecha_actualizacion": "2025-08-02T09:15:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 9,
+    "fields": {
+      "solicitud": 5,
+      "material": 1,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 10,
+    "fields": {
+      "solicitud": 5,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 6,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico preventivo",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-15T13:20:00Z",
+      "fecha_respuesta": "2025-08-15T14:00:00Z",
+      "fecha_actualizacion": "2025-08-15T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 11,
+    "fields": {
+      "solicitud": 6,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 12,
+    "fields": {
+      "solicitud": 6,
+      "material": 6,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 7,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema de enfriamiento",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-03T10:00:00Z",
+      "fecha_respuesta": "2025-09-03T10:30:00Z",
+      "fecha_actualizacion": "2025-09-03T10:30:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 13,
+    "fields": {
+      "solicitud": 7,
+      "material": 1,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 14,
+    "fields": {
+      "solicitud": 7,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 8,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación equipo nuevo cliente",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-20T09:30:00Z",
+      "fecha_respuesta": "2025-09-20T10:00:00Z",
+      "fecha_actualizacion": "2025-09-20T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 15,
+    "fields": {
+      "solicitud": 8,
+      "material": 2,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 16,
+    "fields": {
+      "solicitud": 8,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 9,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento correctivo urgente",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-08T14:45:00Z",
+      "fecha_respuesta": "2025-10-08T15:15:00Z",
+      "fecha_actualizacion": "2025-10-08T15:15:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 17,
+    "fields": {
+      "solicitud": 9,
+      "material": 1,
+      "cantidad": 6
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 18,
+    "fields": {
+      "solicitud": 9,
+      "material": 3,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 10,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reposición materiales bodega",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-22T11:00:00Z",
+      "fecha_respuesta": "2025-10-22T11:30:00Z",
+      "fecha_actualizacion": "2025-10-22T11:30:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 19,
+    "fields": {
+      "solicitud": 10,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 20,
+    "fields": {
+      "solicitud": 10,
+      "material": 7,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 11,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Proyecto instalación cámara frigorífica grande",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-05T08:30:00Z",
+      "fecha_respuesta": "2025-11-05T09:00:00Z",
+      "fecha_actualizacion": "2025-11-05T09:00:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 21,
+    "fields": {
+      "solicitud": 11,
+      "material": 1,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 22,
+    "fields": {
+      "solicitud": 11,
+      "material": 4,
+      "cantidad": 6
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 23,
+    "fields": {
+      "solicitud": 11,
+      "material": 8,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 12,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico mensual",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-18T10:15:00Z",
+      "fecha_respuesta": "2025-11-18T10:45:00Z",
+      "fecha_actualizacion": "2025-11-18T10:45:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 24,
+    "fields": {
+      "solicitud": 12,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 25,
+    "fields": {
+      "solicitud": 12,
+      "material": 5,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 13,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico preventivo trimestral",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-04T08:04:00Z",
+      "fecha_respuesta": "2025-07-04T09:56:00Z",
+      "fecha_actualizacion": "2025-07-04T09:56:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 26,
+    "fields": {
+      "solicitud": 13,
+      "material": 1,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 27,
+    "fields": {
+      "solicitud": 13,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 28,
+    "fields": {
+      "solicitud": 13,
+      "material": 2,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 29,
+    "fields": {
+      "solicitud": 13,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 14,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación válvula expansión",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-31T14:16:00Z",
+      "fecha_respuesta": "2025-07-31T15:01:00Z",
+      "fecha_actualizacion": "2025-07-31T15:01:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 30,
+    "fields": {
+      "solicitud": 14,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 31,
+    "fields": {
+      "solicitud": 14,
+      "material": 1,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 32,
+    "fields": {
+      "solicitud": 14,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 33,
+    "fields": {
+      "solicitud": 14,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 15,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo mensual",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-02T12:47:00Z",
+      "fecha_respuesta": "2025-11-02T13:41:00Z",
+      "fecha_actualizacion": "2025-11-02T13:41:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 34,
+    "fields": {
+      "solicitud": 15,
+      "material": 3,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 35,
+    "fields": {
+      "solicitud": 15,
+      "material": 1,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 36,
+    "fields": {
+      "solicitud": 15,
+      "material": 7,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 16,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación termostatos digitales",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-10T09:24:00Z",
+      "fecha_respuesta": "2025-08-10T11:17:00Z",
+      "fecha_actualizacion": "2025-08-10T11:17:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 37,
+    "fields": {
+      "solicitud": 16,
+      "material": 1,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 38,
+    "fields": {
+      "solicitud": 16,
+      "material": 7,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 17,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Cambio filtros deshidratadores",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-06T10:47:00Z",
+      "fecha_respuesta": "2025-07-06T11:57:00Z",
+      "fecha_actualizacion": "2025-07-06T11:57:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 39,
+    "fields": {
+      "solicitud": 17,
+      "material": 1,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 40,
+    "fields": {
+      "solicitud": 17,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 18,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Cambio compresor averiado",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-04T11:36:00Z",
+      "fecha_respuesta": "2025-07-04T13:20:00Z",
+      "fecha_actualizacion": "2025-07-04T13:20:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 41,
+    "fields": {
+      "solicitud": 18,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 42,
+    "fields": {
+      "solicitud": 18,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 43,
+    "fields": {
+      "solicitud": 18,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 19,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación equipo cliente comercial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-26T16:14:00Z",
+      "fecha_respuesta": "2025-08-26T18:07:00Z",
+      "fecha_actualizacion": "2025-08-26T18:07:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 44,
+    "fields": {
+      "solicitud": 19,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 45,
+    "fields": {
+      "solicitud": 19,
+      "material": 8,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 46,
+    "fields": {
+      "solicitud": 19,
+      "material": 7,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 47,
+    "fields": {
+      "solicitud": 19,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 20,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema control temperatura",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-26T17:19:00Z",
+      "fecha_respuesta": "2025-07-26T19:15:00Z",
+      "fecha_actualizacion": "2025-07-26T19:15:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 48,
+    "fields": {
+      "solicitud": 20,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 49,
+    "fields": {
+      "solicitud": 20,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 50,
+    "fields": {
+      "solicitud": 20,
+      "material": 9,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 21,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación fuga refrigerante",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-18T08:02:00Z",
+      "fecha_respuesta": "2025-09-18T09:32:00Z",
+      "fecha_actualizacion": "2025-09-18T09:32:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 51,
+    "fields": {
+      "solicitud": 21,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 52,
+    "fields": {
+      "solicitud": 21,
+      "material": 1,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 53,
+    "fields": {
+      "solicitud": 21,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 22,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación fuga refrigerante",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-21T14:02:00Z",
+      "fecha_respuesta": "2025-07-21T15:42:00Z",
+      "fecha_actualizacion": "2025-07-21T15:42:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 54,
+    "fields": {
+      "solicitud": 22,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 55,
+    "fields": {
+      "solicitud": 22,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 56,
+    "fields": {
+      "solicitud": 22,
+      "material": 4,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 23,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación sistema aire acondicionado",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-26T10:19:00Z",
+      "fecha_respuesta": "2025-07-26T12:19:00Z",
+      "fecha_actualizacion": "2025-07-26T12:19:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 57,
+    "fields": {
+      "solicitud": 23,
+      "material": 8,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 58,
+    "fields": {
+      "solicitud": 23,
+      "material": 1,
+      "cantidad": 6
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 59,
+    "fields": {
+      "solicitud": 23,
+      "material": 9,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 24,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora nueva",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-28T13:24:00Z",
+      "fecha_respuesta": "2025-10-28T15:24:00Z",
+      "fecha_actualizacion": "2025-10-28T15:24:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 60,
+    "fields": {
+      "solicitud": 24,
+      "material": 7,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 61,
+    "fields": {
+      "solicitud": 24,
+      "material": 5,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 62,
+    "fields": {
+      "solicitud": 24,
+      "material": 3,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 25,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Cambio compresor averiado",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-04T11:15:00Z",
+      "fecha_respuesta": "2025-07-04T12:18:00Z",
+      "fecha_actualizacion": "2025-07-04T12:18:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 63,
+    "fields": {
+      "solicitud": 25,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 64,
+    "fields": {
+      "solicitud": 25,
+      "material": 5,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 65,
+    "fields": {
+      "solicitud": 25,
+      "material": 1,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 26,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reposición stock materiales críticos",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-23T13:10:00Z",
+      "fecha_respuesta": "2025-07-23T14:32:00Z",
+      "fecha_actualizacion": "2025-07-23T14:32:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 66,
+    "fields": {
+      "solicitud": 26,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 67,
+    "fields": {
+      "solicitud": 26,
+      "material": 7,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 68,
+    "fields": {
+      "solicitud": 26,
+      "material": 1,
+      "cantidad": 6
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 69,
+    "fields": {
+      "solicitud": 26,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 27,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico correctivo",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-03T13:26:00Z",
+      "fecha_respuesta": "2025-06-03T14:08:00Z",
+      "fecha_actualizacion": "2025-06-03T14:08:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 70,
+    "fields": {
+      "solicitud": 27,
+      "material": 7,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 71,
+    "fields": {
+      "solicitud": 27,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 28,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación sistema aire acondicionado",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-21T11:27:00Z",
+      "fecha_respuesta": "2025-06-21T12:35:00Z",
+      "fecha_actualizacion": "2025-06-21T12:35:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 72,
+    "fields": {
+      "solicitud": 28,
+      "material": 1,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 73,
+    "fields": {
+      "solicitud": 28,
+      "material": 9,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 74,
+    "fields": {
+      "solicitud": 28,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 29,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación equipo cliente comercial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-23T13:55:00Z",
+      "fecha_respuesta": "2025-09-23T15:54:00Z",
+      "fecha_actualizacion": "2025-09-23T15:54:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 75,
+    "fields": {
+      "solicitud": 29,
+      "material": 9,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 76,
+    "fields": {
+      "solicitud": 29,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 30,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación termostatos digitales",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-15T12:04:00Z",
+      "fecha_respuesta": "2025-11-15T12:58:00Z",
+      "fecha_actualizacion": "2025-11-15T12:58:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 77,
+    "fields": {
+      "solicitud": 30,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 78,
+    "fields": {
+      "solicitud": 30,
+      "material": 7,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 79,
+    "fields": {
+      "solicitud": 30,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 80,
+    "fields": {
+      "solicitud": 30,
+      "material": 5,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 31,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo equipo refrigeración",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-27T08:48:00Z",
+      "fecha_respuesta": "2025-09-27T10:19:00Z",
+      "fecha_actualizacion": "2025-09-27T10:19:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 81,
+    "fields": {
+      "solicitud": 31,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 82,
+    "fields": {
+      "solicitud": 31,
+      "material": 9,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 32,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico correctivo",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-12T16:18:00Z",
+      "fecha_respuesta": "2025-06-12T17:54:00Z",
+      "fecha_actualizacion": "2025-06-12T17:54:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 83,
+    "fields": {
+      "solicitud": 32,
+      "material": 7,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 84,
+    "fields": {
+      "solicitud": 32,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 85,
+    "fields": {
+      "solicitud": 32,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 86,
+    "fields": {
+      "solicitud": 32,
+      "material": 1,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 33,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Cambio filtros deshidratadores",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-20T15:03:00Z",
+      "fecha_respuesta": "2025-08-20T16:46:00Z",
+      "fecha_actualizacion": "2025-08-20T16:46:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 87,
+    "fields": {
+      "solicitud": 33,
+      "material": 9,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 88,
+    "fields": {
+      "solicitud": 33,
+      "material": 5,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 89,
+    "fields": {
+      "solicitud": 33,
+      "material": 8,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 90,
+    "fields": {
+      "solicitud": 33,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 34,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación equipo cliente comercial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-05-26T11:05:00Z",
+      "fecha_respuesta": "2025-05-26T13:01:00Z",
+      "fecha_actualizacion": "2025-05-26T13:01:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 91,
+    "fields": {
+      "solicitud": 34,
+      "material": 9,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 92,
+    "fields": {
+      "solicitud": 34,
+      "material": 7,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 93,
+    "fields": {
+      "solicitud": 34,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 94,
+    "fields": {
+      "solicitud": 34,
+      "material": 3,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 35,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora nueva",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-25T09:39:00Z",
+      "fecha_respuesta": "2025-08-25T10:20:00Z",
+      "fecha_actualizacion": "2025-08-25T10:20:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 95,
+    "fields": {
+      "solicitud": 35,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 96,
+    "fields": {
+      "solicitud": 35,
+      "material": 4,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 36,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación termostatos digitales",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-11T08:04:00Z",
+      "fecha_respuesta": "2025-09-11T09:42:00Z",
+      "fecha_actualizacion": "2025-09-11T09:42:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 97,
+    "fields": {
+      "solicitud": 36,
+      "material": 7,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 98,
+    "fields": {
+      "solicitud": 36,
+      "material": 3,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 37,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento cámara frigorífica",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-03T12:08:00Z",
+      "fecha_respuesta": "2025-11-03T13:47:00Z",
+      "fecha_actualizacion": "2025-11-03T13:47:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 99,
+    "fields": {
+      "solicitud": 37,
+      "material": 1,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 100,
+    "fields": {
+      "solicitud": 37,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 38,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo equipo refrigeración",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-01T13:47:00Z",
+      "fecha_respuesta": "2025-10-01T14:54:00Z",
+      "fecha_actualizacion": "2025-10-01T14:54:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 101,
+    "fields": {
+      "solicitud": 38,
+      "material": 7,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 102,
+    "fields": {
+      "solicitud": 38,
+      "material": 6,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 39,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema control temperatura",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-20T11:33:00Z",
+      "fecha_respuesta": "2025-06-20T12:23:00Z",
+      "fecha_actualizacion": "2025-06-20T12:23:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 103,
+    "fields": {
+      "solicitud": 39,
+      "material": 7,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 104,
+    "fields": {
+      "solicitud": 39,
+      "material": 1,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 105,
+    "fields": {
+      "solicitud": 39,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 40,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio urgente refrigeración industrial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-08T08:09:00Z",
+      "fecha_respuesta": "2025-08-08T08:49:00Z",
+      "fecha_actualizacion": "2025-08-08T08:49:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 106,
+    "fields": {
+      "solicitud": 40,
+      "material": 2,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 107,
+    "fields": {
+      "solicitud": 40,
+      "material": 1,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 41,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento compresores industriales",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-30T15:50:00Z",
+      "fecha_respuesta": "2025-06-30T16:27:00Z",
+      "fecha_actualizacion": "2025-06-30T16:27:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 108,
+    "fields": {
+      "solicitud": 41,
+      "material": 7,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 109,
+    "fields": {
+      "solicitud": 41,
+      "material": 3,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 110,
+    "fields": {
+      "solicitud": 41,
+      "material": 1,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 42,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento compresores industriales",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-09T17:55:00Z",
+      "fecha_respuesta": "2025-11-09T19:11:00Z",
+      "fecha_actualizacion": "2025-11-09T19:11:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 111,
+    "fields": {
+      "solicitud": 42,
+      "material": 4,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 112,
+    "fields": {
+      "solicitud": 42,
+      "material": 8,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 43,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo mensual",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-29T12:16:00Z",
+      "fecha_respuesta": "2025-07-29T13:27:00Z",
+      "fecha_actualizacion": "2025-07-29T13:27:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 113,
+    "fields": {
+      "solicitud": 43,
+      "material": 4,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 114,
+    "fields": {
+      "solicitud": 43,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 115,
+    "fields": {
+      "solicitud": 43,
+      "material": 8,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 116,
+    "fields": {
+      "solicitud": 43,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 44,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo mensual",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-25T15:11:00Z",
+      "fecha_respuesta": "2025-09-25T15:45:00Z",
+      "fecha_actualizacion": "2025-09-25T15:45:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 117,
+    "fields": {
+      "solicitud": 44,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 118,
+    "fields": {
+      "solicitud": 44,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 45,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación válvula expansión",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-17T08:41:00Z",
+      "fecha_respuesta": "2025-09-17T09:35:00Z",
+      "fecha_actualizacion": "2025-09-17T09:35:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 119,
+    "fields": {
+      "solicitud": 45,
+      "material": 8,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 120,
+    "fields": {
+      "solicitud": 45,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 121,
+    "fields": {
+      "solicitud": 45,
+      "material": 5,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 46,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reemplazo componentes refrigeración",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-05T13:30:00Z",
+      "fecha_respuesta": "2025-09-05T14:09:00Z",
+      "fecha_actualizacion": "2025-09-05T14:09:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 122,
+    "fields": {
+      "solicitud": 46,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 123,
+    "fields": {
+      "solicitud": 46,
+      "material": 2,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 124,
+    "fields": {
+      "solicitud": 46,
+      "material": 4,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 125,
+    "fields": {
+      "solicitud": 46,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 47,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo equipo refrigeración",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-09T13:09:00Z",
+      "fecha_respuesta": "2025-06-09T15:07:00Z",
+      "fecha_actualizacion": "2025-06-09T15:07:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 126,
+    "fields": {
+      "solicitud": 47,
+      "material": 3,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 127,
+    "fields": {
+      "solicitud": 47,
+      "material": 2,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 128,
+    "fields": {
+      "solicitud": 47,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 48,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema de enfriamiento",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-12T15:43:00Z",
+      "fecha_respuesta": "2025-08-12T16:55:00Z",
+      "fecha_actualizacion": "2025-08-12T16:55:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 129,
+    "fields": {
+      "solicitud": 48,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 130,
+    "fields": {
+      "solicitud": 48,
+      "material": 2,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 131,
+    "fields": {
+      "solicitud": 48,
+      "material": 1,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 132,
+    "fields": {
+      "solicitud": 48,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 49,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento compresores industriales",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-21T14:39:00Z",
+      "fecha_respuesta": "2025-10-21T15:17:00Z",
+      "fecha_actualizacion": "2025-10-21T15:17:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 133,
+    "fields": {
+      "solicitud": 49,
+      "material": 7,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 134,
+    "fields": {
+      "solicitud": 49,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 135,
+    "fields": {
+      "solicitud": 49,
+      "material": 8,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 50,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora nueva",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-07T11:27:00Z",
+      "fecha_respuesta": "2025-10-07T12:07:00Z",
+      "fecha_actualizacion": "2025-10-07T12:07:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 136,
+    "fields": {
+      "solicitud": 50,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 137,
+    "fields": {
+      "solicitud": 50,
+      "material": 7,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 51,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación termostatos digitales",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-13T15:47:00Z",
+      "fecha_respuesta": "2025-08-13T16:50:00Z",
+      "fecha_actualizacion": "2025-08-13T16:50:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 138,
+    "fields": {
+      "solicitud": 51,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 139,
+    "fields": {
+      "solicitud": 51,
+      "material": 3,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 140,
+    "fields": {
+      "solicitud": 51,
+      "material": 4,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 141,
+    "fields": {
+      "solicitud": 51,
+      "material": 5,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 52,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema control temperatura",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-27T09:04:00Z",
+      "fecha_respuesta": "2025-09-27T09:46:00Z",
+      "fecha_actualizacion": "2025-09-27T09:46:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 142,
+    "fields": {
+      "solicitud": 52,
+      "material": 3,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 143,
+    "fields": {
+      "solicitud": 52,
+      "material": 9,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 144,
+    "fields": {
+      "solicitud": 52,
+      "material": 8,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 145,
+    "fields": {
+      "solicitud": 52,
+      "material": 7,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 53,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora nueva",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-15T12:53:00Z",
+      "fecha_respuesta": "2025-08-15T13:46:00Z",
+      "fecha_actualizacion": "2025-08-15T13:46:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 146,
+    "fields": {
+      "solicitud": 53,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 147,
+    "fields": {
+      "solicitud": 53,
+      "material": 4,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 54,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación fuga refrigerante",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-05-20T17:49:00Z",
+      "fecha_respuesta": "2025-05-20T18:28:00Z",
+      "fecha_actualizacion": "2025-05-20T18:28:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 148,
+    "fields": {
+      "solicitud": 54,
+      "material": 3,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 149,
+    "fields": {
+      "solicitud": 54,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 150,
+    "fields": {
+      "solicitud": 54,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 55,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reemplazo componentes refrigeración",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-18T17:35:00Z",
+      "fecha_respuesta": "2025-06-18T18:15:00Z",
+      "fecha_actualizacion": "2025-06-18T18:15:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 151,
+    "fields": {
+      "solicitud": 55,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 152,
+    "fields": {
+      "solicitud": 55,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 153,
+    "fields": {
+      "solicitud": 55,
+      "material": 5,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 56,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo equipo refrigeración",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-17T09:15:00Z",
+      "fecha_respuesta": "2025-07-17T09:54:00Z",
+      "fecha_actualizacion": "2025-07-17T09:54:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 154,
+    "fields": {
+      "solicitud": 56,
+      "material": 3,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 155,
+    "fields": {
+      "solicitud": 56,
+      "material": 7,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 156,
+    "fields": {
+      "solicitud": 56,
+      "material": 6,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 157,
+    "fields": {
+      "solicitud": 56,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 57,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico preventivo trimestral",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-25T12:11:00Z",
+      "fecha_respuesta": "2025-09-25T13:14:00Z",
+      "fecha_actualizacion": "2025-09-25T13:14:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 158,
+    "fields": {
+      "solicitud": 57,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 159,
+    "fields": {
+      "solicitud": 57,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 160,
+    "fields": {
+      "solicitud": 57,
+      "material": 8,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 161,
+    "fields": {
+      "solicitud": 57,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 58,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema de enfriamiento",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-09T09:19:00Z",
+      "fecha_respuesta": "2025-09-09T10:41:00Z",
+      "fecha_actualizacion": "2025-09-09T10:41:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 162,
+    "fields": {
+      "solicitud": 58,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 163,
+    "fields": {
+      "solicitud": 58,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 164,
+    "fields": {
+      "solicitud": 58,
+      "material": 8,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 165,
+    "fields": {
+      "solicitud": 58,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 59,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación sistema aire acondicionado",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-07T10:23:00Z",
+      "fecha_respuesta": "2025-10-07T11:57:00Z",
+      "fecha_actualizacion": "2025-10-07T11:57:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 166,
+    "fields": {
+      "solicitud": 59,
+      "material": 6,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 167,
+    "fields": {
+      "solicitud": 59,
+      "material": 4,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 60,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Mantenimiento preventivo mensual",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-04T17:43:00Z",
+      "fecha_respuesta": "2025-07-04T18:19:00Z",
+      "fecha_actualizacion": "2025-07-04T18:19:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 168,
+    "fields": {
+      "solicitud": 60,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 169,
+    "fields": {
+      "solicitud": 60,
+      "material": 3,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 170,
+    "fields": {
+      "solicitud": 60,
+      "material": 9,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 61,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico preventivo trimestral",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-22T12:36:00Z",
+      "fecha_respuesta": "2025-07-22T13:39:00Z",
+      "fecha_actualizacion": "2025-07-22T13:39:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 171,
+    "fields": {
+      "solicitud": 61,
+      "material": 6,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 172,
+    "fields": {
+      "solicitud": 61,
+      "material": 2,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 173,
+    "fields": {
+      "solicitud": 61,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 174,
+    "fields": {
+      "solicitud": 61,
+      "material": 1,
+      "cantidad": 8
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 62,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico correctivo",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-25T13:00:00Z",
+      "fecha_respuesta": "2025-11-25T14:38:00Z",
+      "fecha_actualizacion": "2025-11-25T14:38:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 175,
+    "fields": {
+      "solicitud": 62,
+      "material": 6,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 176,
+    "fields": {
+      "solicitud": 62,
+      "material": 8,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 177,
+    "fields": {
+      "solicitud": 62,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 178,
+    "fields": {
+      "solicitud": 62,
+      "material": 9,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 63,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación fuga refrigerante",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-12T08:01:00Z",
+      "fecha_respuesta": "2025-08-12T09:53:00Z",
+      "fecha_actualizacion": "2025-08-12T09:53:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 179,
+    "fields": {
+      "solicitud": 63,
+      "material": 5,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 180,
+    "fields": {
+      "solicitud": 63,
+      "material": 7,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 181,
+    "fields": {
+      "solicitud": 63,
+      "material": 2,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 182,
+    "fields": {
+      "solicitud": 63,
+      "material": 9,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 64,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación unidad condensadora nueva",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-10-22T12:35:00Z",
+      "fecha_respuesta": "2025-10-22T13:24:00Z",
+      "fecha_actualizacion": "2025-10-22T13:24:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 183,
+    "fields": {
+      "solicitud": 64,
+      "material": 4,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 184,
+    "fields": {
+      "solicitud": 64,
+      "material": 2,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 185,
+    "fields": {
+      "solicitud": 64,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 65,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reposición stock materiales críticos",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-05-07T13:24:00Z",
+      "fecha_respuesta": "2025-05-07T13:58:00Z",
+      "fecha_actualizacion": "2025-05-07T13:58:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 186,
+    "fields": {
+      "solicitud": 65,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 187,
+    "fields": {
+      "solicitud": 65,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 188,
+    "fields": {
+      "solicitud": 65,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 189,
+    "fields": {
+      "solicitud": 65,
+      "material": 5,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 66,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio técnico correctivo",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-09-25T12:54:00Z",
+      "fecha_respuesta": "2025-09-25T14:28:00Z",
+      "fecha_actualizacion": "2025-09-25T14:28:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 190,
+    "fields": {
+      "solicitud": 66,
+      "material": 1,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 191,
+    "fields": {
+      "solicitud": 66,
+      "material": 2,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 67,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación válvula expansión",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-05-29T09:12:00Z",
+      "fecha_respuesta": "2025-05-29T10:29:00Z",
+      "fecha_actualizacion": "2025-05-29T10:29:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 192,
+    "fields": {
+      "solicitud": 67,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 193,
+    "fields": {
+      "solicitud": 67,
+      "material": 3,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 194,
+    "fields": {
+      "solicitud": 67,
+      "material": 2,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 195,
+    "fields": {
+      "solicitud": 67,
+      "material": 8,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 68,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Servicio urgente refrigeración industrial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-07-30T08:17:00Z",
+      "fecha_respuesta": "2025-07-30T09:52:00Z",
+      "fecha_actualizacion": "2025-07-30T09:52:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 196,
+    "fields": {
+      "solicitud": 68,
+      "material": 6,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 197,
+    "fields": {
+      "solicitud": 68,
+      "material": 9,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 198,
+    "fields": {
+      "solicitud": 68,
+      "material": 5,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 199,
+    "fields": {
+      "solicitud": 68,
+      "material": 4,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 69,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reposición stock materiales críticos",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-06-26T09:10:00Z",
+      "fecha_respuesta": "2025-06-26T10:50:00Z",
+      "fecha_actualizacion": "2025-06-26T10:50:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 200,
+    "fields": {
+      "solicitud": 69,
+      "material": 3,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 201,
+    "fields": {
+      "solicitud": 69,
+      "material": 7,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 202,
+    "fields": {
+      "solicitud": 69,
+      "material": 2,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 203,
+    "fields": {
+      "solicitud": 69,
+      "material": 6,
+      "cantidad": 2
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 70,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación válvula expansión",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-11-19T14:41:00Z",
+      "fecha_respuesta": "2025-11-19T16:16:00Z",
+      "fecha_actualizacion": "2025-11-19T16:16:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 204,
+    "fields": {
+      "solicitud": 70,
+      "material": 2,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 205,
+    "fields": {
+      "solicitud": 70,
+      "material": 1,
+      "cantidad": 7
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 206,
+    "fields": {
+      "solicitud": 70,
+      "material": 4,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 71,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Reparación sistema control temperatura",
+      "estado": "despachada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-27T16:33:00Z",
+      "fecha_respuesta": "2025-08-27T18:10:00Z",
+      "fecha_actualizacion": "2025-08-27T18:10:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 207,
+    "fields": {
+      "solicitud": 71,
+      "material": 8,
+      "cantidad": 3
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 208,
+    "fields": {
+      "solicitud": 71,
+      "material": 1,
+      "cantidad": 4
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 209,
+    "fields": {
+      "solicitud": 71,
+      "material": 4,
+      "cantidad": 1
+    }
+  },
+  {
+    "model": "core.solicitud",
+    "pk": 72,
+    "fields": {
+      "solicitante": 1,
+      "motivo": "Instalación equipo cliente comercial",
+      "estado": "aprobada",
+      "respondido_por": 1,
+      "fecha_solicitud": "2025-08-30T11:36:00Z",
+      "fecha_respuesta": "2025-08-30T12:33:00Z",
+      "fecha_actualizacion": "2025-08-30T12:33:00Z"
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 210,
+    "fields": {
+      "solicitud": 72,
+      "material": 6,
+      "cantidad": 5
+    }
+  },
+  {
+    "model": "core.detallesolicitud",
+    "pk": 211,
+    "fields": {
+      "solicitud": 72,
+      "material": 1,
+      "cantidad": 8
+    }
+  }
+]

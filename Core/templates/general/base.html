@@ -330,11 +330,43 @@
                         {% if user.is_staff %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="fas fa-clipboard-check"></i>Gestionar Solicitudes</a></li>
+                        <li><a class="dropdown-item" href="{% url 'historial_movimientos_global' %}"><i class="fas fa-exchange-alt"></i> Historial de Movimientos</a></li>
                         {% endif %}
                     </ul>
                 </li>
-                
-                <li><a href="#"><i class="fas fa-chart-line"></i> Reportes</a></li>
+
+                                        
+                <!-- Menú de Reportes -->
+                    {% if user.is_staff %}
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" href="#" id="sidebarReportesMenu" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-chart-line"></i> Reportes
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'exportar_inventario_excel' %}">
+                                        <i class="fas fa-warehouse"></i> Inventario
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'exportar_solicitudes_excel' %}">
+                                        <i class="fas fa-clipboard-list"></i> Solicitudes
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'exportar_movimientos_excel' %}">
+                                        <i class="fas fa-exchange-alt"></i> Movimientos
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'exportar_reporte_completo' %}">
+                                        <i class="fas fa-file-excel"></i> Reporte Completo
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% endif %}
                 
                 <!-- Configuración con Cambiar Contraseña -->
                 <li class="dropdown">

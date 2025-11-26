@@ -1,0 +1,105 @@
+{% extends 'general/base.html' %}
+{% block contenido %}
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-info text-white">
+      <h4><i class="fas fa-exchange-alt"></i> Historial Global de Movimientos</h4>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card-body">
+      <form method="GET" class="row g-3 mb-4">
+        <div class="col-md-3">
+          <label class="form-label">Tipo</label>
+          <select name="tipo" class="form-select">
+            <option value="">Todos</option>
+            <option value="entrada" {% if tipo_filtro == 'entrada' %}selected{% endif %}>Entrada</option>
+            <option value="salida" {% if tipo_filtro == 'salida' %}selected{% endif %}>Salida</option>
+            <option value="ajuste" {% if tipo_filtro == 'ajuste' %}selected{% endif %}>Ajuste</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Desde</label>
+          <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Hasta</label>
+          <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-filter"></i> Filtrar
+          </button>
+        </div>
+      </form>
+      
+      <!-- Tabla de movimientos -->
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Material</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Usuario</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mov in movimientos %}
+          <tr>
+            <td>{{ mov.fecha|date:"d/m/Y H:i" }}</td>
+            <td>
+              <a href="{% url 'detalle_material' mov.material.id %}">
+                {{ mov.material.descripcion }}
+              </a>
+            </td>
+            <td>
+              <span class="badge 
+                {% if mov.tipo == 'entrada' %}bg-success
+                {% elif mov.tipo == 'salida' %}bg-danger
+                {% else %}bg-warning{% endif %}">
+                {{ mov.tipo|upper }}
+              </span>
+            </td>
+            <td>
+              {% if mov.tipo == 'entrada' %}+{% elif mov.tipo == 'salida' %}-{% endif %}
+              {{ mov.cantidad }}
+            </td>
+            <td>{{ mov.usuario.nombre }} {{ mov.usuario.apellido }}</td>
+            <td>{{ mov.detalle|truncatewords:10 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">No hay movimientos registrados</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <!-- Paginación -->
+      {% if page_obj.has_other_pages %}
+      <nav>
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+          </li>
+          {% endif %}
+          
+          <li class="page-item active">
+            <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          </li>
+          
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

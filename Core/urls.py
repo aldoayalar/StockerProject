@@ -45,6 +45,7 @@ urlpatterns = [
     path('material/<int:material_id>/salida/', views.registrar_salida, name='registrar_salida'),
     path('material/<int:material_id>/ajustar/', views.ajustar_inventario, name='ajustar_inventario'),
     path('material/<int:material_id>/movimientos/', views.historial_movimientos, name='historial_movimientos'),
+    path('movimientos/', views.historial_movimientos_global, name='historial_movimientos_global'),
     
     #Notificaciones
     path('notificaciones/', views.mis_notificaciones, name='mis_notificaciones'),
@@ -52,4 +53,10 @@ urlpatterns = [
     path('notificaciones/marcar-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
     path('notificaciones/<int:id>/eliminar/', views.eliminar_notificacion, name='eliminar_notificacion'),
     path('api/notificaciones/', views.obtener_notificaciones_json, name='obtener_notificaciones_json'),
+    
+    # Exportación a Excel
+    path('exportar/inventario/', views.exportar_inventario_excel, name='exportar_inventario_excel'),
+    path('exportar/solicitudes/', views.exportar_solicitudes_excel, name='exportar_solicitudes_excel'),
+    path('exportar/movimientos/', views.exportar_movimientos_excel, name='exportar_movimientos_excel'),
+    path('exportar/reporte-completo/', views.exportar_reporte_completo_excel, name='exportar_reporte_completo'),
 ]

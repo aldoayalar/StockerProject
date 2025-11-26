@@ -70,6 +70,17 @@
                     <strong>{{ material.descripcion }}</strong> ({{ material.codigo }})
                 </p>
             </div>
+            
+            <div>
+                <!-- BOTÓN EXPORTAR -->
+                <a href="{% url 'exportar_movimientos_excel' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-file-excel"></i> Exportar
+                </a>
+            </div>
+        </div>
+    </div>
+
+            
             <div class="text-end">
                 <p class="mb-1">Stock Actual</p>
                 <h2 class="mb-0">{{ material.inventario.stock_actual }} {{ material.unidad_medida }}</h2>

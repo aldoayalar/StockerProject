@@ -1,39 +1,81 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}
-Inventario actual
-{% endblock %}
+{% block title %}Inventario{% endblock %}
 
 {% block contenido %}
-<div class="container mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <h4><i class="fas fa-warehouse"></i> Inventario de Materiales</h4>
-      <a href="{% url 'ingreso_material' %}" class="btn btn-secondary btn-sm">
-        <i class="fas fa-plus"></i> Nuevo Material
-      </a>
+<div class="container-fluid mt-4">
+    <!-- Header con botón de exportar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-warehouse"></i> Inventario de Materiales</h2>
+        
+        <div>
+            {% if user.is_staff %}
+            <a href="{% url 'ingreso_material' %}" class="btn btn-success me-2">
+                <i class="fas fa-plus"></i> Nuevo Material
+            </a>
+            {% endif %}
+            
+            <!-- BOTÓN EXPORTAR -->
+            <a href="{% url 'exportar_inventario_excel' %}" class="btn btn-primary">
+                <i class="fas fa-file-excel"></i> Exportar a Excel
+            </a>
+        </div>
     </div>
+
     <div class="inventario-scroll">
-    
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
             <th scope="col"><i class="fas fa-barcode"></i> Código</th>
             <th scope="col"><i class="fas fa-info-circle"></i> Descripción</th>
             <th scope="col"><i class="fas fa-cubes"></i> Stock Actual</th>
-            <th scope="col"><i class="fas fa-exclamation-triangle"></i> Stock Crítico</th>
+            <th scope="col"><i class="fas fa-shield-alt"></i> Stock Seguridad</th>
+            <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
+            <th scope="col">
+              <i class="fas fa-brain"></i> Stock Crítico (ML)
+              <i class="fas fa-info-circle text-info" 
+                 data-bs-toggle="tooltip" 
+                 title="Calculado con Machine Learning"></i>
+            </th>
             <th scope="col"><i class="fas fa-map-marker-alt"></i> Ubicación</th>
             <th scope="col"><i class="fas fa-cog"></i> Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for item in inventario %}
-          <tr {% if item.stock_actual <= item.stock_seguridad %} class="table-danger" {% endif %}>
+          <!-- ACTUALIZADO: Ahora resalta en rojo si está bajo el stock dinámico (ML) -->
+          <tr {% if item.stock_actual <= item.stock_min_dinamico %} class="table-danger" 
+              {% elif item.stock_actual <= item.stock_seguridad %} class="table-warning" 
+              {% endif %}>
+            
             <td><span class="badge bg-secondary">{{ item.material.codigo }}</span></td>
             <td>{{ item.material.descripcion }}</td>
-            <td>{{ item.stock_actual }}</td>
+            
+            <!-- Stock Actual con badge de color -->
+            <td>
+              <span class="badge 
+                {% if item.stock_actual <= item.stock_min_dinamico %}bg-danger
+                {% elif item.stock_actual <= item.stock_seguridad %}bg-warning text-dark
+                {% else %}bg-success{% endif %}">
+                {{ item.stock_actual }}
+              </span>
+            </td>
+            
+            <!-- Stock Seguridad (estático) -->
             <td>{{ item.stock_seguridad }}</td>
+            
+            <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
+            <td>
+                {% if item.stock_critico_promedio %}
+                    {{ item.stock_critico_promedio }} <small class="text-muted">(ML)</small>
+                {% elif item.stock_min_dinamico %}
+                    {{ item.stock_min_dinamico }} <small class="text-muted">(Est.)</small>
+                {% else %}
+                    {{ item.stock_seguridad }} <small class="text-muted">(Manual)</small>
+                {% endif %}
+            </td>
+            
             <td>{{ item.material.ubicacion }}</td>
             <td>
               <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
@@ -46,15 +88,39 @@ Inventario actual
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="text-center text-muted">No hay registros de inventario.</td>
+            <td colspan="7" class="text-center text-muted">No hay registros de inventario.</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    
+    <!-- FOOTER ACTUALIZADO con leyenda del ML -->
     <div class="card-footer bg-light">
-      <span class="text-danger"><i class="fas fa-exclamation-circle"></i> Resaltados en rojo: materiales en stock crítico.</span>
+      <div class="row">
+        <div class="col-md-12">
+          <span class="text-danger me-3">
+            <i class="fas fa-exclamation-circle"></i> Rojo: Stock por debajo del crítico (ML)
+          </span>
+          <span class="text-warning me-3">
+            <i class="fas fa-exclamation-triangle"></i> Amarillo: Entre crítico (ML) y seguridad
+          </span>
+          <span class="text-success">
+            <i class="fas fa-check-circle"></i> Verde: Stock normal
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+// Activar tooltips de Bootstrap
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
+{% endblock %}
 {% endblock %}
