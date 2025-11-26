@@ -1,0 +1,151 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Mis Notificaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notificacion-card {
+        transition: all 0.3s;
+        border-left: 4px solid #6c757d;
+    }
+    .notificacion-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .notificacion-card.no-leida {
+        background-color: #f8f9fa;
+        border-left-color: #007bff;
+    }
+    .notificacion-card.stock-critico {
+        border-left-color: #dc3545;
+    }
+    .notificacion-card.aprobacion {
+        border-left-color: #28a745;
+    }
+    .notificacion-card.solicitud {
+        border-left-color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-bell"></i> Mis Notificaciones</h2>
+        
+        {% if no_leidas > 0 %}
+        <form method="post" action="{% url 'marcar_todas_leidas' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="fas fa-check-double"></i> Marcar todas como leídas
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if no_leidas > 0 %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        Tienes <strong>{{ no_leidas }}</strong> notificación{{ no_leidas|pluralize:"es" }} sin leer
+    </div>
+    {% endif %}
+
+    {% if notificaciones %}
+        {% for notificacion in notificaciones %}
+        <div class="card notificacion-card mb-3 
+            {% if not notificacion.leida %}no-leida{% endif %}
+            {% if notificacion.tipo == 'stock_critico' %}stock-critico
+            {% elif notificacion.tipo == 'aprobacion' %}aprobacion
+            {% elif notificacion.tipo == 'solicitud_pendiente' %}solicitud{% endif %}">
+            
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="text-center" style="width: 50px;">
+                            {% if notificacion.tipo == 'stock_critico' %}
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            {% elif notificacion.tipo == 'solicitud_pendiente' %}
+                                <i class="fas fa-clipboard-list fa-2x text-warning"></i>
+                            {% elif notificacion.tipo == 'aprobacion' %}
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            {% elif notificacion.tipo == 'material_nuevo' %}
+                                <i class="fas fa-box fa-2x text-info"></i>
+                            {% else %}
+                                <i class="fas fa-bell fa-2x text-secondary"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col">
+                        <h6 class="mb-1">
+                            {{ notificacion.mensaje }}
+                            {% if not notificacion.leida %}
+                                <span class="badge bg-primary">Nueva</span>
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted">
+                            <i class="far fa-clock"></i> {{ notificacion.creada_en|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                    
+                    <div class="col-auto">
+                        {% if notificacion.url %}
+                        <a href="{% url 'marcar_leida' notificacion.id %}" 
+                           class="btn btn-sm btn-primary me-1">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        {% endif %}
+                        
+                        {% if not notificacion.leida %}
+                        <a href="{% url 'marcar_leida' notificacion.id %}" 
+                           class="btn btn-sm btn-outline-primary me-1"
+                           title="Marcar como leída">
+                            <i class="fas fa-check"></i>
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'eliminar_notificacion' notificacion.id %}" 
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('¿Eliminar esta notificación?')"
+                           title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Paginación -->
+        {% if notificaciones.has_other_pages %}
+        <nav aria-label="Paginación de notificaciones">
+            <ul class="pagination justify-content-center">
+                {% if notificaciones.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ notificaciones.previous_page_number }}">Anterior</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ notificaciones.number }} de {{ notificaciones.paginator.num_pages }}</span>
+                </li>
+                
+                {% if notificaciones.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ notificaciones.next_page_number }}">Siguiente</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="far fa-bell-slash fa-4x text-muted mb-3"></i>
+            <h4>No tienes notificaciones</h4>
+            <p class="text-muted">Cuando tengas nuevas notificaciones aparecerán aquí</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -19,43 +19,65 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody>
-          {% for solicitud in solicitudes %}
+       <tbody>
+        {% for solicitud in solicitudes_pendientes %}
           <tr>
             <td>{{ solicitud.id }}</td>
             <td>{{ solicitud.solicitante.username }}</td>
-            <td>{{ solicitud.material.descripcion }}</td>
-            <td>{{ solicitud.cantidad }}</td>
+            <td>
+              {% for detalle in solicitud.detalles.all %}
+                {{ detalle.material.descripcion }}<br>
+              {% endfor %}
+            </td>
+            <td>
+              {% for detalle in solicitud.detalles.all %}
+                {{ detalle.cantidad }}<br>
+              {% endfor %}
+            </td>
             <td>{{ solicitud.motivo|truncatewords:5 }}</td>
             <td>
               {% if solicitud.estado == 'pendiente' %}
-              <span class="badge bg-warning text-dark">Pendiente</span>
+                <span class="badge bg-warning text-dark">Pendiente</span>
               {% elif solicitud.estado == 'aprobada' %}
-              <span class="badge bg-success">Aprobada</span>
-              {% else %}
-              <span class="badge bg-danger">Rechazada</span>
+                <span class="badge bg-success">Aprobada</span>
+              {% elif solicitud.estado == 'rechazada' %}
+                <span class="badge bg-danger">Rechazada</span>
+              {% elif solicitud.estado == 'despachada' %}
+                <span class="badge bg-info">Despachada</span>
               {% endif %}
             </td>
             <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
             <td>
               {% if solicitud.estado == 'pendiente' %}
-              <a href="{% url 'aprobar_solicitud' solicitud.id %}" class="btn btn-success btn-sm">
-                <i class="fas fa-check"></i>
-              </a>
-              <a href="{% url 'rechazar_solicitud' solicitud.id %}" class="btn btn-danger btn-sm">
-                <i class="fas fa-times"></i>
-              </a>
+                <!-- Formulario para aprobar -->
+                <form method="POST" action="{% url 'aprobar_solicitud' solicitud.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm" 
+                          onclick="return confirm('¿Aprobar esta solicitud?')">
+                    <i class="fas fa-check"></i>
+                  </button>
+                </form>
+                
+                <!-- Formulario para rechazar -->
+                <form method="POST" action="{% url 'rechazar_solicitud' solicitud.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm" 
+                          onclick="return confirm('¿Rechazar esta solicitud?')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </form>
               {% else %}
-              <span class="text-muted small">Procesada</span>
+                <span class="text-muted small">Procesada</span>
               {% endif %}
             </td>
           </tr>
-          {% empty %}
+        {% empty %}
           <tr>
-            <td colspan="8" class="text-center text-muted">No hay solicitudes registradas</td>
+            <td colspan="8" class="text-center text-muted">No hay solicitudes pendientes</td>
           </tr>
-          {% endfor %}
-        </tbody>
+        {% endfor %}
+      </tbody>
+
       </table>
     </div>
   </div>

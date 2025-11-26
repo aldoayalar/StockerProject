@@ -15,6 +15,8 @@ from django.core.paginator import Paginator
 from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario
 from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
 
+from django.http import JsonResponse
+
 #----------------------------------------------------------------------------------------
 # Vistas según roles
 
@@ -621,18 +623,106 @@ def historial_movimientos(request, material_id):
 # ====================================== NOTIFICACIONES ============================================
 
 @login_required
+def mis_notificaciones(request):
+    """
+    Vista para ver todas las notificaciones del usuario
+    """
+    notificaciones = Notificacion.objects.filter(
+        usuario=request.user
+    ).order_by('-creada_en')
+    
+    # Paginación
+    from django.core.paginator import Paginator
+    paginator = Paginator(notificaciones, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notificaciones': page_obj,
+        'no_leidas': notificaciones.filter(leida=False).count()
+    }
+    return render(request, 'funcionalidad/notificaciones.html', context)
+
+
+@login_required
 def marcar_leida(request, id):
+    """
+    Marcar una notificación como leída
+    """
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     notificacion.leida = True
     notificacion.save()
+    
+    # Si tiene URL, redirigir ahí
     if notificacion.url:
         return redirect(notificacion.url)
-    return redirect('inventario')
+    return redirect('mis_notificaciones')
+
 
 @login_required
 def marcar_todas_leidas(request):
-    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
-    return redirect('inventario')
+    """
+    Marcar todas las notificaciones como leídas
+    """
+    if request.method == 'POST':
+        Notificacion.objects.filter(
+            usuario=request.user, 
+            leida=False
+        ).update(leida=True)
+        messages.success(request, 'Todas las notificaciones han sido marcadas como leídas.')
+    
+    return redirect('mis_notificaciones')
+
+
+@login_required
+def eliminar_notificacion(request, id):
+    """
+    Eliminar una notificación
+    """
+    notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
+    notificacion.delete()
+    messages.success(request, 'Notificación eliminada.')
+    return redirect('mis_notificaciones')
+
+
+@login_required
+def obtener_notificaciones_json(request):
+    """
+    API para obtener notificaciones no leídas (AJAX)
+    """
+    notificaciones = Notificacion.objects.filter(
+        usuario=request.user,
+        leida=False
+    ).order_by('-creada_en')[:10]
+    
+    data = {
+        'count': notificaciones.count(),
+        'notificaciones': [
+            {
+                'id': n.id,
+                'tipo': n.tipo,
+                'mensaje': n.mensaje,
+                'url': n.url or '#',
+                'fecha': n.creada_en.strftime('%d/%m/%Y %H:%M'),
+                'icono': get_icono_notificacion(n.tipo)
+            }
+            for n in notificaciones
+        ]
+    }
+    return JsonResponse(data)
+
+
+def get_icono_notificacion(tipo):
+    """
+    Retorna el ícono FontAwesome según el tipo de notificación
+    """
+    iconos = {
+        'stock_critico': 'fa-exclamation-triangle',
+        'solicitud_pendiente': 'fa-clipboard-list',
+        'material_nuevo': 'fa-box',
+        'aprobacion': 'fa-check-circle',
+    }
+    return iconos.get(tipo, 'fa-bell')
 
 
 # ============================================= DASHBOARD ===============================================

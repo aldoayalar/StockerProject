@@ -1,40 +1,32 @@
+# signals.py - VERSIÓN COMPLETA CON NOTIFICACIONES
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import Inventario, Notificacion, Solicitud, Movimiento, Usuario
+from .models import Solicitud, Inventario, Movimiento, Usuario, Notificacion
 
-@receiver(post_save, sender=Inventario)
-def verificar_stock_critico(sender, instance, **kwargs):
-    """Genera notificación automática cuando el stock esté crítico"""
-    if instance.stock_actual <= instance.stock_seguridad:
-        # Evitar duplicados
-        if not Notificacion.objects.filter(
-            tipo='stock_critico',
-            mensaje__contains=instance.material.descripcion,
-            leida=False
-        ).exists():
-            # Notificar a usuarios del grupo Bodega o Gerente
-            # Si no tienes grupos, usa User.objects.filter(is_staff=True)
-            usuarios_a_notificar = User.objects.filter(is_staff=True)  # se envia por defecto a todos los usuarios, definir a quien se envia
-            
-            for usuario in usuarios_a_notificar:
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    tipo='stock_critico',
-                    mensaje=f'Stock crítico: {instance.material.descripcion} - Quedan {instance.stock_actual} unidades',
-                    url=f'/material/{instance.material.id}/'
-                )
-                
 @receiver(post_save, sender=Solicitud)
 def procesar_solicitud_aprobada(sender, instance, created, **kwargs):
     """
     Cuando se aprueba una solicitud, crear movimientos y actualizar stock
+    También genera notificaciones
     """
+    # Si es una solicitud nueva, notificar a staff
+    if created:
+        # Notificar a todos los usuarios staff
+        usuarios_staff = User.objects.filter(is_staff=True, is_active=True)
+        for staff_user in usuarios_staff:
+            Notificacion.objects.create(
+                usuario=staff_user,
+                tipo='solicitud_pendiente',
+                mensaje=f'Nueva solicitud #{instance.id} de {instance.solicitante.username}',
+                url=f'/solicitudes/{instance.id}/'
+            )
+    
     # Solo procesar si cambió a 'aprobada' o 'despachada'
     if instance.estado in ['aprobada', 'despachada']:
         # Verificar que no se hayan procesado ya los movimientos
-        # (evitar duplicados si se guarda múltiples veces)
         movimientos_existentes = Movimiento.objects.filter(
             detalle__contains=f'Solicitud #{instance.id}'
         ).count()
@@ -56,14 +48,11 @@ def procesar_solicitud_aprobada(sender, instance, created, **kwargs):
                     inventario.save()
                     
                     # Buscar usuario en modelo Usuario personalizado
-                    # Si existe, usar ese; si no, crear uno temporal o usar el User de Django
                     try:
                         usuario_movimiento = Usuario.objects.get(
                             email=instance.respondido_por.email
                         )
                     except (Usuario.DoesNotExist, AttributeError):
-                        # Si no existe usuario personalizado, crear movimiento sin usuario
-                        # o puedes crear uno por defecto
                         usuario_movimiento = None
                     
                     # Crear movimiento (solo si hay usuario)
@@ -77,8 +66,55 @@ def procesar_solicitud_aprobada(sender, instance, created, **kwargs):
                         )
                     
                 except Inventario.DoesNotExist:
-                    # Si no existe inventario, crearlo
                     pass
+        
+        # Notificar al solicitante que su solicitud fue aprobada
+        Notificacion.objects.create(
+            usuario=instance.solicitante,
+            tipo='aprobacion',
+            mensaje=f'Tu solicitud #{instance.id} ha sido aprobada',
+            url=f'/solicitudes/{instance.id}/'
+        )
+    
+    # Si fue rechazada, notificar al solicitante
+    elif instance.estado == 'rechazada':
+        Notificacion.objects.create(
+            usuario=instance.solicitante,
+            tipo='aprobacion',
+            mensaje=f'Tu solicitud #{instance.id} ha sido rechazada',
+            url=f'/solicitudes/{instance.id}/'
+        )
+
+
+@receiver(post_save, sender=Inventario)
+def verificar_stock_critico(sender, instance, **kwargs):
+    """
+    Verificar si el stock está crítico y notificar
+    """
+    if instance.stock_actual <= instance.stock_seguridad:
+        material = instance.material
+        
+        # Evitar duplicar notificaciones (solo si no hay una reciente)
+        from django.utils import timezone
+        from datetime import timedelta
+        hace_24h = timezone.now() - timedelta(hours=24)
+        
+        notificaciones_recientes = Notificacion.objects.filter(
+            tipo='stock_critico',
+            mensaje__contains=material.codigo,
+            creada_en__gte=hace_24h
+        ).count()
+        
+        if notificaciones_recientes == 0:
+            # Notificar a todos los usuarios staff
+            usuarios_staff = User.objects.filter(is_staff=True, is_active=True)
+            for staff_user in usuarios_staff:
+                Notificacion.objects.create(
+                    usuario=staff_user,
+                    tipo='stock_critico',
+                    mensaje=f'Stock crítico: {material.descripcion} ({material.codigo}) - Stock: {instance.stock_actual}',
+                    url=f'/materiales/{material.id}/'
+                )
 
 
 @receiver(post_save, sender=Inventario)
@@ -87,12 +123,9 @@ def registrar_ingreso_inicial(sender, instance, created, **kwargs):
     Registrar movimiento cuando se crea un inventario nuevo
     """
     if created and instance.stock_actual > 0:
-        # Intentar obtener el usuario que lo creó (esto depende de tu implementación)
-        # Por ahora, podrías crear un usuario "Sistema" en tu BD
         try:
             usuario_sistema = Usuario.objects.get(email='sistema@stocker.com')
         except Usuario.DoesNotExist:
-            # Si no existe, no crear movimiento o crear con usuario None
             usuario_sistema = None
         
         if usuario_sistema:

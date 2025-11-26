@@ -47,6 +47,9 @@ urlpatterns = [
     path('material/<int:material_id>/movimientos/', views.historial_movimientos, name='historial_movimientos'),
     
     #Notificaciones
-    path('notificacion/<int:id>/leer/', views.marcar_leida, name='marcar_leida'),
-    path('notificaciones/leer-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
+    path('notificaciones/', views.mis_notificaciones, name='mis_notificaciones'),
+    path('notificaciones/<int:id>/leer/', views.marcar_leida, name='marcar_leida'),
+    path('notificaciones/marcar-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
+    path('notificaciones/<int:id>/eliminar/', views.eliminar_notificacion, name='eliminar_notificacion'),
+    path('api/notificaciones/', views.obtener_notificaciones_json, name='obtener_notificaciones_json'),
 ]
