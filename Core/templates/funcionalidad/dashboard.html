@@ -4,6 +4,7 @@
 {% block titulo %}Dashboard - Stocker{% endblock %}
 
 {% block contenido %}
+<div class="dashboard-container" style="max-height: calc(100vh - 100px); overflow-y: auto;">
 <div class="container-fluid mt-4 px-3 px-md-4">
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
     <div>
@@ -184,6 +185,7 @@
             <a href="{% url 'ingreso_material' %}" class="btn btn-info">Agregar Material</a>
         </div>
         </div>
+    </div>
     </div>
     </div>
     {% endblock %}

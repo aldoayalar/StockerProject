@@ -1,0 +1,159 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Ajustar Inventario - {{ material.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-info {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .stock-badge {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .diferencia-badge {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <!-- Header con info del material -->
+    <div class="material-info shadow-lg">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3><i class="fas fa-box"></i> {{ material.descripcion }}</h3>
+                <p class="mb-0">
+                    <strong>Código:</strong> {{ material.codigo }} | 
+                    <strong>Categoría:</strong> {{ material.get_categoria_display }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <p class="mb-1">Stock Actual</p>
+                <span class="stock-badge">{{ inventario.stock_actual }} {{ material.unidad_medida }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de ajuste -->
+    <div class="card shadow">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="fas fa-sync-alt"></i> Ajustar Inventario</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Atención:</strong> Esta operación corrige el stock físico con el stock del sistema. 
+                Úsala solo para correcciones de inventario, no para entradas o salidas regulares.
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            <strong>Stock Actual en Sistema</strong>
+                        </label>
+                        <div class="alert alert-secondary mb-0">
+                            <i class="fas fa-database"></i>
+                            <strong>{{ inventario.stock_actual }}</strong> {{ material.unidad_medida }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="nuevo_stock" class="form-label">
+                            <strong>Nuevo Stock (Físico) *</strong>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-edit"></i></span>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="nuevo_stock" 
+                                name="nuevo_stock" 
+                                min="0" 
+                                required
+                                placeholder="{{ inventario.stock_actual }}"
+                                value="{{ inventario.stock_actual }}"
+                                autofocus
+                            >
+                            <span class="input-group-text">{{ material.unidad_medida }}</span>
+                        </div>
+                        <div class="form-text">Stock contado físicamente</div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            <strong>Diferencia</strong>
+                        </label>
+                        <div class="alert alert-info mb-0" id="alertDiferencia">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span class="diferencia-badge" id="diferencia">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="detalle" class="form-label">
+                        <strong>Motivo del Ajuste *</strong>
+                    </label>
+                    <textarea 
+                        class="form-control" 
+                        id="detalle" 
+                        name="detalle" 
+                        rows="3"
+                        placeholder="Ej: Inventario físico anual, Corrección por error de registro, Merma detectada..."
+                        required
+                    ></textarea>
+                    <div class="form-text">Requerido: Explica el motivo de la corrección</div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'detalle_material' material.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-warning btn-lg">
+                        <i class="fas fa-check"></i> Confirmar Ajuste
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const stockActual = {{ inventario.stock_actual }};
+
+document.getElementById('nuevo_stock').addEventListener('input', function() {
+    const nuevoStock = parseInt(this.value) || 0;
+    const diferencia = nuevoStock - stockActual;
+    
+    const diferenciaSpan = document.getElementById('diferencia');
+    const alertDiferencia = document.getElementById('alertDiferencia');
+    
+    // Formatear diferencia con signo
+    if (diferencia > 0) {
+        diferenciaSpan.textContent = '+' + diferencia;
+        alertDiferencia.className = 'alert alert-success mb-0';
+    } else if (diferencia < 0) {
+        diferenciaSpan.textContent = diferencia;
+        alertDiferencia.className = 'alert alert-danger mb-0';
+    } else {
+        diferenciaSpan.textContent = '0';
+        alertDiferencia.className = 'alert alert-info mb-0';
+    }
+});
+</script>
+{% endblock %}

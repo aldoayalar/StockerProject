@@ -1,0 +1,124 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Registrar Entrada - {{ material.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .stock-badge {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <!-- Header con info del material -->
+    <div class="material-info shadow-lg">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3><i class="fas fa-box"></i> {{ material.descripcion }}</h3>
+                <p class="mb-0">
+                    <strong>Código:</strong> {{ material.codigo }} | 
+                    <strong>Categoría:</strong> {{ material.get_categoria_display }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <p class="mb-1">Stock Actual</p>
+                <span class="stock-badge">{{ inventario.stock_actual }} {{ material.unidad_medida }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de entrada -->
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Registrar Entrada de Material</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="cantidad" class="form-label">
+                            <strong>Cantidad a Ingresar *</strong>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-plus"></i></span>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="cantidad" 
+                                name="cantidad" 
+                                min="1" 
+                                required
+                                placeholder="0"
+                                autofocus
+                            >
+                            <span class="input-group-text">{{ material.unidad_medida }}</span>
+                        </div>
+                        <div class="form-text">Cantidad de unidades a agregar al inventario</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <strong>Stock Resultante</strong>
+                        </label>
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-calculator"></i>
+                            <strong id="stock-resultante">{{ inventario.stock_actual }}</strong> 
+                            {{ material.unidad_medida }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="detalle" class="form-label">
+                        <strong>Detalle / Observaciones</strong>
+                    </label>
+                    <textarea 
+                        class="form-control" 
+                        id="detalle" 
+                        name="detalle" 
+                        rows="3"
+                        placeholder="Ej: Compra a proveedor XYZ, Orden de compra #123..."
+                    ></textarea>
+                    <div class="form-text">Opcional: Describe el motivo del ingreso</div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'detalle_material' material.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-check"></i> Registrar Entrada
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('cantidad').addEventListener('input', function() {
+    const stockActual = {{ inventario.stock_actual }};
+    const cantidad = parseInt(this.value) || 0;
+    const stockResultante = stockActual + cantidad;
+    
+    document.getElementById('stock-resultante').textContent = stockResultante;
+});
+</script>
+{% endblock %}

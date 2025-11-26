@@ -1,48 +1,196 @@
-{% extends 'general/base.html' %}
+{% extends "general/base.html" %}
 {% load static %}
+
+{% block titulo %}{{ material.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .info-card {
+        border-left: 4px solid #667eea;
+        transition: transform 0.2s;
+    }
+    .info-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    .critico {
+        color: #dc3545;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+    .btn-action {
+        padding: 12px 24px;
+        font-size: 1rem;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
 <div class="container mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-info text-white">
-      <h4>
-        <i class="fas fa-cube"></i> Detalle del Material
-      </h4>
+    <!-- Header con información principal -->
+    <div class="material-header shadow-lg">
+        <div class="row align-items-center">
+            <div class="col-md-9">
+                <h2 class="mb-2">
+                    <i class="fas fa-box"></i> {{ material.descripcion }}
+                </h2>
+                <p class="mb-0">
+                    <span class="badge bg-light text-dark me-2">{{ material.codigo }}</span>
+                    <span class="badge bg-light text-dark me-2">{{ material.get_categoria_display }}</span>
+                    <span class="badge bg-light text-dark">{{ material.get_unidad_medida_display }}</span>
+                </p>
+            </div>
+            <div class="col-md-3 text-end">
+                {% if user.is_staff %}
+                <a href="{% url 'editar_material' material.id %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong><i class="fas fa-barcode"></i> Código:</strong>
-          <span class="badge bg-primary">{{ material.codigo }}</span>
-        </div>
-        <div class="col-md-6">
-          <strong><i class="fas fa-tags"></i> Categoría:</strong>
-          {{ material.categoria }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <strong><i class="fas fa-info-circle"></i> Descripción:</strong>
-        <div class="bg-light p-2 rounded">{{ material.descripcion }}</div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong><i class="fas fa-ruler"></i> Unidad de medida:</strong>
-          {{ material.unidad_medida }}
-        </div>
-        <div class="col-md-6">
-          <strong><i class="fas fa-map-marker-alt"></i> Ubicación:</strong>
-          {{ material.ubicacion }}
-        </div>
-      </div>
+
+    <!-- Alertas de stock -->
+    {% if material.inventario.stock_actual <= material.inventario.stock_seguridad %}
+    <div class="alert alert-danger shadow-sm">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>¡Alerta de Stock Crítico!</strong> 
+        El stock actual ({{ material.inventario.stock_actual }}) está por debajo o igual al nivel de seguridad ({{ material.inventario.stock_seguridad }}).
     </div>
-    <div class="card-footer bg-light d-flex justify-content-between">
-      <a href="{% url 'editar_material' material.id %}" class="btn btn-warning">
-        <i class="fas fa-edit"></i> Editar
-      </a>
-      <a href="{% url 'inventario' %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Volver
-      </a>
-    </div>
-  </div>
-</div>
-{% endblock %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Columna izquierda: Información -->
+        <div class="col-lg-8">
+            <!-- Card: Información del Stock -->
+            <div class="card info-card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-layer-group"></i> Información de Stock</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <p class="text-muted mb-1">Stock Actual</p>
+                            <div class="stat-value {% if material.inventario.stock_actual <= material.inventario.stock_seguridad %}critico{% endif %}">
+                                {{ material.inventario.stock_actual }}
+                            </div>
+                            <small class="text-muted">{{ material.unidad_medida }}</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <p class="text-muted mb-1">Stock de Seguridad</p>
+                            <div class="stat-value text-warning">
+                                {{ material.inventario.stock_seguridad }}
+                            </div>
+                            <small class="text-muted">{{ material.unidad_medida }}</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <p class="text-muted mb-1">Estado</p>
+                            {% if material.inventario.stock_actual > material.inventario.stock_seguridad %}
+                                <span class="badge bg-success fs-5">Normal</span>
+                            {% elif material.inventario.stock_actual > 0 %}
+                                <span class="badge bg-warning fs-5">Bajo</span>
+                            {% else %}
+                                <span class="badge bg-danger fs-5">Agotado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Detalles del Material -->
+            <div class="card info-card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Detalles del Material</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Código:</strong></p>
+                            <p class="text-muted">{{ material.codigo }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Categoría:</strong></p>
+                            <p class="text-muted">{{ material.get_categoria_display }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Unidad de Medida:</strong></p>
+                            <p class="text-muted">{{ material.get_unidad_medida_display }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Ubicación:</strong></p>
+                            <p class="text-muted">{{ material.ubicacion|default:"No especificada" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Fecha de Creación:</strong></p>
+                            <p class="text-muted">{{ material.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="mb-1"><strong>Última Modificación:</strong></p>
+                            <p class="text-muted">{{ material.fecha_modificacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: Acciones -->
+        <div class="col-lg-4">
+            <!-- Card: Acciones de Movimiento -->
+            {% if user.is_staff %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Gestión de Stock</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'registrar_entrada' material.id %}" class="btn btn-success btn-action">
+                            <i class="fas fa-plus-circle"></i> Registrar Entrada
+                        </a>
+                        <a href="{% url 'registrar_salida' material.id %}" class="btn btn-danger btn-action">
+                            <i class="fas fa-minus-circle"></i> Registrar Salida
+                        </a>
+                        <a href="{% url 'ajustar_inventario' material.id %}" class="btn btn-warning btn-action">
+                            <i class="fas fa-sync-alt"></i> Ajustar Inventario
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card: Historial -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Historial</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid">
+                        <a href="{% url 'historial_movimientos' material.id %}" class="btn btn-outline-secondary btn-action">
+                            <i class="fas fa-list"></i> Ver Movimientos
+                        </a>
+                    </div>
+                    
+                    {% if material.movimientos.exists %}
+                    <hr>
+                    <p class="mb-1 text-muted small">Último Movimiento:</p>
+                    {% with ultimo

@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from django.core.paginator import Paginator
 
-from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud
+from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario
 from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
 
 #----------------------------------------------------------------------------------------
@@ -60,6 +60,10 @@ def login_view(request):
     return render(request, 'general/login.html')
         
 def logout_view(request):
+    # Limpiar todos los mensajes pendientes antes de cerrar sesión
+    storage = messages.get_messages(request)
+    storage.used = True
+    
     logout(request)
     messages.success(request, 'Has cerrado sesión exitosamente')
     return redirect('login')
@@ -400,6 +404,218 @@ def historial_solicitudes(request):
     }
     
     return render(request, 'funcionalidad/solmat_historial.html', context)
+
+# ============================================= Registro de movimientos ====================================
+
+@login_required
+@user_passes_test(es_staff)
+def registrar_entrada(request, material_id):
+    """
+    Registrar entrada manual de material
+    """
+    material = get_object_or_404(Material, id=material_id)
+    
+    try:
+        inventario = material.inventario
+    except Inventario.DoesNotExist:
+        messages.error(request, 'Este material no tiene inventario asociado.')
+        return redirect('inventario')
+    
+    if request.method == 'POST':
+        cantidad = int(request.POST.get('cantidad', 0))
+        detalle = request.POST.get('detalle', '')
+        
+        if cantidad <= 0:
+            messages.error(request, 'La cantidad debe ser mayor a 0.')
+        else:
+            try:
+                with transaction.atomic():
+                    stock_anterior = inventario.stock_actual
+                    stock_nuevo = stock_anterior + cantidad
+                    
+                    # Actualizar inventario
+                    inventario.stock_actual = stock_nuevo
+                    inventario.save()
+                    
+                    # Buscar usuario en modelo Usuario personalizado
+                    try:
+                        usuario_movimiento = Usuario.objects.get(
+                            email=request.user.email
+                        )
+                    except Usuario.DoesNotExist:
+                        messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
+                        return redirect('detalle_material', id=material_id)
+                    
+                    # Crear movimiento
+                    Movimiento.objects.create(
+                        material=material,
+                        usuario=usuario_movimiento,
+                        tipo='entrada',
+                        cantidad=cantidad,
+                        detalle=detalle or f'Entrada manual registrada por {request.user.username}'
+                    )
+                    
+                    messages.success(
+                        request, 
+                        f'Entrada registrada: +{cantidad} {material.unidad_medida}. Stock actual: {stock_nuevo}'
+                    )
+                    return redirect('detalle_material', id=material_id)
+                    
+            except Exception as e:
+                messages.error(request, f'Error al registrar entrada: {str(e)}')
+    
+    context = {
+        'material': material,
+        'inventario': inventario,
+    }
+    return render(request, 'funcionalidad/mov_registrar_entrada.html', context)
+
+
+@login_required
+@user_passes_test(es_staff)
+def registrar_salida(request, material_id):
+    """
+    Registrar salida manual de material
+    """
+    material = get_object_or_404(Material, id=material_id)
+    
+    try:
+        inventario = material.inventario
+    except Inventario.DoesNotExist:
+        messages.error(request, 'Este material no tiene inventario asociado.')
+        return redirect('inventario')
+    
+    if request.method == 'POST':
+        cantidad = int(request.POST.get('cantidad', 0))
+        detalle = request.POST.get('detalle', '')
+        
+        if cantidad <= 0:
+            messages.error(request, 'La cantidad debe ser mayor a 0.')
+        elif cantidad > inventario.stock_actual:
+            messages.error(request, f'Stock insuficiente. Disponible: {inventario.stock_actual}')
+        else:
+            try:
+                with transaction.atomic():
+                    stock_anterior = inventario.stock_actual
+                    stock_nuevo = stock_anterior - cantidad
+                    
+                    # Actualizar inventario
+                    inventario.stock_actual = stock_nuevo
+                    inventario.save()
+                    
+                    # Buscar usuario en modelo Usuario personalizado
+                    try:
+                        usuario_movimiento = Usuario.objects.get(
+                            email=request.user.email
+                        )
+                    except Usuario.DoesNotExist:
+                        messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
+                        return redirect('detalle_material', id=material_id)
+                    
+                    # Crear movimiento
+                    Movimiento.objects.create(
+                        material=material,
+                        usuario=usuario_movimiento,
+                        tipo='salida',
+                        cantidad=cantidad,
+                        detalle=detalle or f'Salida manual registrada por {request.user.username}'
+                    )
+                    
+                    messages.success(
+                        request, 
+                        f'Salida registrada: -{cantidad} {material.unidad_medida}. Stock actual: {stock_nuevo}'
+                    )
+                    return redirect('detalle_material', id=material_id)
+                    
+            except Exception as e:
+                messages.error(request, f'Error al registrar salida: {str(e)}')
+    
+    context = {
+        'material': material,
+        'inventario': inventario,
+    }
+    return render(request, 'funcionalidad/mov_registrar_salida.html', context)
+
+
+@login_required
+@user_passes_test(es_staff)
+def ajustar_inventario(request, material_id):
+    """
+    Ajustar inventario (correcciones)
+    """
+    material = get_object_or_404(Material, id=material_id)
+    
+    try:
+        inventario = material.inventario
+    except Inventario.DoesNotExist:
+        messages.error(request, 'Este material no tiene inventario asociado.')
+        return redirect('inventario')
+    
+    if request.method == 'POST':
+        nuevo_stock = int(request.POST.get('nuevo_stock', 0))
+        detalle = request.POST.get('detalle', '')
+        
+        if nuevo_stock < 0:
+            messages.error(request, 'El stock no puede ser negativo.')
+        else:
+            try:
+                with transaction.atomic():
+                    stock_anterior = inventario.stock_actual
+                    diferencia = nuevo_stock - stock_anterior
+                    
+                    # Actualizar inventario
+                    inventario.stock_actual = nuevo_stock
+                    inventario.save()
+                    
+                    # Buscar usuario en modelo Usuario personalizado
+                    try:
+                        usuario_movimiento = Usuario.objects.get(
+                            email=request.user.email
+                        )
+                    except Usuario.DoesNotExist:
+                        messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
+                        return redirect('detalle_material', id=material_id)
+                    
+                    # Crear movimiento
+                    Movimiento.objects.create(
+                        material=material,
+                        usuario=usuario_movimiento,
+                        tipo='ajuste',
+                        cantidad=abs(diferencia),
+                        detalle=f'Ajuste de inventario ({diferencia:+d}): {detalle}'
+                    )
+                    
+                    messages.success(
+                        request, 
+                        f'Inventario ajustado. Stock anterior: {stock_anterior}, Stock nuevo: {nuevo_stock}'
+                    )
+                    return redirect('detalle_material', id=material_id)
+                    
+            except Exception as e:
+                messages.error(request, f'Error al ajustar inventario: {str(e)}')
+    
+    context = {
+        'material': material,
+        'inventario': inventario,
+    }
+    return render(request, 'funcionalidad/mov_ajustar_inventario.html', context)
+
+
+@login_required
+def historial_movimientos(request, material_id):
+    """
+    Ver historial de movimientos de un material
+    """
+    material = get_object_or_404(Material, id=material_id)
+    movimientos = Movimiento.objects.filter(
+        material=material
+    ).select_related('usuario').order_by('-fecha')
+    
+    context = {
+        'material': material,
+        'movimientos': movimientos,
+    }
+    return render(request, 'funcionalidad/mov_historial.html', context)
 
 
 # ====================================== NOTIFICACIONES ============================================

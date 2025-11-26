@@ -1,0 +1,162 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Registrar Salida - {{ material.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-info {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .stock-badge {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .stock-warning {
+        border-left: 4px solid #ffc107;
+    }
+    .stock-danger {
+        border-left: 4px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <!-- Header con info del material -->
+    <div class="material-info shadow-lg">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3><i class="fas fa-box"></i> {{ material.descripcion }}</h3>
+                <p class="mb-0">
+                    <strong>Código:</strong> {{ material.codigo }} | 
+                    <strong>Categoría:</strong> {{ material.get_categoria_display }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <p class="mb-1">Stock Actual</p>
+                <span class="stock-badge">{{ inventario.stock_actual }} {{ material.unidad_medida }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta si stock es bajo -->
+    {% if inventario.stock_actual <= inventario.stock_seguridad %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Advertencia:</strong> El stock actual está en nivel crítico (Stock de seguridad: {{ inventario.stock_seguridad }})
+    </div>
+    {% endif %}
+
+    <!-- Formulario de salida -->
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-minus-circle"></i> Registrar Salida de Material</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="formSalida">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="cantidad" class="form-label">
+                            <strong>Cantidad a Retirar *</strong>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-minus"></i></span>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="cantidad" 
+                                name="cantidad" 
+                                min="1" 
+                                max="{{ inventario.stock_actual }}"
+                                required
+                                placeholder="0"
+                                autofocus
+                            >
+                            <span class="input-group-text">{{ material.unidad_medida }}</span>
+                        </div>
+                        <div class="form-text">Máximo disponible: <strong>{{ inventario.stock_actual }}</strong></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <strong>Stock Resultante</strong>
+                        </label>
+                        <div class="alert alert-info mb-0" id="alertStock">
+                            <i class="fas fa-calculator"></i>
+                            <strong id="stock-resultante">{{ inventario.stock_actual }}</strong> 
+                            {{ material.unidad_medida }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="detalle" class="form-label">
+                        <strong>Detalle / Observaciones *</strong>
+                    </label>
+                    <textarea 
+                        class="form-control" 
+                        id="detalle" 
+                        name="detalle" 
+                        rows="3"
+                        placeholder="Ej: Uso en proyecto XYZ, Mantenimiento de equipo..."
+                        required
+                    ></textarea>
+                    <div class="form-text">Requerido: Describe el motivo de la salida</div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'detalle_material' material.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="fas fa-check"></i> Registrar Salida
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const stockActual = {{ inventario.stock_actual }};
+const stockSeguridad = {{ inventario.stock_seguridad }};
+
+document.getElementById('cantidad').addEventListener('input', function() {
+    const cantidad = parseInt(this.value) || 0;
+    const stockResultante = stockActual - cantidad;
+    
+    const alertStock = document.getElementById('alertStock');
+    const stockResultanteSpan = document.getElementById('stock-resultante');
+    
+    stockResultanteSpan.textContent = stockResultante;
+    
+    // Cambiar color según el stock resultante
+    alertStock.className = 'alert mb-0';
+    if (stockResultante < 0) {
+        alertStock.classList.add('alert-danger');
+    } else if (stockResultante <= stockSeguridad) {
+        alertStock.classList.add('alert-warning');
+    } else {
+        alertStock.classList.add('alert-info');
+    }
+    
+    // Validar cantidad
+    if (cantidad > stockActual) {
+        this.setCustomValidity('La cantidad excede el stock disponible');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

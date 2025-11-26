@@ -18,17 +18,11 @@
         top: 10px;
         right: 10px;
     }
-    .add-row-btn {
-        margin-top: 10px;
-    }
-    .stock-info {
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
 </style>
 {% endblock %}
 
 {% block contenido %}
+<div class="dashboard-container" style="max-height: calc(100vh - 100px); overflow-y: auto;">
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-header bg-success text-white">
@@ -37,6 +31,15 @@
         <div class="card-body">
             <form method="post" id="solicitud-form">
                 {% csrf_token %}
+                
+                <!-- Mostrar errores generales -->
+                {% if form.errors or formset.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Errores en el formulario:</strong>
+                        {{ form.errors }}
+                        {{ formset.non_form_errors }}
+                    </div>
+                {% endif %}
                 
                 <!-- Motivo de la solicitud -->
                 <div class="mb-4">
@@ -56,14 +59,15 @@
                 <!-- Título de materiales -->
                 <h5 class="mb-3"><i class="fas fa-boxes"></i> Materiales Solicitados</h5>
                 
-                <!-- Management form (requerido por Django formsets) -->
+                <!-- Management form (OBLIGATORIO) -->
                 {{ formset.management_form }}
                 
                 <!-- Contenedor de formularios de detalle -->
                 <div id="formset-container">
-                    {% for form in formset %}
-                        <div class="formset-row" data-form-idx="{{ forloop.counter0 }}">
-                            {% if forloop.counter > 1 %}
+                    {% for detalle_form in formset %}
+                        <div class="formset-row">
+                            <!-- Botón eliminar (no mostrar en el primero) -->
+                            {% if not forloop.first %}
                             <button type="button" class="btn btn-sm btn-danger delete-row" onclick="removeForm(this)">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -71,25 +75,25 @@
                             
                             <div class="row">
                                 <div class="col-md-8">
-                                    <label class="form-label">{{ form.material.label }}</label>
-                                    {{ form.material }}
-                                    {% if form.material.errors %}
-                                        <div class="text-danger small">{{ form.material.errors }}</div>
+                                    <label class="form-label">{{ detalle_form.material.label }}</label>
+                                    {{ detalle_form.material }}
+                                    {% if detalle_form.material.errors %}
+                                        <div class="text-danger small">{{ detalle_form.material.errors }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">{{ form.cantidad.label }}</label>
-                                    {{ form.cantidad }}
-                                    {% if form.cantidad.errors %}
-                                        <div class="text-danger small">{{ form.cantidad.errors }}</div>
+                                    <label class="form-label">{{ detalle_form.cantidad.label }}</label>
+                                    {{ detalle_form.cantidad }}
+                                    {% if detalle_form.cantidad.errors %}
+                                        <div class="text-danger small">{{ detalle_form.cantidad.errors }}</div>
                                     {% endif %}
                                 </div>
                             </div>
                             
-                            <!-- Campo oculto para eliminación -->
+                            <!-- Campos ocultos (ID y DELETE) -->
                             <div style="display: none;">
-                                {{ form.id }}
-                                {{ form.DELETE }}
+                                {{ detalle_form.id }}
+                                {{ detalle_form.DELETE }}
                             </div>
                         </div>
                     {% endfor %}
@@ -116,7 +120,7 @@
 
 <!-- Template vacío para clonar (formset dinámico) -->
 <div id="empty-form" style="display: none;">
-    <div class="formset-row" data-form-idx="__prefix__">
+    <div class="formset-row">
         <button type="button" class="btn btn-sm btn-danger delete-row" onclick="removeForm(this)">
             <i class="fas fa-trash"></i>
         </button>
@@ -136,47 +140,37 @@
         </div>
     </div>
 </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    let formIdx = {{ formset.total_form_count }};
-    const maxForms = {{ formset.max_num }};
-    
     function addForm() {
-        if (formIdx >= maxForms) {
-            alert(`Máximo ${maxForms} materiales por solicitud`);
-            return;
-        }
-        
-        const emptyForm = document.getElementById('empty-form').innerHTML;
-        const newForm = emptyForm.replace(/__prefix__/g, formIdx);
-        
-        document.getElementById('formset-container').insertAdjacentHTML('beforeend', newForm);
-        
-        formIdx++;
-        updateTotalForms();
+        const container = document.getElementById('formset-container');
+        const emptyFormTemplate = document.getElementById('empty-form');
+        const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+        let formCount = parseInt(totalFormsInput.value);
+
+        const newForm = emptyFormTemplate.querySelector('.formset-row').cloneNode(true);
+        newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, formCount);
+        newForm.style.display = 'block';
+        container.appendChild(newForm);
+
+        formCount++;
+        totalFormsInput.value = formCount;
     }
-    
+
     function removeForm(button) {
         const row = button.closest('.formset-row');
-        const deleteInput = row.querySelector('input[name$="-DELETE"]');
-        
-        if (deleteInput) {
-            deleteInput.checked = true;
+        const totalForms = document.querySelectorAll('.formset-row').length;
+        if (totalForms > 1) {
+            const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+            }
             row.style.display = 'none';
         } else {
-            row.remove();
-            formIdx--;
-        }
-        
-        updateTotalForms();
-    }
-    
-    function updateTotalForms() {
-        const totalFormsInput = document.querySelector('input[name="detalles-TOTAL_FORMS"]');
-        if (totalFormsInput) {
-            totalFormsInput.value = formIdx;
+            alert('Debe haber al menos un material en la solicitud.');
         }
     }
 </script>

@@ -40,6 +40,12 @@ urlpatterns = [
         #historial de solicitudes
     path('historial-solicitudes/', views.historial_solicitudes, name='historial_solicitudes'),
     
+    # Movimientos
+    path('material/<int:material_id>/entrada/', views.registrar_entrada, name='registrar_entrada'),
+    path('material/<int:material_id>/salida/', views.registrar_salida, name='registrar_salida'),
+    path('material/<int:material_id>/ajustar/', views.ajustar_inventario, name='ajustar_inventario'),
+    path('material/<int:material_id>/movimientos/', views.historial_movimientos, name='historial_movimientos'),
+    
     #Notificaciones
     path('notificacion/<int:id>/leer/', views.marcar_leida, name='marcar_leida'),
     path('notificaciones/leer-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),

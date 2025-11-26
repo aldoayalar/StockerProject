@@ -1,0 +1,168 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block titulo %}Historial de Movimientos - {{ material.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 60px;
+        padding-bottom: 30px;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 30px;
+        bottom: -30px;
+        width: 2px;
+        background: #e9ecef;
+    }
+    .timeline-item:last-child::before {
+        display: none;
+    }
+    .timeline-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .timeline-icon.entrada {
+        background: #28a745;
+    }
+    .timeline-icon.salida {
+        background: #dc3545;
+    }
+    .timeline-icon.ajuste {
+        background: #ffc107;
+    }
+    .material-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="material-header shadow-lg">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3><i class="fas fa-history"></i> Historial de Movimientos</h3>
+                <p class="mb-0">
+                    <strong>{{ material.descripcion }}</strong> ({{ material.codigo }})
+                </p>
+            </div>
+            <div class="text-end">
+                <p class="mb-1">Stock Actual</p>
+                <h2 class="mb-0">{{ material.inventario.stock_actual }} {{ material.unidad_medida }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="d-flex justify-content-between mb-4">
+        <a href="{% url 'detalle_material' material.id %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+        
+        {% if user.is_staff %}
+        <div>
+            <a href="{% url 'registrar_entrada' material.id %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Entrada
+            </a>
+            <a href="{% url 'registrar_salida' material.id %}" class="btn btn-danger">
+                <i class="fas fa-minus"></i> Salida
+            </a>
+            <a href="{% url 'ajustar_inventario' material.id %}" class="btn btn-warning">
+                <i class="fas fa-sync"></i> Ajustar
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Timeline de movimientos -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-stream"></i> 
+                Movimientos Registrados ({{ movimientos.count }})
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if movimientos %}
+                <div class="timeline">
+                    {% for mov in movimientos %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon {{ mov.tipo }}">
+                            {% if mov.tipo == 'entrada' %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% elif mov.tipo == 'salida' %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% elif mov.tipo == 'ajuste' %}
+                                <i class="fas fa-sync-alt"></i>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card mb-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            {% if mov.tipo == 'entrada' %}
+                                                <span class="badge bg-success">ENTRADA</span>
+                                            {% elif mov.tipo == 'salida' %}
+                                                <span class="badge bg-danger">SALIDA</span>
+                                            {% elif mov.tipo == 'ajuste' %}
+                                                <span class="badge bg-warning">AJUSTE</span>
+                                            {% endif %}
+                                            
+                                            <strong>{{ mov.cantidad }} {{ material.unidad_medida }}</strong>
+                                        </h6>
+                                        
+                                        <p class="mb-2 text-muted">
+                                            <i class="far fa-clock"></i> {{ mov.fecha|date:"d/m/Y H:i" }}
+                                            <span class="mx-2">|</span>
+                                            <i class="far fa-user"></i> {{ mov.usuario.nombre }} {{ mov.usuario.apellido }}
+                                        </p>
+                                        
+                                        {% if mov.detalle %}
+                                        <p class="mb-0">
+                                            <i class="fas fa-comment-alt"></i> {{ mov.detalle }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-inbox fa-4x mb-3"></i>
+                    <h5>No hay movimientos registrados</h5>
+                    <p>Este material aún no tiene historial de movimientos</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
