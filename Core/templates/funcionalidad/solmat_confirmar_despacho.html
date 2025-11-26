@@ -1,0 +1,53 @@
+{% extends 'general/base.html' %}
+{% block contenido %}
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-warning">
+      <h4><i class="fas fa-exclamation-triangle"></i> Confirmar Despacho</h4>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-warning">
+        <strong>¿Estás seguro de despachar esta solicitud?</strong>
+        <p>Se descontará el siguiente stock del inventario:</p>
+      </div>
+      
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Cantidad a despachar</th>
+            <th>Stock actual</th>
+            <th>Stock después</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detalle in solicitud.detalles.all %}
+          <tr>
+            <td>{{ detalle.material.descripcion }}</td>
+            <td>{{ detalle.cantidad }}</td>
+            <td>{{ detalle.material.inventario.stock_actual }}</td>
+            <td>
+              {% with nuevo_stock=detalle.material.inventario.stock_actual|add:detalle.cantidad|add:"-"|add:detalle.cantidad %}
+                {{ detalle.material.inventario.stock_actual|add:"-"|add:detalle.cantidad }}
+              {% endwith %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <form method="POST">
+        {% csrf_token %}
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Cancelar
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-truck"></i> Confirmar Despacho
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

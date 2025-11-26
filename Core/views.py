@@ -351,6 +351,85 @@ def cancelar_solicitud(request, solicitud_id):
     return redirect('detalle_solicitud', solicitud_id=solicitud_id)
 
 
+@login_required
+@user_passes_test(es_staff)
+def despachar_solicitud(request, solicitud_id):
+    """
+    Marcar una solicitud aprobada como despachada y descontar stock
+    """
+    solicitud = get_object_or_404(Solicitud, id=solicitud_id)
+    
+    if solicitud.estado != 'aprobada':
+        messages.error(request, 'Solo se pueden despachar solicitudes aprobadas.')
+        return redirect('gestionar_solicitudes')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Descontar stock de cada material
+                for detalle in solicitud.detalles.all():
+                    try:
+                        inventario = detalle.material.inventario
+                        
+                        # Verificar stock suficiente
+                        if inventario.stock_actual < detalle.cantidad:
+                            messages.error(
+                                request, 
+                                f'Stock insuficiente para {detalle.material.descripcion}. '
+                                f'Disponible: {inventario.stock_actual}, Solicitado: {detalle.cantidad}'
+                            )
+                            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+                        
+                        # Descontar stock
+                        stock_anterior = inventario.stock_actual
+                        inventario.stock_actual -= detalle.cantidad
+                        inventario.save()
+                        
+                        # Registrar movimiento de salida
+                        try:
+                            usuario_movimiento = Usuario.objects.get(email=request.user.email)
+                        except Usuario.DoesNotExist:
+                            # Si no existe en Usuario, crear el movimiento sin ese campo o manejarlo diferente
+                            usuario_movimiento = None
+                        
+                        if usuario_movimiento:
+                            Movimiento.objects.create(
+                                material=detalle.material,
+                                usuario=usuario_movimiento,
+                                solicitud=solicitud,
+                                tipo='salida',
+                                cantidad=detalle.cantidad,
+                                detalle=f'Despacho solicitud #{solicitud.id} - {solicitud.motivo}'
+                            )
+                        
+                    except Inventario.DoesNotExist:
+                        messages.error(
+                            request, 
+                            f'El material {detalle.material.codigo} no tiene inventario asociado.'
+                        )
+                        return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+                
+                # Actualizar estado de la solicitud
+                solicitud.estado = 'despachada'
+                solicitud.save()
+                
+                messages.success(
+                    request, 
+                    f'Solicitud #{solicitud.id} despachada exitosamente. Stock actualizado.'
+                )
+                return redirect('gestionar_solicitudes')
+                
+        except Exception as e:
+            messages.error(request, f'Error al despachar solicitud: {str(e)}')
+            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+    
+    # Si es GET, mostrar confirmación
+    context = {
+        'solicitud': solicitud,
+    }
+    return render(request, 'funcionalidad/solmat_confirmar_despacho.html', context)
+
+
 
 @login_required
 def historial_solicitudes(request):

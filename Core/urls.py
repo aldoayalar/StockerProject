@@ -36,6 +36,7 @@ urlpatterns = [
     path('solicitud/gestionar/', views.gestionar_solicitudes, name='gestionar_solicitudes'),
     path('solicitud/<int:solicitud_id>/aprobar/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('solicitud/<int:solicitud_id>/rechazar/', views.rechazar_solicitud, name='rechazar_solicitud'),
+    path('solicitud/<int:solicitud_id>/despachar/', views.despachar_solicitud, name='despachar_solicitud'),
     
         #historial de solicitudes
     path('historial-solicitudes/', views.historial_solicitudes, name='historial_solicitudes'),

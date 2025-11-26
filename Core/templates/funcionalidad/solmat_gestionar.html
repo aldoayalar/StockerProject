@@ -14,70 +14,90 @@
             <th>Material</th>
             <th>Cantidad</th>
             <th>Motivo</th>
-            <th>Estado</th>
+            <th>Estado</th>  <!-- AQUÍ ES LA COLUMNA -->
             <th>Fecha</th>
             <th>Acciones</th>
           </tr>
         </thead>
-       <tbody>
-        {% for solicitud in solicitudes_pendientes %}
-          <tr>
-            <td>{{ solicitud.id }}</td>
-            <td>{{ solicitud.solicitante.username }}</td>
-            <td>
-              {% for detalle in solicitud.detalles.all %}
-                {{ detalle.material.descripcion }}<br>
-              {% endfor %}
-            </td>
-            <td>
-              {% for detalle in solicitud.detalles.all %}
-                {{ detalle.cantidad }}<br>
-              {% endfor %}
-            </td>
-            <td>{{ solicitud.motivo|truncatewords:5 }}</td>
-            <td>
-              {% if solicitud.estado == 'pendiente' %}
-                <span class="badge bg-warning text-dark">Pendiente</span>
-              {% elif solicitud.estado == 'aprobada' %}
-                <span class="badge bg-success">Aprobada</span>
-              {% elif solicitud.estado == 'rechazada' %}
-                <span class="badge bg-danger">Rechazada</span>
-              {% elif solicitud.estado == 'despachada' %}
-                <span class="badge bg-info">Despachada</span>
-              {% endif %}
-            </td>
-            <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
-            <td>
-              {% if solicitud.estado == 'pendiente' %}
-                <!-- Formulario para aprobar -->
-                <form method="POST" action="{% url 'aprobar_solicitud' solicitud.id %}" style="display: inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm" 
-                          onclick="return confirm('¿Aprobar esta solicitud?')">
-                    <i class="fas fa-check"></i>
-                  </button>
-                </form>
-                
-                <!-- Formulario para rechazar -->
-                <form method="POST" action="{% url 'rechazar_solicitud' solicitud.id %}" style="display: inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-danger btn-sm" 
-                          onclick="return confirm('¿Rechazar esta solicitud?')">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </form>
-              {% else %}
-                <span class="text-muted small">Procesada</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="8" class="text-center text-muted">No hay solicitudes pendientes</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-
+        <tbody>
+          {% for solicitud in todas_solicitudes %}
+            <tr>
+              <td>{{ solicitud.id }}</td>
+              <td>{{ solicitud.solicitante.username }}</td>
+              <td>
+                {% for detalle in solicitud.detalles.all %}
+                  {{ detalle.material.descripcion }}<br>
+                {% endfor %}
+              </td>
+              <td>
+                {% for detalle in solicitud.detalles.all %}
+                  {{ detalle.cantidad }}<br>
+                {% endfor %}
+              </td>
+              <td>{{ solicitud.motivo|truncatewords:5 }}</td>
+              
+              <!-- ==================== AQUÍ VA EL CÓDIGO ==================== -->
+              <td>
+                {% if solicitud.estado == 'pendiente' %}
+                  <span class="badge bg-warning text-dark">Pendiente</span>
+                {% elif solicitud.estado == 'aprobada' %}
+                  <span class="badge bg-info">Aprobada</span>
+                {% elif solicitud.estado == 'despachada' %}
+                  <span class="badge bg-success">Despachada</span>
+                {% elif solicitud.estado == 'rechazada' %}
+                  <span class="badge bg-danger">Rechazada</span>
+                {% endif %}
+              </td>
+              <!-- ============================================================ -->
+              
+              <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
+              <td>
+                {% if solicitud.estado == 'pendiente' %}
+                  <!-- Formulario para aprobar -->
+                  <form method="POST" action="{% url 'aprobar_solicitud' solicitud.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm" 
+                            onclick="return confirm('¿Aprobar esta solicitud?')">
+                      <i class="fas fa-check"></i> Aprobar
+                    </button>
+                  </form>
+                  
+                  <!-- Formulario para rechazar -->
+                  <form method="POST" action="{% url 'rechazar_solicitud' solicitud.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm" 
+                            onclick="return confirm('¿Rechazar esta solicitud?')">
+                      <i class="fas fa-times"></i> Rechazar
+                    </button>
+                  </form>
+                  
+                {% elif solicitud.estado == 'aprobada' %}
+                  <!-- Formulario para despachar -->
+                  <form method="POST" action="{% url 'despachar_solicitud' solicitud.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm" 
+                            onclick="return confirm('¿Despachar esta solicitud? Se descontará el stock.')">
+                      <i class="fas fa-truck"></i> Despachar
+                    </button>
+                  </form>
+                  
+                {% else %}
+                  <span class="text-muted small">
+                    {% if solicitud.estado == 'despachada' %}
+                      <i class="fas fa-check-circle text-success"></i> Despachada
+                    {% elif solicitud.estado == 'rechazada' %}
+                      <i class="fas fa-times-circle text-danger"></i> Rechazada
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted">No hay solicitudes registradas</td>
+            </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
   </div>
