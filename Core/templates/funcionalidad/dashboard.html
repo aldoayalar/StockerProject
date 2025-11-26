@@ -1,191 +1,452 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}Dashboard - Stocker{% endblock %}
+{% block title %}Dashboard - Stocker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card {
+        border-radius: 10px;
+        padding: 20px;
+        color: white;
+        transition: transform 0.3s;
+        border: none;
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .kpi-card.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .kpi-card.success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .kpi-card.warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff6b6b 100%);
+    }
+    
+    .kpi-card.danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .kpi-card.info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    }
+    
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .kpi-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .activity-item {
+        padding: 12px;
+        border-left: 3px solid #dee2e6;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .activity-item:hover {
+        background: #e9ecef;
+        border-left-color: #667eea;
+    }
+    
+    .activity-item.entrada {
+        border-left-color: #28a745;
+    }
+    
+    .activity-item.salida {
+        border-left-color: #dc3545;
+    }
+    
+    .activity-item.ajuste {
+        border-left-color: #ffc107;
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="dashboard-container" style="max-height: calc(100vh - 100px); overflow-y: auto;">
-<div class="container-fluid mt-4 px-3 px-md-4">
-  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
-    <div>
-      <h1 class="mb-2"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-      <p class="lead mb-0">Bienvenido, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
-    </div>
-    <div class="mt-2 mt-md-0">
-      <span class="badge bg-primary">{{ user.get_role_display|default:"Usuario" }}</span>
-    </div>
-  </div>
-
-    <!-- Tarjetas de KPI - Responsive -->
-    <div class="row mt-4">
-    <!-- Total Materiales -->
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
-        <div class="card shadow-sm border-start border-primary border-4 h-100">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0 text-primary">{{ total_materiales }}</h3>
-                <p class="text-muted mb-0"><small>Total Materiales</small></p>
-            </div>
-            <div class="text-primary fs-1">
-                <i class="fas fa-boxes"></i>
-            </div>
-            </div>
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+            <p class="text-muted mb-0">Bienvenido, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
         </div>
+        <div class="text-end">
+            <small class="text-muted">
+                <i class="far fa-clock"></i> {{ "now"|date:"d/m/Y H:i" }}
+            </small>
         </div>
     </div>
 
-    <!-- Total Usuarios -->
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
-        <div class="card shadow-sm border-start border-success border-4 h-100">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0 text-success">{{ total_usuarios }}</h3>
-                <p class="text-muted mb-0"><small>Usuarios Activos</small></p>
-            </div>
-            <div class="text-success fs-1">
-                <i class="fas fa-users"></i>
-            </div>
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card primary">
+                <i class="fas fa-boxes fa-2x mb-2"></i>
+                <div class="kpi-value">{{ total_materiales }}</div>
+                <div class="kpi-label">Total Materiales</div>
             </div>
         </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card warning">
+                <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                <div class="kpi-value">{{ solicitudes_pendientes }}</div>
+                <div class="kpi-label">Solicitudes Pendientes</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <div class="kpi-value">{{ materiales_criticos }}</div>
+                <div class="kpi-label">Stock Crítico</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card info">
+                <i class="fas fa-cubes fa-2x mb-2"></i>
+                <div class="kpi-value">{{ stock_total }}</div>
+                <div class="kpi-label">Stock Total</div>
+            </div>
         </div>
     </div>
 
-    <!-- Solicitudes Pendientes -->
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
-        <div class="card shadow-sm border-start border-warning border-4 h-100">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0 text-warning">{{ solicitudes_pendientes }}</h3>
-                <p class="text-muted mb-0"><small>Solicitudes Pendientes</small></p>
-            </div>
-            <div class="text-warning fs-1">
-                <i class="fas fa-clock"></i>
-            </div>
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <!-- Gráfico: Materiales por Categoría -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Materiales por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartCategorias"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
+        
+        <!-- Gráfico: Solicitudes por Estado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Solicitudes por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartSolicitudes"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Materiales Críticos -->
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
-        <div class="card shadow-sm border-start border-danger border-4 h-100">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0 text-danger">{{ materiales_criticos }}</h3>
-                <p class="text-muted mb-0"><small>Stock Crítico</small></p>
-            </div>
-            <div class="text-danger fs-1">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            </div>
-        </div>
-        </div>
-    </div>
-    </div>
-
-    <!-- Solicitudes Recientes - Responsive -->
-    <div class="row mt-4">
-    <div class="col-12">
-        <div class="card shadow">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="fas fa-history"></i> Solicitudes Recientes</h5>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                <tr>
-                    <th>#</th>
-                    <th>Solicitante</th>
-                    <th>Material</th>
-                    <th>Cantidad</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for solicitud in solicitudes_recientes %}
-                <tr>
-                    <td>#{{ solicitud.id }}</td>
-                    <td>{{ solicitud.solicitante.username }}</td>
-                    <td>
-                        {% if solicitud.detalles.count == 1 %}
-                            {{ solicitud.detalles.first.material.descripcion }}
-                        {% else %}
-                            Múltiples ({{ solicitud.detalles.count }})
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if solicitud.detalles.count == 1 %}
-                            {{ solicitud.detalles.first.cantidad }}
-                        {% else %}
-                            {{ solicitud.total_cantidad }} total
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if solicitud.estado == 'pendiente' %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                        {% elif solicitud.estado == 'aprobada' %}
-                            <span class="badge bg-success">Aprobada</span>
-                        {% elif solicitud.estado == 'rechazada' %}
-                            <span class="badge bg-danger">Rechazada</span>
-                        {% else %}
-                            <span class="badge bg-secondary">{{ solicitud.estado }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-                </tr>
-
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted">No hay solicitudes recientes</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+    <!-- Gráfico: Movimientos Últimos 7 Días -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Movimientos - Últimos 7 Días</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="chartMovimientos"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-        </div>
-    </div>
     </div>
 
+    <div class="row">
+        <!-- Top 5 Materiales Más Solicitados -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-star"></i> Top 5 Materiales Más Solicitados</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_materiales %}
+                    <div class="list-group list-group-flush">
+                        {% for item in top_materiales %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.material__descripcion }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.material__codigo }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ item.total_solicitado }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No hay datos de solicitudes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-  <!-- Accesos Rápidos - Responsive -->
-    <div class="row mt-4 mb-4">
-    <div class="col-12 col-md-6 col-lg-4 mb-3">
-        <div class="card shadow-sm h-100">
-        <div class="card-body text-center">
-            <i class="fas fa-warehouse fa-3x text-primary mb-3"></i>
-            <h5>Inventario</h5>
-            <p class="text-muted">Consulta y gestiona el inventario</p>
-            <a href="{% url 'inventario' %}" class="btn btn-primary">Ver Inventario</a>
-        </div>
+        <!-- Materiales en Stock Crítico -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Materiales en Stock Crítico</h5>
+                </div>
+                <div class="card-body">
+                    {% if materiales_criticos_lista %}
+                    <div class="list-group list-group-flush">
+                        {% for inv in materiales_criticos_lista %}
+                        <a href="{% url 'detalle_material' inv.material.id %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ inv.material.descripcion }}</strong>
+                                <br>
+                                <small class="text-muted">{{ inv.material.codigo }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-danger">{{ inv.stock_actual }}</span>
+                                <small class="text-muted d-block">de {{ inv.stock_seguridad }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">
+                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                        <br>No hay materiales en stock crítico
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-lg-4 mb-3">
-        <div class="card shadow-sm h-100">
-        <div class="card-body text-center">
-            <i class="fas fa-clipboard-list fa-3x text-success mb-3"></i>
-            <h5>Solicitudes</h5>
-            <p class="text-muted">Gestiona solicitudes de materiales</p>
-            <a href="{% url 'mis_solicitudes' %}" class="btn btn-success">Ver Solicitudes</a>
+
+    <!-- Actividad Reciente y Solicitudes Recientes -->
+    <div class="row">
+        <!-- Solicitudes Recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Solicitudes Recientes</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if solicitudes_recientes %}
+                    {% for solicitud in solicitudes_recientes %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>#{{ solicitud.id }}</strong> - {{ solicitud.solicitante.username }}
+                                <br>
+                                <small class="text-muted">
+                                    {{ solicitud.total_items }} material(es) - {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            <span class="badge 
+                                {% if solicitud.estado == 'pendiente' %}bg-warning
+                                {% elif solicitud.estado == 'aprobada' %}bg-success
+                                {% elif solicitud.estado == 'rechazada' %}bg-danger
+                                {% else %}bg-info{% endif %}">
+                                {{ solicitud.get_estado_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">No hay solicitudes recientes</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+
+        <!-- Actividad Reciente (Movimientos) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-stream"></i> Actividad Reciente</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if actividad_reciente %}
+                    {% for mov in actividad_reciente %}
+                    <div class="activity-item {{ mov.tipo }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <span class="badge 
+                                    {% if mov.tipo == 'entrada' %}bg-success
+                                    {% elif mov.tipo == 'salida' %}bg-danger
+                                    {% else %}bg-warning{% endif %} me-2">
+                                    {{ mov.tipo|upper }}
+                                </span>
+                                <strong>{{ mov.material.descripcion }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ mov.usuario.nombre }} {{ mov.usuario.apellido }} - 
+                                    {{ mov.fecha|date:"d/m H:i" }}
+                                </small>
+                            </div>
+                            <strong class="text-end">
+                                {% if mov.tipo == 'entrada' %}+{% elif mov.tipo == 'salida' %}-{% endif %}{{ mov.cantidad }}
+                            </strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">No hay actividad reciente</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-lg-4 mb-3">
-        <div class="card shadow-sm h-100">
-        <div class="card-body text-center">
-            <i class="fas fa-plus-circle fa-3x text-info mb-3"></i>
-            <h5>Nuevo Material</h5>
-            <p class="text-muted">Agregar un nuevo material</p>
-            <a href="{% url 'ingreso_material' %}" class="btn btn-info">Agregar Material</a>
-        </div>
-        </div>
-    </div>
-    </div>
-    </div>
-    {% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Colores personalizados
+const colors = {
+    primary: '#667eea',
+    success: '#28a745',
+    warning: '#ffc107',
+    danger: '#dc3545',
+    info: '#17a2b8',
+};
+
+// ==================== GRÁFICO 1: MATERIALES POR CATEGORÍA ====================
+const ctxCategorias = document.getElementById('chartCategorias').getContext('2d');
+new Chart(ctxCategorias, {
+    type: 'doughnut',
+    data: {
+        labels: JSON.parse('{{ categorias_labels|escapejs }}'),
+        datasets: [{
+            data: JSON.parse('{{ categorias_data|escapejs }}'),
+            backgroundColor: [
+                colors.primary,
+                colors.success,
+                colors.warning,
+                colors.danger,
+                colors.info
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+
+// ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
+const ctxSolicitudes = document.getElementById('chartSolicitudes').getContext('2d');
+new Chart(ctxSolicitudes, {
+    type: 'bar',
+    data: {
+        labels: JSON.parse('{{ solicitudes_labels|escapejs }}'),
+        datasets: [{
+            label: 'Cantidad',
+            data: JSON.parse('{{ solicitudes_data|escapejs }}'),
+            backgroundColor: [
+                colors.warning,
+                colors.success,
+                colors.danger,
+                colors.info
+            ],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
+const ctxMovimientos = document.getElementById('chartMovimientos').getContext('2d');
+new Chart(ctxMovimientos, {
+    type: 'line',
+    data: {
+        labels: JSON.parse('{{ movimientos_fechas|escapejs }}'),
+        datasets: [
+            {
+                label: 'Entradas',
+                data: JSON.parse('{{ movimientos_entradas|escapejs }}'),
+                borderColor: colors.success,
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Salidas',
+                data: JSON.parse('{{ movimientos_salidas|escapejs }}'),
+                borderColor: colors.danger,
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+

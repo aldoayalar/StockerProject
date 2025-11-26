@@ -1,7 +1,7 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}{{ material.descripcion }}{% endblock %}
+{% block title %}{{ material.descripcion }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -47,7 +47,7 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <!-- Header con información principal -->
     <div class="material-header shadow-lg">
         <div class="row align-items-center">
@@ -190,7 +190,51 @@
                         </a>
                     </div>
                     
-                    {% if material.movimientos.exists %}
+                    {% with ultimo=material.movimientos.first %}
+                    {% if ultimo %}
                     <hr>
                     <p class="mb-1 text-muted small">Último Movimiento:</p>
-                    {% with ultimo
+                    <p class="mb-0 small">
+                        <span class="badge 
+                            {% if ultimo.tipo == 'entrada' %}bg-success
+                            {% elif ultimo.tipo == 'salida' %}bg-danger
+                            {% else %}bg-warning{% endif %}">
+                            {{ ultimo.tipo|upper }}
+                        </span>
+                        <br>
+                        <strong>{{ ultimo.cantidad }} {{ material.unidad_medida }}</strong>
+                        <br>
+                        {{ ultimo.fecha|date:"d/m/Y H:i" }}
+                    </p>
+                    {% else %}
+                    <hr>
+                    <p class="mb-0 text-muted small text-center">
+                        <i>Sin movimientos registrados</i>
+                    </p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Card: Acciones Generales -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> Acciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'inventario' %}" class="btn btn-outline-dark">
+                            <i class="fas fa-arrow-left"></i> Volver al Inventario
+                        </a>
+                        {% if user.is_staff %}
+                        <a href="{% url 'editar_material' material.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit"></i> Editar Material
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

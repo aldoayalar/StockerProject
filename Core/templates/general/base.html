@@ -107,10 +107,12 @@
             border: none;
             z-index: 2000;
         }
+        
         .sidebar .dropdown-item {
             color: #ecf0f1 !important;
             transition: background 0.2s;
         }
+        
         .sidebar .dropdown-item:hover {
             background: #34495e !important;
         }
@@ -142,6 +144,94 @@
             cursor: pointer;
             font-size: 1.5rem;
             color: var(--primary-color);
+        }
+
+        /* Notificaciones */
+        .notif-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-right: 20px;
+            transition: color 0.3s;
+        }
+
+        .notif-icon:hover {
+            color: var(--accent-color);
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            background: #dc3545;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: bold;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .dropdown-notificaciones {
+            width: 380px;
+            max-height: 450px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .notif-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+            transition: background 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #212529;
+            display: block;
+        }
+
+        .notif-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notif-item.no-leida {
+            background: #e7f3ff;
+        }
+
+        .notif-item-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .notif-item-icon.stock-critico {
+            background: #ffe5e5;
+            color: #dc3545;
+        }
+
+        .notif-item-icon.solicitud {
+            background: #fff3cd;
+            color: #ffc107;
+        }
+
+        .notif-item-icon.aprobacion {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .notif-item-icon.material {
+            background: #d1ecf1;
+            color: #0c5460;
         }
 
         /* Content Area */
@@ -178,6 +268,9 @@
             }
             footer {
                 margin-left: 0;
+            }
+            .dropdown-notificaciones {
+                width: 320px;
             }
         }
     </style>
@@ -221,50 +314,46 @@
 
             <ul class="sidebar-menu">
                 {% block sidebar_menu %}
-                 <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
-    <li><a href="{% url 'inventario' %}"><i class="fas fa-warehouse"></i> Inventario</a></li>
-    <li><a href="{% url 'ingreso_material' %}"><i class="fas fa-plus-circle"></i> Nuevo Material</a></li>
-    
-    <!-- Menú desplegable de Solicitudes -->
-    <li class="dropdown">
-        <a class="dropdown-toggle" href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
-            <i class="fas fa-tasks"></i> Solicitudes
-        </a>
-        <ul class="dropdown-menu">        
-            <li><a class="dropdown-item" href="{% url 'crear_solicitud' %}"><i class="fas fa-plus-circle"></i> Nueva Solicitud</a></li>
-            <li><a class="dropdown-item" href="{% url 'mis_solicitudes' %}"><i class="fas fa-clipboard-list"></i> Mis Solicitudes</a></li>
-            <li><a class="dropdown-item" href="{% url 'historial_solicitudes' %}"><i class="fas fa-history"></i> Historial</a></li>
-            {% if user.is_staff %}
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="fas fa-clipboard-check"></i>Gestionar Solicitudes</a></li>
-            {% endif %}
-        </ul>
-    </li>
-    
-    <li><a href="#"><i class="fas fa-chart-line"></i> Reportes</a></li>
-    
-    <!-- Configuración con Cambiar Contraseña -->
-    <li class="dropdown">
-        <a class="dropdown-toggle" href="#" id="sidebarConfigMenu" role="button" data-bs-toggle="dropdown">
-            <i class="fas fa-cog"></i> Configuración
-        </a>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'cambiar_password' %}">
-                <i class="fas fa-key"></i> Cambiar Contraseña
-            </a></li>
-            {% if user.is_superuser %}
-            <li>
-                <a class="dropdown-item" href="{% url 'admin:index' %}">
-                <i class="fas fa-user-shield"></i> Panel Admin
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </li>
-</ul>
-
-<div class="sidebar-menu mt-auto">
-    
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="{% url 'inventario' %}"><i class="fas fa-warehouse"></i> Inventario</a></li>
+                <li><a href="{% url 'ingreso_material' %}"><i class="fas fa-plus-circle"></i> Nuevo Material</a></li>
+                
+                <!-- Menú desplegable de Solicitudes -->
+                <li class="dropdown">
+                    <a class="dropdown-toggle" href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-tasks"></i> Solicitudes
+                    </a>
+                    <ul class="dropdown-menu">        
+                        <li><a class="dropdown-item" href="{% url 'crear_solicitud' %}"><i class="fas fa-plus-circle"></i> Nueva Solicitud</a></li>
+                        <li><a class="dropdown-item" href="{% url 'mis_solicitudes' %}"><i class="fas fa-clipboard-list"></i> Mis Solicitudes</a></li>
+                        <li><a class="dropdown-item" href="{% url 'historial_solicitudes' %}"><i class="fas fa-history"></i> Historial</a></li>
+                        {% if user.is_staff %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="fas fa-clipboard-check"></i>Gestionar Solicitudes</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                
+                <li><a href="#"><i class="fas fa-chart-line"></i> Reportes</a></li>
+                
+                <!-- Configuración con Cambiar Contraseña -->
+                <li class="dropdown">
+                    <a class="dropdown-toggle" href="#" id="sidebarConfigMenu" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-cog"></i> Configuración
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'cambiar_password' %}">
+                            <i class="fas fa-key"></i> Cambiar Contraseña
+                        </a></li>
+                        {% if user.is_superuser %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'admin:index' %}">
+                            <i class="fas fa-user-shield"></i> Panel Admin
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
                 {% endblock %}
             </ul>
 
@@ -282,23 +371,60 @@
                 <span class="toggle-sidebar" id="toggleSidebar">
                     <i class="fas fa-bars"></i>
                 </span>
-                <div>
-                    <span class="me-3"><i class="far fa-bell"></i></span>
-                    <span><i class="far fa-user"></i></span>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Notificaciones Dropdown -->
+                    {% if user.is_authenticated %}
+                    <div class="dropdown">
+                        <span class="notif-icon" id="notificacionesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="far fa-bell"></i>
+                            <span class="notif-badge" id="notif-count" style="display: none;">0</span>
+                        </span>
+                        
+                        <div class="dropdown-menu dropdown-menu-end dropdown-notificaciones p-0" aria-labelledby="notificacionesDropdown">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+                                <h6 class="mb-0"><i class="fas fa-bell"></i> Notificaciones</h6>
+                                <a href="{% url 'mis_notificaciones' %}" class="btn btn-sm btn-link p-0">
+                                    Ver todas
+                                </a>
+                            </div>
+                            
+                            <!-- Lista de notificaciones -->
+                            <div id="notificaciones-lista">
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                    <p class="mt-2 mb-0">Cargando...</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <div class="text-center p-2 border-top bg-light">
+                                <a href="{% url 'mis_notificaciones' %}" class="btn btn-sm btn-primary w-100">
+                                    <i class="fas fa-list"></i> Ver todas las notificaciones
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <span style="cursor: pointer;">
+                        <i class="far fa-user"></i>
+                    </span>
                 </div>
             </nav>
 
             <!-- Mensajes globales -->
-                {% if messages %}
-                <div class="container mt-3">
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                    {% endfor %}
+            {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <!-- Content Area -->
             <main class="content-area">
@@ -319,7 +445,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-     <script>
+    <script>
         // Toggle Sidebar
         document.getElementById('toggleSidebar').addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('collapsed');
@@ -333,6 +459,79 @@
             document.getElementById('mainContent').classList.add('expanded');
             document.getElementById('footer').classList.add('expanded');
         }
+
+        {% if user.is_authenticated %}
+        // Sistema de Notificaciones
+        function cargarNotificaciones() {
+            fetch("{% url 'obtener_notificaciones_json' %}")
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notif-count');
+                    const lista = document.getElementById('notificaciones-lista');
+                    
+                    // Actualizar badge
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                    
+                    // Actualizar lista
+                    if (data.notificaciones.length > 0) {
+                        let html = '';
+                        data.notificaciones.forEach(notif => {
+                            const iconClass = notif.tipo === 'stock_critico' ? 'stock-critico' :
+                                            notif.tipo === 'solicitud_pendiente' ? 'solicitud' :
+                                            notif.tipo === 'material_nuevo' ? 'material' :
+                                            'aprobacion';
+                            
+                            html += `
+                                <a href="/notificaciones/${notif.id}/leer/" class="notif-item no-leida">
+                                    <div class="d-flex align-items-start">
+                                        <div class="notif-item-icon ${iconClass} me-2">
+                                            <i class="fas ${notif.icono}"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 small fw-bold">${notif.mensaje}</p>
+                                            <small class="text-muted">
+                                                <i class="far fa-clock"></i> ${notif.fecha}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                        lista.innerHTML = html;
+                    } else {
+                        lista.innerHTML = `
+                            <div class="text-center py-4 text-muted">
+                                <i class="far fa-bell-slash fa-2x mb-2"></i>
+                                <p class="mb-0 small">No tienes notificaciones nuevas</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar notificaciones:', error);
+                    document.getElementById('notificaciones-lista').innerHTML = `
+                        <div class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p class="mb-0 small">Error al cargar notificaciones</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Cargar notificaciones al inicio
+        cargarNotificaciones();
+        
+        // Actualizar cada 30 segundos
+        setInterval(cargarNotificaciones, 30000);
+        
+        // Actualizar al abrir el dropdown
+        document.getElementById('notificacionesDropdown').addEventListener('click', cargarNotificaciones);
+        {% endif %}
     </script>
 
     <!-- Include JavaScript files to enable toggle functionality -->

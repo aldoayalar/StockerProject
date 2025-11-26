@@ -1,6 +1,12 @@
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
 asgiref==3.10.0
+cffi==2.0.0
 Django==5.2.8
+et_xmlfile==2.0.0
 mysqlclient==2.2.7
+openpyxl==3.1.5
+pycparser==2.23
 sqlparse==0.5.3
 typing_extensions==4.15.0
 tzdata==2025.2

@@ -1,7 +1,10 @@
+import json
+
 from django.shortcuts import get_object_or_404, render, redirect
 
 from django.db import models, transaction
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F
+from django.db.models.functions import TruncDate
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -16,6 +19,8 @@ from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolici
 from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
 
 from django.http import JsonResponse
+
+from datetime import timedelta
 
 #----------------------------------------------------------------------------------------
 # Vistas según roles
@@ -729,7 +734,10 @@ def get_icono_notificacion(tipo):
 
 @login_required
 def dashboard(request):
-    # KPIs generales
+    """
+    Dashboard principal con estadísticas y gráficos
+    """
+    # ==================== KPIs GENERALES ====================
     total_materiales = Material.objects.count()
     total_usuarios = User.objects.filter(is_active=True).count()
     
@@ -737,31 +745,112 @@ def dashboard(request):
     solicitudes_pendientes = Solicitud.objects.filter(estado='pendiente').count()
     solicitudes_aprobadas = Solicitud.objects.filter(estado='aprobada').count()
     solicitudes_rechazadas = Solicitud.objects.filter(estado='rechazada').count()
+    solicitudes_totales = Solicitud.objects.count()
     
     # Inventario
     materiales_criticos = Inventario.objects.filter(
-        stock_actual__lte=models.F('stock_seguridad')
+        stock_actual__lte=F('stock_seguridad')
     ).count()
     
     stock_total = Inventario.objects.aggregate(
         total=Sum('stock_actual')
     )['total'] or 0
     
-    # Solicitudes recientes (últimas 5)
+    # ==================== GRÁFICO 1: MATERIALES POR CATEGORÍA ====================
+    materiales_por_categoria = Material.objects.values('categoria').annotate(
+        total=Count('id')
+    ).order_by('-total')
     
+    categorias_labels = [item['categoria'] for item in materiales_por_categoria]
+    categorias_data = [item['total'] for item in materiales_por_categoria]
+    
+    # ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
+    solicitudes_stats = {
+        'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
+        'data': [
+            Solicitud.objects.filter(estado='pendiente').count(),
+            Solicitud.objects.filter(estado='aprobada').count(),
+            Solicitud.objects.filter(estado='rechazada').count(),
+            Solicitud.objects.filter(estado='despachada').count(),
+        ]
+    }
+    
+    # ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
+    hace_7_dias = timezone.now() - timedelta(days=7)
+    movimientos_recientes = Movimiento.objects.filter(
+        fecha__gte=hace_7_dias
+    ).annotate(
+        fecha_corta=TruncDate('fecha')
+    ).values('fecha_corta', 'tipo').annotate(
+        total=Count('id')
+    ).order_by('fecha_corta')
+    
+    # Preparar datos para el gráfico de líneas
+    fechas_set = set()
+    for mov in movimientos_recientes:
+        fechas_set.add(mov['fecha_corta'])
+    
+    fechas_ordenadas = sorted(list(fechas_set))
+    fechas_labels = [fecha.strftime('%d/%m') for fecha in fechas_ordenadas]
+    
+    entradas_data = []
+    salidas_data = []
+    
+    for fecha in fechas_ordenadas:
+        entradas = sum(m['total'] for m in movimientos_recientes 
+                      if m['fecha_corta'] == fecha and m['tipo'] == 'entrada')
+        salidas = sum(m['total'] for m in movimientos_recientes 
+                     if m['fecha_corta'] == fecha and m['tipo'] == 'salida')
+        entradas_data.append(entradas)
+        salidas_data.append(salidas)
+    
+    # ==================== TOP 5 MATERIALES MÁS SOLICITADOS ====================
+    top_materiales = DetalleSolicitud.objects.values(
+        'material__descripcion', 'material__codigo'
+    ).annotate(
+        total_solicitado=Sum('cantidad')
+    ).order_by('-total_solicitado')[:5]
+    
+    # ==================== MATERIALES EN STOCK CRÍTICO ====================
+    materiales_criticos_lista = Inventario.objects.filter(
+        stock_actual__lte=F('stock_seguridad')
+    ).select_related('material').order_by('stock_actual')[:5]
+    
+    # ==================== SOLICITUDES RECIENTES ====================
     solicitudes_recientes = Solicitud.objects.select_related(
         'solicitante'
     ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
-
+    
+    # ==================== ACTIVIDAD RECIENTE (MOVIMIENTOS) ====================
+    actividad_reciente = Movimiento.objects.select_related(
+        'material', 'usuario'
+    ).order_by('-fecha')[:10]
+    
     context = {
+        # KPIs
         'total_materiales': total_materiales,
         'total_usuarios': total_usuarios,
         'solicitudes_pendientes': solicitudes_pendientes,
         'solicitudes_aprobadas': solicitudes_aprobadas,
         'solicitudes_rechazadas': solicitudes_rechazadas,
+        'solicitudes_totales': solicitudes_totales,
         'materiales_criticos': materiales_criticos,
         'stock_total': stock_total,
+        
+        # Gráficos (convertir a JSON)
+        'categorias_labels': json.dumps(categorias_labels),
+        'categorias_data': json.dumps(categorias_data),
+        'solicitudes_labels': json.dumps(solicitudes_stats['labels']),
+        'solicitudes_data': json.dumps(solicitudes_stats['data']),
+        'movimientos_fechas': json.dumps(fechas_labels),
+        'movimientos_entradas': json.dumps(entradas_data),
+        'movimientos_salidas': json.dumps(salidas_data),
+        
+        # Listas
+        'top_materiales': top_materiales,
+        'materiales_criticos_lista': materiales_criticos_lista,
         'solicitudes_recientes': solicitudes_recientes,
+        'actividad_reciente': actividad_reciente,
     }
     
     return render(request, 'funcionalidad/dashboard.html', context)
