@@ -80,6 +80,30 @@
     .activity-item.ajuste {
         border-left-color: #ffc107;
     }
+    
+    .rol-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .rol-badge.tecnico {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+    }
+    
+    .rol-badge.bodega {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+    
+    .rol-badge.gerencia {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
 </style>
 {% endblock %}
 
@@ -88,8 +112,11 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
-            <p class="text-muted mb-0">Bienvenido, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+            <h2>
+                <i class="fas fa-chart-line"></i> Dashboard
+                <span class="rol-badge {{ usuario.rol|lower }}">{{ usuario.get_rol_display }}</span>
+            </h2>
+            <p class="text-muted mb-0">Bienvenido, <strong>{{ usuario.get_full_name|default:usuario.username }}</strong></p>
         </div>
         <div class="text-end">
             <small class="text-muted">
@@ -98,39 +125,110 @@
         </div>
     </div>
 
-    <!-- KPIs -->
+    <!-- KPIs ADAPTADOS POR ROL -->
     <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card kpi-card primary">
-                <i class="fas fa-boxes fa-2x mb-2"></i>
-                <div class="kpi-value">{{ total_materiales }}</div>
-                <div class="kpi-label">Total Materiales</div>
+        {% if rol == 'TECNICO' %}
+            <!-- KPIs para Técnico: enfocados en sus solicitudes personales -->
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card primary">
+                    <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ mis_solicitudes_count }}</div>
+                    <div class="kpi-label">Mis Solicitudes</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card kpi-card warning">
-                <i class="fas fa-clipboard-list fa-2x mb-2"></i>
-                <div class="kpi-value">{{ solicitudes_pendientes }}</div>
-                <div class="kpi-label">Solicitudes Pendientes</div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card warning">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ mis_pendientes }}</div>
+                    <div class="kpi-label">En Espera</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card kpi-card danger">
-                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                <div class="kpi-value">{{ materiales_criticos }}</div>
-                <div class="kpi-label">Stock Crítico</div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card success">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ mis_aprobadas }}</div>
+                    <div class="kpi-label">Aprobadas</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card kpi-card info">
-                <i class="fas fa-cubes fa-2x mb-2"></i>
-                <div class="kpi-value">{{ stock_total }}</div>
-                <div class="kpi-label">Stock Total</div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card info">
+                    <i class="fas fa-boxes fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ total_materiales }}</div>
+                    <div class="kpi-label">Materiales Disponibles</div>
+                </div>
             </div>
-        </div>
+            
+        {% elif rol == 'BODEGA' %}
+            <!-- KPIs para Bodega: enfocados en inventario y solicitudes pendientes -->
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card warning">
+                    <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ solicitudes_pendientes }}</div>
+                    <div class="kpi-label">Solicitudes Pendientes</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ materiales_criticos }}</div>
+                    <div class="kpi-label">Stock Crítico</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card info">
+                    <i class="fas fa-cubes fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ stock_total }}</div>
+                    <div class="kpi-label">Stock Total</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card primary">
+                    <i class="fas fa-boxes fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ total_materiales }}</div>
+                    <div class="kpi-label">Total Materiales</div>
+                </div>
+            </div>
+            
+        {% elif rol == 'GERENCIA' %}
+            <!-- KPIs para Gerencia: vista completa del sistema -->
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card primary">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ total_usuarios }}</div>
+                    <div class="kpi-label">Total Usuarios</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card success">
+                    <i class="fas fa-boxes fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ total_materiales }}</div>
+                    <div class="kpi-label">Total Materiales</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card warning">
+                    <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ solicitudes_pendientes }}</div>
+                    <div class="kpi-label">Solicitudes Pendientes</div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card kpi-card danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <div class="kpi-value">{{ materiales_criticos }}</div>
+                    <div class="kpi-label">Materiales Críticos</div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 
     <!-- Gráficos -->
@@ -143,7 +241,7 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
-                        <canvas id="chartCategorias"></canvas>
+                        anvas id="chartCategorias"></canvas>
                     </div>
                 </div>
             </div>
@@ -153,18 +251,26 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Solicitudes por Estado</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> 
+                        {% if rol == 'TECNICO' %}
+                            Mis Solicitudes por Estado
+                        {% else %}
+                            Solicitudes del Sistema
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
-                        <canvas id="chartSolicitudes"></canvas>
+                        anvas id="chartSolicitudes"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Gráfico: Movimientos Últimos 7 Días -->
+    <!-- Gráfico: Movimientos Últimos 7 Días (solo para Bodega y Gerencia) -->
+    {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -173,19 +279,27 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-container" style="height: 250px;">
-                        <canvas id="chartMovimientos"></canvas>
+                        anvas id="chartMovimientos"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="row">
         <!-- Top 5 Materiales Más Solicitados -->
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-warning">
-                    <h5 class="mb-0"><i class="fas fa-star"></i> Top 5 Materiales Más Solicitados</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-star"></i> 
+                        {% if rol == 'TECNICO' %}
+                            Mis Materiales Más Solicitados
+                        {% else %}
+                            Top 5 Materiales Más Solicitados
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
                     {% if top_materiales %}
@@ -251,7 +365,14 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0"><i class="fas fa-history"></i> Solicitudes Recientes</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> 
+                        {% if rol == 'TECNICO' %}
+                            Mis Solicitudes Recientes
+                        {% else %}
+                            Solicitudes Recientes
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                     {% if solicitudes_recientes %}
@@ -259,7 +380,10 @@
                     <div class="activity-item">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <strong>#{{ solicitud.id }}</strong> - {{ solicitud.solicitante.username }}
+                                <strong>#{{ solicitud.id }}</strong>
+                                {% if rol != 'TECNICO' %}
+                                    - {{ solicitud.solicitante.username }}
+                                {% endif %}
                                 <br>
                                 <small class="text-muted">
                                     {{ solicitud.total_items }} material(es) - {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
@@ -282,7 +406,8 @@
             </div>
         </div>
 
-        <!-- Actividad Reciente (Movimientos) -->
+        <!-- Actividad Reciente (Movimientos) - Solo para Bodega y Gerencia -->
+        {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white">
@@ -319,6 +444,30 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <!-- Para técnicos: mostrar consejos o información útil -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información Útil</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-2">
+                        <i class="fas fa-lightbulb"></i> 
+                        <strong>Tip:</strong> Revisa el stock disponible antes de crear una solicitud.
+                    </div>
+                    <div class="alert alert-warning mb-2">
+                        <i class="fas fa-clock"></i> 
+                        Las solicitudes pendientes serán revisadas por el personal de bodega.
+                    </div>
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check"></i> 
+                        Puedes ver el historial completo de tus solicitudes en el menú lateral.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -405,6 +554,7 @@ new Chart(ctxSolicitudes, {
 });
 
 // ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
+{% if rol == 'BODEGA' or rol == 'GERENCIA' %}
 const ctxMovimientos = document.getElementById('chartMovimientos').getContext('2d');
 new Chart(ctxMovimientos, {
     type: 'line',
@@ -447,6 +597,6 @@ new Chart(ctxMovimientos, {
         }
     }
 });
+{% endif %}
 </script>
 {% endblock %}
-

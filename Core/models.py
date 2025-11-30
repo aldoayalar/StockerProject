@@ -1,7 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User, AbstractUser
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.utils import timezone
 
+
+# ==================== CONFIGURACION ====================
 
 class Configuracion(models.Model):
     """
@@ -35,8 +38,8 @@ class Configuracion(models.Model):
     
     def __str__(self):
         return 'Configuración del Sistema'
-    
-    
+
+
 # ==================== ROL ====================
 
 class Rol(models.Model):
@@ -44,6 +47,58 @@ class Rol(models.Model):
     
     def __str__(self):
         return self.nombre
+    
+
+# ==================== LOCAL ====================
+
+class Local(models.Model):
+    """
+    Local o sucursal donde se entregan los materiales.
+    """
+    codigo = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Código',
+        help_text='Código interno del local'
+    )
+    nombre = models.CharField(
+        max_length=200,
+        verbose_name='Nombre'
+    )
+    direccion = models.CharField(
+        max_length=300,
+        verbose_name='Dirección',
+        help_text='Calle y número'
+    )
+    numero = models.CharField(
+        max_length=20,
+        verbose_name='Número',
+        blank=True,
+        null=True
+    )
+    comuna = models.CharField(
+        max_length=100,
+        verbose_name='Comuna'
+    )
+    region = models.CharField(
+        max_length=100,
+        verbose_name='Región'
+    )
+    
+    class Meta:
+        verbose_name = 'Local'
+        verbose_name_plural = 'Locales'
+        ordering = ['codigo', 'nombre']
+    
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"
+    
+    def get_direccion_completa(self):
+        """Retorna la dirección completa: Dirección Número, Comuna, Región"""
+        direccion_base = f"{self.direccion}"
+        if self.numero:
+            direccion_base += f" {self.numero}"
+        return f"{direccion_base}, {self.comuna}, {self.region}"
 
 
 # ==================== USUARIO ====================
@@ -52,7 +107,6 @@ class Usuario(AbstractUser):
     """
     Modelo de usuario personalizado integrado con Django Auth.
     """
-    username = None
     
     ROL_CHOICES = [
         ('GERENCIA', 'Gerencia'),
@@ -74,7 +128,6 @@ class Usuario(AbstractUser):
         verbose_name='Teléfono'
     )
     
-    # Forzar cambio de contraseña en primer login
     force_password_change = models.BooleanField(
         default=True,
         verbose_name='Forzar cambio de contraseña'
@@ -166,7 +219,10 @@ class Mensual(models.Model):
 
 class Alerta(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    usuario_principal = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    usuario_principal = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
     stock_actual = models.FloatField()
     stock_min = models.FloatField()
     observacion = models.TextField(blank=True, null=True)
@@ -192,18 +248,21 @@ class Solicitud(models.Model):
         ('despachada', 'Despachada'),
     ]
     
-    # IMPORTANTE: Cambio solicitante a usar tu modelo Usuario personalizado
-    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes')
+    solicitante = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='solicitudes'
+    )
     motivo = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     respondido_por = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='solicitudes_respondidas'
     )
     observaciones = models.TextField(blank=True, null=True)
@@ -247,18 +306,19 @@ class DetalleSolicitud(models.Model):
 
 class Movimiento(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT)
-    
-    # AGREGA ESTE CAMPO
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='movimientos'
+    )
     solicitud = models.ForeignKey(
-        Solicitud, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        Solicitud,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='movimientos',
         help_text='Solicitud asociada al movimiento (si aplica)'
     )
-    
     tipo = models.CharField(max_length=20, choices=[
         ('entrada', 'Entrada'),
         ('salida', 'Salida'),
@@ -275,7 +335,6 @@ class Movimiento(models.Model):
         return f"{self.tipo.upper()} - {self.material.codigo} - {self.cantidad}"
 
 
-
 # ==================== NOTIFICACION ====================
 
 class Notificacion(models.Model):
@@ -286,7 +345,10 @@ class Notificacion(models.Model):
         ('aprobacion', 'Aprobación Requerida'),
     ]
     
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
     tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default='material_nuevo')
     mensaje = models.TextField()
     leida = models.BooleanField(default=False)
@@ -299,6 +361,9 @@ class Notificacion(models.Model):
     
     def __str__(self):
         return f"{self.tipo} - {self.usuario.username}"
+
+
+# ==================== MLRESULT ====================
 
 class MLResult(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='resultados_ml')

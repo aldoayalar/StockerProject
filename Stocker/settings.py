@@ -82,7 +82,7 @@ DATABASES = {
         'NAME': 'stocker',
         'USER': 'usuario',
         'PASSWORD': 'inacap2025',
-        'HOST': 'iqgg28uk61i.us-east-2.rds.amazonaws.com',
+        'HOST': 'stocker-1.cxsoq6sw8vw5.sa-east-1.rds.amazonaws.com',
         'PORT': '3306',
     }
 }

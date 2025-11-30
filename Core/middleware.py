@@ -1,4 +1,3 @@
-#Middleware personalizados del proyecto core.
 class NoCacheMiddleware:
     """
     Evita que el navegador almacene respuestas en caché.

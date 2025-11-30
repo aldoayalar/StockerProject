@@ -1,10 +1,12 @@
 from django import forms
 from .models import Material, Inventario, Solicitud, DetalleSolicitud
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 
+# Obtener el modelo de Usuario personalizado
+User = get_user_model()
 
 class MaterialForm(forms.ModelForm):
     class Meta:

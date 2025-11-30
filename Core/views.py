@@ -7,8 +7,7 @@ from django.db.models import Avg, Sum, Count, Q, F
 from django.db.models.functions import TruncDate
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from django.utils import timezone
@@ -17,6 +16,7 @@ from django.core.paginator import Paginator
 
 from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario, Alerta, MLResult
 from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
+from .decorators import verificar_rol
 
 from django.http import JsonResponse
 
@@ -28,6 +28,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 
+User = get_user_model()
 #----------------------------------------------------------------------------------------
 # Vistas según roles
 
@@ -36,6 +37,7 @@ def tecnico(request):
     return render(request, 'rol/tecnico.html')
 
 @login_required
+@verificar_rol('BODEGA')
 def bodega(request):
     return render(request, 'rol/bodega.html')
 
@@ -44,6 +46,7 @@ def chofer(request):
     return render(request, 'rol/chofer.html')
 
 @login_required
+@verificar_rol('GERENCIA')
 def gerente(request):
     return render(request, 'rol/gerente.html')
 
@@ -276,7 +279,7 @@ def es_staff(user):
     return user.is_staff
 
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def gestionar_solicitudes(request):
     """
     Vista para que staff/bodega gestione todas las solicitudes
@@ -930,20 +933,23 @@ def verificar_alertas_stock(request):
 
 # ============================================= DASHBOARD ===============================================
 
+
 @login_required
 def dashboard(request):
     """
-    Dashboard principal con estadísticas y gráficos
+    Dashboard principal con estadísticas adaptadas según el rol del usuario.
+    Muestra todas las métricas pero organiza la información según el rol.
     """
-    # ==================== KPIs GENERALES ====================
+    usuario = request.user
+    
+    # ==================== KPIs BASE (para todos los roles) ====================
     total_materiales = Material.objects.count()
-    total_usuarios = User.objects.filter(is_active=True).count()
     
     # Solicitudes
+    solicitudes_totales = Solicitud.objects.count()
     solicitudes_pendientes = Solicitud.objects.filter(estado='pendiente').count()
     solicitudes_aprobadas = Solicitud.objects.filter(estado='aprobada').count()
     solicitudes_rechazadas = Solicitud.objects.filter(estado='rechazada').count()
-    solicitudes_totales = Solicitud.objects.count()
     
     # Inventario
     materiales_criticos = Inventario.objects.filter(
@@ -954,6 +960,29 @@ def dashboard(request):
         total=Sum('stock_actual')
     )['total'] or 0
     
+    # ==================== DATOS ESPECÍFICOS POR ROL ====================
+    # Inicializar variables específicas
+    mis_solicitudes = None
+    mis_solicitudes_count = 0
+    mis_pendientes = 0
+    mis_aprobadas = 0
+    total_usuarios = 0
+    
+    if usuario.rol == 'TECNICO':
+        # Estadísticas personales del técnico
+        mis_solicitudes = Solicitud.objects.filter(solicitante=usuario)
+        mis_solicitudes_count = mis_solicitudes.count()
+        mis_pendientes = mis_solicitudes.filter(estado='pendiente').count()
+        mis_aprobadas = mis_solicitudes.filter(estado='aprobada').count()
+        
+    elif usuario.rol == 'BODEGA':
+        # Para bodega, mostrar solicitudes que requieren atención
+        total_usuarios = User.objects.filter(is_active=True).count()
+        
+    elif usuario.rol == 'GERENCIA':
+        # Para gerencia, mostrar todos los KPIs administrativos
+        total_usuarios = User.objects.filter(is_active=True).count()
+    
     # ==================== GRÁFICO 1: MATERIALES POR CATEGORÍA ====================
     materiales_por_categoria = Material.objects.values('categoria').annotate(
         total=Count('id')
@@ -963,15 +992,28 @@ def dashboard(request):
     categorias_data = [item['total'] for item in materiales_por_categoria]
     
     # ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
-    solicitudes_stats = {
-        'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
-        'data': [
-            Solicitud.objects.filter(estado='pendiente').count(),
-            Solicitud.objects.filter(estado='aprobada').count(),
-            Solicitud.objects.filter(estado='rechazada').count(),
-            Solicitud.objects.filter(estado='despachada').count(),
-        ]
-    }
+    if usuario.rol == 'TECNICO':
+        # Para técnicos: solo sus solicitudes
+        solicitudes_stats = {
+            'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
+            'data': [
+                mis_solicitudes.filter(estado='pendiente').count(),
+                mis_solicitudes.filter(estado='aprobada').count(),
+                mis_solicitudes.filter(estado='rechazada').count(),
+                mis_solicitudes.filter(estado='despachada').count(),
+            ]
+        }
+    else:
+        # Para bodega/gerencia: todas las solicitudes
+        solicitudes_stats = {
+            'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
+            'data': [
+                Solicitud.objects.filter(estado='pendiente').count(),
+                Solicitud.objects.filter(estado='aprobada').count(),
+                Solicitud.objects.filter(estado='rechazada').count(),
+                Solicitud.objects.filter(estado='despachada').count(),
+            ]
+        }
     
     # ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
     hace_7_dias = timezone.now() - timedelta(days=7)
@@ -1003,11 +1045,22 @@ def dashboard(request):
         salidas_data.append(salidas)
     
     # ==================== TOP 5 MATERIALES MÁS SOLICITADOS ====================
-    top_materiales = DetalleSolicitud.objects.values(
-        'material__descripcion', 'material__codigo'
-    ).annotate(
-        total_solicitado=Sum('cantidad')
-    ).order_by('-total_solicitado')[:5]
+    if usuario.rol == 'TECNICO':
+        # Para técnicos: materiales que ellos más solicitan
+        top_materiales = DetalleSolicitud.objects.filter(
+            solicitud__solicitante=usuario
+        ).values(
+            'material__descripcion', 'material__codigo'
+        ).annotate(
+            total_solicitado=Sum('cantidad')
+        ).order_by('-total_solicitado')[:5]
+    else:
+        # Para bodega/gerencia: materiales más solicitados en general
+        top_materiales = DetalleSolicitud.objects.values(
+            'material__descripcion', 'material__codigo'
+        ).annotate(
+            total_solicitado=Sum('cantidad')
+        ).order_by('-total_solicitado')[:5]
     
     # ==================== MATERIALES EN STOCK CRÍTICO ====================
     materiales_criticos_lista = Inventario.objects.filter(
@@ -1015,25 +1068,44 @@ def dashboard(request):
     ).select_related('material').order_by('stock_actual')[:5]
     
     # ==================== SOLICITUDES RECIENTES ====================
-    solicitudes_recientes = Solicitud.objects.select_related(
-        'solicitante'
-    ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
+    if usuario.rol == 'TECNICO':
+        # Para técnicos: sus solicitudes recientes
+        solicitudes_recientes = Solicitud.objects.filter(
+            solicitante=usuario
+        ).select_related(
+            'solicitante'
+        ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
+    else:
+        # Para bodega/gerencia: todas las solicitudes recientes
+        solicitudes_recientes = Solicitud.objects.select_related(
+            'solicitante'
+        ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
     
     # ==================== ACTIVIDAD RECIENTE (MOVIMIENTOS) ====================
     actividad_reciente = Movimiento.objects.select_related(
         'material', 'usuario'
     ).order_by('-fecha')[:10]
     
+    # ==================== CONTEXT UNIFICADO ====================
     context = {
-        # KPIs
+        # Información del usuario
+        'usuario': usuario,
+        'rol': usuario.rol,
+        
+        # KPIs generales (se mostrarán según rol en template)
         'total_materiales': total_materiales,
         'total_usuarios': total_usuarios,
+        'solicitudes_totales': solicitudes_totales,
         'solicitudes_pendientes': solicitudes_pendientes,
         'solicitudes_aprobadas': solicitudes_aprobadas,
         'solicitudes_rechazadas': solicitudes_rechazadas,
-        'solicitudes_totales': solicitudes_totales,
         'materiales_criticos': materiales_criticos,
         'stock_total': stock_total,
+        
+        # KPIs específicos de técnico
+        'mis_solicitudes_count': mis_solicitudes_count,
+        'mis_pendientes': mis_pendientes,
+        'mis_aprobadas': mis_aprobadas,
         
         # Gráficos (convertir a JSON)
         'categorias_labels': json.dumps(categorias_labels),
