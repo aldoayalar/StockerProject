@@ -1,7 +1,42 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AbstractUser
 from django.utils import timezone
 
+
+class Configuracion(models.Model):
+    """
+    Configuración global del sistema.
+    """
+    tiempo_cancelacion_minutos = models.PositiveIntegerField(
+        default=5,
+        help_text='Minutos permitidos para cancelar una solicitud aprobada.'
+    )
+    
+    timer_activo = models.BooleanField(
+        default=True,
+        verbose_name='Límite de tiempo activo',
+        help_text='Si está desactivado, se permite cancelar solicitudes sin límite de tiempo.'
+    )
+    
+    class Meta:
+        verbose_name = 'Configuración'
+        verbose_name_plural = 'Configuración'
+    
+    def save(self, *args, **kwargs):
+        """Obliga a que solo exista un registro."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_solo(cls):
+        """Retorna la instancia única."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+    
+    def __str__(self):
+        return 'Configuración del Sistema'
+    
+    
 # ==================== ROL ====================
 
 class Rol(models.Model):
@@ -11,20 +46,53 @@ class Rol(models.Model):
         return self.nombre
 
 
-# ==================== USUARIO (tu modelo personalizado) ====================
+# ==================== USUARIO ====================
 
-class Usuario(models.Model):
-    nombre = models.CharField(max_length=100)
-    apellido = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    password_hash = models.CharField(max_length=255)
-    activo = models.BooleanField(default=True)
-    rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
-    creado_en = models.DateTimeField(auto_now_add=True)
-    actualizado_en = models.DateTimeField(auto_now=True)
+class Usuario(AbstractUser):
+    """
+    Modelo de usuario personalizado integrado con Django Auth.
+    """
+    username = None
+    
+    ROL_CHOICES = [
+        ('GERENCIA', 'Gerencia'),
+        ('BODEGA', 'Bodega'),
+        ('TECNICO', 'Técnico'),
+    ]
+    
+    rol = models.CharField(
+        max_length=20,
+        choices=ROL_CHOICES,
+        default='TECNICO',
+        verbose_name='Rol'
+    )
+    
+    telefono = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Teléfono'
+    )
+    
+    # Forzar cambio de contraseña en primer login
+    force_password_change = models.BooleanField(
+        default=True,
+        verbose_name='Forzar cambio de contraseña'
+    )
+    
+    email_legado = models.EmailField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+        ordering = ['username']
     
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
+        return f"{self.get_full_name()} ({self.rol})"
+    
+    def get_full_name(self):
+        """Retorna el nombre completo del usuario."""
+        return f"{self.first_name} {self.last_name}".strip() or self.username
 
 
 # ==================== MATERIALES ====================
@@ -179,17 +247,33 @@ class DetalleSolicitud(models.Model):
 
 class Movimiento(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    tipo = models.CharField(max_length=50)
-    cantidad = models.FloatField()
+    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    
+    # AGREGA ESTE CAMPO
+    solicitud = models.ForeignKey(
+        Solicitud, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='movimientos',
+        help_text='Solicitud asociada al movimiento (si aplica)'
+    )
+    
+    tipo = models.CharField(max_length=20, choices=[
+        ('entrada', 'Entrada'),
+        ('salida', 'Salida'),
+        ('ajuste', 'Ajuste'),
+    ])
+    cantidad = models.IntegerField()
+    detalle = models.CharField(max_length=255, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
-    detalle = models.TextField(null=True, blank=True)
     
     class Meta:
-        verbose_name_plural = "Movimientos"
+        db_table = 'movimiento'
     
     def __str__(self):
-        return f"{self.tipo} - {self.material.codigo}"
+        return f"{self.tipo.upper()} - {self.material.codigo} - {self.cantidad}"
+
 
 
 # ==================== NOTIFICACION ====================

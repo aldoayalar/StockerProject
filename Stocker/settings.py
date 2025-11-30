@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.NoCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'Stocker.urls'
@@ -80,11 +81,19 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stocker',
         'USER': 'usuario',
-        'PASSWORD': 'mamarracho',
-        'HOST': 'localhost',
-        'PORT': '3307',
+        'PASSWORD': 'inacap2025',
+        'HOST': 'iqgg28uk61i.us-east-2.rds.amazonaws.com',
+        'PORT': '3306',
     }
 }
+
+# Especificar el modelo de usuario personalizado
+AUTH_USER_MODEL = 'core.Usuario'
+
+# Configuración de autenticación
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Backend por defecto
+]
 
 
 # Password validation
@@ -123,6 +132,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# URLs de redirección
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 # Default primary key field type
