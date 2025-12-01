@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Stocker - Sistema de Inventario{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -130,7 +129,7 @@
             margin-left: 0;
         }
 
-        /* Navbar */
+        /* Navbar con título */
         .top-navbar {
             background: white;
             padding: 15px 20px;
@@ -140,10 +139,28 @@
             align-items: center;
         }
 
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
         .toggle-sidebar {
             cursor: pointer;
             font-size: 1.5rem;
             color: var(--primary-color);
+            transition: color 0.3s;
+        }
+
+        .toggle-sidebar:hover {
+            color: var(--accent-color);
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 0;
         }
 
         /* Notificaciones */
@@ -165,11 +182,13 @@
             top: -8px;
             right: -8px;
             padding: 2px 6px;
-            border-radius: 50%;
+            border-radius: 12px; 
             background: #dc3545;
             color: white;
             font-size: 0.65rem;
             font-weight: bold;
+            min-width: 20px;  
+            text-align: center;  
             animation: pulse-badge 2s infinite;
         }
 
@@ -234,6 +253,72 @@
             color: #0c5460;
         }
 
+        /* Menú de Usuario (Avatar) */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid #e9ecef;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .dropdown-user-menu {
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .user-menu-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .user-menu-header i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .user-menu-header h6 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .user-menu-header small {
+            opacity: 0.9;
+        }
+
+        .user-menu-body .dropdown-item {
+            padding: 12px 20px;
+            transition: all 0.2s;
+        }
+
+        .user-menu-body .dropdown-item:hover {
+            background: #f8f9fa;
+            padding-left: 30px;
+        }
+
+        .user-menu-body .dropdown-item i {
+            width: 25px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
         /* Content Area */
         .content-area {
             flex: 1;
@@ -272,6 +357,12 @@
             .dropdown-notificaciones {
                 width: 320px;
             }
+            .page-title {
+                font-size: 1.1rem;
+            }
+            .dropdown-user-menu {
+                min-width: 260px;
+            }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -290,21 +381,15 @@
                     <p class="mb-0">
                         <strong>
                             {% if user.is_authenticated %}
-                            {{ user.get_full_name|default:user.username }}
-                                {% else %}
-                                    Invitado
-                                {% endif %}
+                                {{ user.get_full_name|default:user.username }}
+                            {% else %}
+                                Invitado
+                            {% endif %}
                         </strong>
                     </p>
                     <small>
                         {% if user.is_authenticated %}
-                            {% if user.is_superuser %}
-                                Administrador
-                            {% elif user.is_staff %}
-                                Staff
-                            {% else %}
-                                Usuario
-                            {% endif %}
+                            {{ user.get_rol_display }}
                         {% else %}
                             Rol del Sistema
                         {% endif %}
@@ -314,98 +399,157 @@
 
             <ul class="sidebar-menu">
                 {% block sidebar_menu %}
-                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li><a href="{% url 'inventario' %}"><i class="fas fa-warehouse"></i> Inventario</a></li>
-                <li><a href="{% url 'ingreso_material' %}"><i class="fas fa-plus-circle"></i> Nuevo Material</a></li>
+                <!-- Dashboard (TODOS LOS ROLES) -->
+                <li>
+                    <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
                 
-                <!-- Menú desplegable de Solicitudes -->
+                <!-- ========== INVENTARIO (SOLO BODEGA Y GERENCIA) ========== -->
+                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
+                <li>
+                    <a href="{% url 'inventario' %}" class="{% if 'inventario' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-warehouse"></i> Inventario
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- ========== NUEVO MATERIAL (SOLO BODEGA) ========== -->
+                {% if user.rol == 'BODEGA' %}
+                <li>
+                    <a href="{% url 'ingreso_material' %}" class="{% if request.resolver_match.url_name == 'ingreso_material' %}active{% endif %}">
+                        <i class="fas fa-plus-circle"></i> Nuevo Material
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- ========== MENÚ DE SOLICITUDES (ADAPTADO POR ROL) ========== -->
                 <li class="dropdown">
-                    <a class="dropdown-toggle" href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
+                    <a class="dropdown-toggle {% if 'solicitud' in request.resolver_match.url_name %}active{% endif %}" 
+                       href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-tasks"></i> Solicitudes
                     </a>
-                    <ul class="dropdown-menu">        
-                        <li><a class="dropdown-item" href="{% url 'crear_solicitud' %}"><i class="fas fa-plus-circle"></i> Nueva Solicitud</a></li>
-                        <li><a class="dropdown-item" href="{% url 'mis_solicitudes' %}"><i class="fas fa-clipboard-list"></i> Mis Solicitudes</a></li>
-                        <li><a class="dropdown-item" href="{% url 'historial_solicitudes' %}"><i class="fas fa-history"></i> Historial</a></li>
-                        {% if user.is_staff %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="fas fa-clipboard-check"></i>Gestionar Solicitudes</a></li>
-                        <li><a class="dropdown-item" href="{% url 'historial_movimientos_global' %}"><i class="fas fa-exchange-alt"></i> Historial de Movimientos</a></li>
+                    <ul class="dropdown-menu">
+                        <!-- TÉCNICO: Solo crear y ver las suyas -->
+                        {% if user.rol == 'TECNICO' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'crear_solicitud' %}">
+                                    <i class="fas fa-plus-circle"></i> Nueva Solicitud
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'mis_solicitudes' %}">
+                                    <i class="fas fa-clipboard-list"></i> Mis Solicitudes
+                                </a>
+                            </li>
+                        
+                        <!-- BODEGA: Ver historial, gestionar y movimientos -->
+                        {% elif user.rol == 'BODEGA' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}">
+                                    <i class="fas fa-clipboard-check"></i> Gestionar Solicitudes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'historial_solicitudes' %}">
+                                    <i class="fas fa-history"></i> Historial de Solicitudes
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'historial_movimientos_global' %}">
+                                    <i class="fas fa-exchange-alt"></i> Historial de Movimientos
+                                </a>
+                            </li>
+                        
+                        <!-- GERENCIA: Solo ver historial (lectura) -->
+                        {% elif user.rol == 'GERENCIA' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'historial_solicitudes' %}">
+                                    <i class="fas fa-history"></i> Historial de Solicitudes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'historial_movimientos_global' %}">
+                                    <i class="fas fa-exchange-alt"></i> Historial de Movimientos
+                                </a>
+                            </li>
                         {% endif %}
                     </ul>
                 </li>
-
-                                        
-                <!-- Menú de Reportes -->
-                    {% if user.is_staff %}
-                        <li class="dropdown">
-                            <a class="dropdown-toggle" href="#" id="sidebarReportesMenu" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-chart-line"></i> Reportes
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'exportar_inventario_excel' %}">
-                                        <i class="fas fa-warehouse"></i> Inventario
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'exportar_solicitudes_excel' %}">
-                                        <i class="fas fa-clipboard-list"></i> Solicitudes
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'exportar_movimientos_excel' %}">
-                                        <i class="fas fa-exchange-alt"></i> Movimientos
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'exportar_reporte_completo' %}">
-                                        <i class="fas fa-file-excel"></i> Reporte Completo
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    {% endif %}
                 
-                <!-- Configuración con Cambiar Contraseña -->
+                <!-- ========== REPORTES (SOLO BODEGA Y GERENCIA) ========== -->
+                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
                 <li class="dropdown">
-                    <a class="dropdown-toggle" href="#" id="sidebarConfigMenu" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-cog"></i> Configuración
+                    <a class="dropdown-toggle {% if 'exportar' in request.resolver_match.url_name %}active{% endif %}" 
+                       href="#" id="sidebarReportesMenu" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-chart-line"></i> Reportes
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'cambiar_password' %}">
-                            <i class="fas fa-key"></i> Cambiar Contraseña
-                        </a></li>
-                        {% if user.is_superuser %}
                         <li>
-                            <a class="dropdown-item" href="{% url 'admin:index' %}">
-                            <i class="fas fa-user-shield"></i> Panel Admin
+                            <a class="dropdown-item" href="{% url 'exportar_inventario_excel' %}">
+                                <i class="fas fa-warehouse"></i> Inventario
                             </a>
                         </li>
-                        {% endif %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'exportar_solicitudes_excel' %}">
+                                <i class="fas fa-clipboard-list"></i> Solicitudes
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'exportar_movimientos_excel' %}">
+                                <i class="fas fa-exchange-alt"></i> Movimientos
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'exportar_reporte_completo' %}">
+                                <i class="fas fa-file-excel"></i> Reporte Completo
+                            </a>
+                        </li>
                     </ul>
                 </li>
+                {% endif %}
+                
+                <!-- ========== GESTIÓN DE LOCALES (SOLO GERENCIA - SIN DROPDOWN) ========== -->
+                {% if user.rol == 'GERENCIA' %}
+                <li>
+                    <a href="{% url 'gestion_locales' %}" class="{% if 'locales' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-map-marker-alt"></i> Gestión de Locales
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- ========== PANEL ADMIN (SOLO SUPERUSUARIO) ========== -->
+                {% if user.is_superuser %}
+                <li>
+                    <a href="{% url 'admin:index' %}" target="_blank">
+                        <i class="fas fa-user-shield"></i> Panel Admin
+                    </a>
+                </li>
+                {% endif %}
                 {% endblock %}
             </ul>
 
-            <div class="sidebar-menu mt-auto">
-                <ul class="list-unstyled">
-                    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-                </ul>
-            </div>
+            
         </aside>
 
         <!-- Main Content -->
         <div class="main-content" id="mainContent">
-            <!-- Top Navbar -->
+            <!-- Top Navbar con título desde block title -->
             <nav class="top-navbar">
-                <span class="toggle-sidebar" id="toggleSidebar">
-                    <i class="fas fa-bars"></i>
-                </span>
+                <div class="navbar-left">
+                    <span class="toggle-sidebar" id="toggleSidebar">
+                        <i class="fas fa-bars"></i>
+                    </span>
+                    <h1 class="page-title">
+                        {% block title %}{% endblock %}
+                    </h1>
+                </div>
                 
-                <div class="d-flex align-items-center">
-                    <!-- Notificaciones Dropdown -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Notificaciones para TODOS los usuarios autenticados -->
                     {% if user.is_authenticated %}
                     <div class="dropdown">
                         <span class="notif-icon" id="notificacionesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -438,11 +582,36 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Menú de Usuario -->
+                    <div class="dropdown">
+                        <div class="user-avatar" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ user.get_full_name.0|default:user.username.0|upper }}
+                        </div>
+                        
+                        <div class="dropdown-menu dropdown-menu-end dropdown-user-menu p-0" aria-labelledby="userMenuDropdown">
+                            <!-- Header con info del usuario -->
+                            <div class="user-menu-header">
+                                <i class="fas fa-user-circle"></i>
+                                <h6 class="mb-1">{{ user.get_full_name|default:user.username }}</h6>
+                                <small>
+                                    <i class="fas fa-id-badge"></i> {{ user.get_rol_display }}
+                                </small>
+                            </div>
+                            
+                            <!-- Opciones del menú -->
+                            <div class="user-menu-body">
+                                <a class="dropdown-item" href="{% url 'cambiar_password' %}">
+                                    <i class="fas fa-key text-warning"></i> Cambiar Contraseña
+                                </a>
+                                <div class="dropdown-divider m-0"></div>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
-                    
-                    <span style="cursor: pointer;">
-                        <i class="far fa-user"></i>
-                    </span>
                 </div>
             </nav>
 
@@ -493,79 +662,97 @@
         }
 
         {% if user.is_authenticated %}
-        // Sistema de Notificaciones
-        function cargarNotificaciones() {
-            fetch("{% url 'obtener_notificaciones_json' %}")
-                .then(response => response.json())
-                .then(data => {
-                    const badge = document.getElementById('notif-count');
-                    const lista = document.getElementById('notificaciones-lista');
-                    
-                    // Actualizar badge
-                    if (data.count > 0) {
-                        badge.textContent = data.count;
-                        badge.style.display = 'block';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                    
-                    // Actualizar lista
-                    if (data.notificaciones.length > 0) {
-                        let html = '';
-                        data.notificaciones.forEach(notif => {
-                            const iconClass = notif.tipo === 'stock_critico' ? 'stock-critico' :
-                                            notif.tipo === 'solicitud_pendiente' ? 'solicitud' :
-                                            notif.tipo === 'material_nuevo' ? 'material' :
-                                            'aprobacion';
-                            
-                            html += `
-                                <a href="/notificaciones/${notif.id}/leer/" class="notif-item no-leida">
-                                    <div class="d-flex align-items-start">
-                                        <div class="notif-item-icon ${iconClass} me-2">
-                                            <i class="fas ${notif.icono}"></i>
+            // Sistema de Notificaciones (TODOS los roles)
+            function cargarNotificaciones() {
+                fetch("{% url 'obtener_notificaciones_json' %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('notif-count');
+                        const lista = document.getElementById('notificaciones-lista');
+                        
+                        if (!badge || !lista) return;
+                        
+                        // Actualizar badge
+                        if (data.count > 0) {
+                            badge.textContent = data.count > 99 ? '99+' : data.count;
+                            badge.style.display = 'block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                        
+                        // Actualizar lista
+                        if (data.notificaciones.length > 0) {
+                            let html = '';
+                            data.notificaciones.forEach(notif => {
+                                // Determinar clase de icono según tipo
+                                let iconClass = 'aprobacion';
+                                if (notif.tipo === 'stock_critico') {
+                                    iconClass = 'stock-critico';
+                                } else if (notif.tipo === 'solicitud_pendiente') {
+                                    iconClass = 'solicitud';
+                                } else if (notif.tipo === 'material_nuevo') {
+                                    iconClass = 'material';
+                                } else if (notif.tipo === 'solicitud_aprobada') {
+                                    iconClass = 'aprobacion';
+                                } else if (notif.tipo === 'solicitud_rechazada') {
+                                    iconClass = 'stock-critico';
+                                } else if (notif.tipo === 'solicitud_despachada') {
+                                    iconClass = 'aprobacion';
+                                }
+                                
+                                html += `
+                                    <a href="/notificaciones/${notif.id}/leer/" class="notif-item no-leida">
+                                        <div class="d-flex align-items-start">
+                                            <div class="notif-item-icon ${iconClass} me-2">
+                                                <i class="fas ${notif.icono}"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1 small fw-bold">${notif.mensaje}</p>
+                                                <small class="text-muted">
+                                                    <i class="far fa-clock"></i> ${notif.fecha}
+                                                </small>
+                                            </div>
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <p class="mb-1 small fw-bold">${notif.mensaje}</p>
-                                            <small class="text-muted">
-                                                <i class="far fa-clock"></i> ${notif.fecha}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </a>
+                                    </a>
+                                `;
+                            });
+                            lista.innerHTML = html;
+                        } else {
+                            lista.innerHTML = `
+                                <div class="text-center py-4 text-muted">
+                                    <i class="far fa-bell-slash fa-2x mb-2"></i>
+                                    <p class="mb-0 small">No tienes notificaciones nuevas</p>
+                                </div>
                             `;
-                        });
-                        lista.innerHTML = html;
-                    } else {
-                        lista.innerHTML = `
-                            <div class="text-center py-4 text-muted">
-                                <i class="far fa-bell-slash fa-2x mb-2"></i>
-                                <p class="mb-0 small">No tienes notificaciones nuevas</p>
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al cargar notificaciones:', error);
-                    document.getElementById('notificaciones-lista').innerHTML = `
-                        <div class="text-center py-4 text-danger">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                            <p class="mb-0 small">Error al cargar notificaciones</p>
-                        </div>
-                    `;
-                });
-        }
-        
-        // Cargar notificaciones al inicio
-        cargarNotificaciones();
-        
-        // Actualizar cada 30 segundos
-        setInterval(cargarNotificaciones, 30000);
-        
-        // Actualizar al abrir el dropdown
-        document.getElementById('notificacionesDropdown').addEventListener('click', cargarNotificaciones);
-        {% endif %}
-    </script>
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar notificaciones:', error);
+                        const lista = document.getElementById('notificaciones-lista');
+                        if (lista) {
+                            lista.innerHTML = `
+                                <div class="text-center py-4 text-danger">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Error al cargar notificaciones</p>
+                                </div>
+                            `;
+                        }
+                    });
+            }
 
+            // Cargar notificaciones al inicio
+            cargarNotificaciones();
+
+            // Actualizar cada 30 segundos
+            setInterval(cargarNotificaciones, 30000);
+
+            // Actualizar al abrir el dropdown
+            const notifDropdown = document.getElementById('notificacionesDropdown');
+            if (notifDropdown) {
+                notifDropdown.addEventListener('click', cargarNotificaciones);
+            }
+            {% endif %}
+    </script>
     
     {% block extra_js %}{% endblock %}
     

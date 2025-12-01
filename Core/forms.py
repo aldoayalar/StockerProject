@@ -1,5 +1,5 @@
 from django import forms
-from .models import Material, Inventario, Solicitud, DetalleSolicitud
+from .models import Material, Inventario, Solicitud, DetalleSolicitud, Local
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
@@ -93,6 +93,38 @@ class EditarMaterialForm(forms.ModelForm):
             )
         
         return codigo
+    
+class LocalForm(forms.ModelForm):
+    #crear/editar locales
+    class Meta:
+        model = Local
+        fields = ['codigo', 'nombre', 'direccion', 'numero', 'comuna', 'region']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: LOC001'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del local'
+            }),
+            'direccion': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Calle'
+            }),
+            'numero': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Número (opcional)'
+            }),
+            'comuna': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Comuna'
+            }),
+            'region': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Región'
+            }),
+        }
 
         
 class SolicitudForm(forms.ModelForm):
@@ -110,7 +142,7 @@ class SolicitudForm(forms.ModelForm):
     
     class Meta:
         model = Solicitud
-        fields = ['motivo']
+        fields = ['motivo', 'local_destino']
         
 class DetalleSolicitudForm(forms.ModelForm):
     """

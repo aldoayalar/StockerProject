@@ -238,9 +238,7 @@ class Alerta(models.Model):
 # ==================== SOLICITUD (AHORA CON DETALLES) ====================
 
 class Solicitud(models.Model):
-    """
-    Cabecera de la solicitud - SIN material directo
-    """
+  
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
         ('aprobada', 'Aprobada'),
@@ -248,6 +246,15 @@ class Solicitud(models.Model):
         ('despachada', 'Despachada'),
     ]
     
+    local_destino = models.ForeignKey(
+        'Local', on_delete=models.PROTECT,
+        related_name='solicitudes',
+        verbose_name='Local de Destino',
+        help_text='Local donde se entregarán los materiales',
+        null=True,  # Temporal para migración
+        blank=True  # Temporal para migración
+    )
+      
     solicitante = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

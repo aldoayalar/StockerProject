@@ -1,7 +1,7 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}Mis Solicitudes{% endblock %}
+{% block title %}<h2><i class="fas fa-clipboard-list"></i> Mis Solicitudes</h2>{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -36,8 +36,8 @@
 
 {% block contenido %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-clipboard-list"></i> Mis Solicitudes</h2>
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        
         <a href="{% url 'crear_solicitud' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Nueva Solicitud
         </a>

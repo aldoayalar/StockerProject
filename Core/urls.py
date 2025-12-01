@@ -19,7 +19,7 @@ urlpatterns = [
 
     # Urls de Vistas basadas en funcionalidades
     path('historial_tecnico/', views.historial_tecnico, name='historial_tecnico'),
-    path('solicitud/', views.solicitud, name='solicitud'),
+    #path('solicitud/', views.solicitud, name='solicitud'),
     path('inventario/', views.inventario, name='inventario'),
     path('material/<int:id>/', views.detalle_material, name='detalle_material'),
     path('material/<int:id>/editar/', views.editar_material, name='editar_material'),
@@ -61,4 +61,10 @@ urlpatterns = [
     path('exportar/solicitudes/', views.exportar_solicitudes_excel, name='exportar_solicitudes_excel'),
     path('exportar/movimientos/', views.exportar_movimientos_excel, name='exportar_movimientos_excel'),
     path('exportar/reporte-completo/', views.exportar_reporte_completo_excel, name='exportar_reporte_completo'),
+    
+    # Gestión de Locales
+    path('locales/', views.gestion_locales, name='gestion_locales'),
+    path('locales/crear/', views.local_crear, name='local_crear'),
+    path('locales/<int:local_id>/editar/', views.local_editar, name='local_editar'),
+    path('locales/<int:local_id>/eliminar/', views.local_eliminar, name='local_eliminar'),
 ]

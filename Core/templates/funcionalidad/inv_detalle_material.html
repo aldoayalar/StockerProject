@@ -62,10 +62,16 @@
                 </p>
             </div>
             <div class="col-md-3 text-end">
-                {% if user.is_staff %}
-                <a href="{% url 'editar_material' material.id %}" class="btn btn-light btn-lg">
-                    <i class="fas fa-edit"></i> Editar
-                </a>
+                {% if user.rol == 'BODEGA' %}
+                    <a href="{% url 'editar_material' material.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{% url 'registrar_entrada' material.id %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Registrar Entrada
+                    </a>
+                    <a href="{% url 'registrar_salida' material.id %}" class="btn btn-danger">
+                        <i class="fas fa-minus"></i> Registrar Salida
+                    </a>
                 {% endif %}
             </div>
         </div>

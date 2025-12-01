@@ -1,43 +1,50 @@
 import json
-
 from django.shortcuts import get_object_or_404, render, redirect
-
 from django.db import models, transaction
 from django.db.models import Avg, Sum, Count, Q, F
 from django.db.models.functions import TruncDate
-
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
-
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-
 from django.core.paginator import Paginator
-
-from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario, Alerta, MLResult
-from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, SolicitudForm, DetalleSolicitudFormSet, EditarMaterialForm
+from django.core.serializers.json import DjangoJSONEncoder
+from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario, Alerta, MLResult, Local
+from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, DetalleSolicitudFormSet, EditarMaterialForm, LocalForm
 from .decorators import verificar_rol
-
 from django.http import JsonResponse
-
 from datetime import timedelta
-
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
+from collections import defaultdict
 
 User = get_user_model()
+
 #----------------------------------------------------------------------------------------
 # Vistas según roles
-
 @login_required
 def tecnico(request):
     return render(request, 'rol/tecnico.html')
 
 @login_required
-@verificar_rol('BODEGA')
+def historial_tecnico(request):
+    """Vista del historial para técnicos - muestra sus solicitudes y movimientos"""
+    
+    # Obtener solicitudes del técnico
+    solicitudes = Solicitud.objects.filter(
+        solicitante=request.user
+    ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:20]
+    
+    context = {
+        'solicitudes': solicitudes,
+    }
+    
+    return render(request, 'funcionalidad/historial_tecnico.html', context)
+
+@login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def bodega(request):
     return render(request, 'rol/bodega.html')
 
@@ -50,11 +57,8 @@ def chofer(request):
 def gerente(request):
     return render(request, 'rol/gerente.html')
 
-
-
 #----------------------------------------------------------------------------------------
 # ===================================== AUTENTICACIÓN ========================================
-
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -66,34 +70,26 @@ def login_view(request):
         
         if user is not None:
             login(request, user)
-            # Redirigir a la página que intentaba acceder o al inventario
             next_url = request.GET.get('next', 'dashboard')
             return redirect(next_url)
         else:
             messages.error(request, 'Usuario o contraseña incorrectos')
-            
-    # Se ejecuta cuando el método es GET (primera vez que cargas la página)
+    
     return render(request, 'general/login.html')
-        
+
 def logout_view(request):
-    # Limpiar todos los mensajes pendientes antes de cerrar sesión
     storage = messages.get_messages(request)
     storage.used = True
-    
     logout(request)
     messages.success(request, 'Has cerrado sesión exitosamente')
     return redirect('login')
 
 @login_required
 def cambiar_password(request):
-    """
-    Vista para cambiar la contraseña del usuario actual
-    """
     if request.method == 'POST':
         form = CambiarPasswordForm(user=request.user, data=request.POST)
         if form.is_valid():
             user = form.save()
-            # Importante: Actualizar la sesión para que no cierre sesión
             update_session_auth_hash(request, user)
             messages.success(request, '¡Tu contraseña ha sido cambiada exitosamente!')
             return redirect('dashboard')
@@ -104,52 +100,64 @@ def cambiar_password(request):
     
     return render(request, 'funcionalidad/cambiar_password.html', {'form': form})
 
-
-
 #-------------------------------------------------------------------------------------------------------
-# Vista según funcionalidad
-
+# ======================================== INVENTARIO ========================================
 @login_required
-def historial_tecnico(request):
-    return render(request, 'funcionalidad/historial_tecnico.html')
-
-@login_required
-def solicitud(request):
-    return render(request, 'funcionalidad/solicitud.html')
-
-
-
-# ======================================== INVENTARIO =====================================
-
-
-
-@login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])  # Solo BODEGA y GERENCIA
 def inventario(request):
-    # Verificar stock crítico cada vez que se cargue el inventario
-    #verificar_stock_critico(request.user)
+    query = request.GET.get('q', '').strip()
+    items_por_pagina = request.GET.get('items', '10')
     
-    # Obtener todos los registros del inventario con sus materiales
-    inventario = Inventario.objects.select_related('material').all()
-
-    # Agregar el promedio de stock crítico calculado por ML
+    try:
+        items_por_pagina = int(items_por_pagina)
+        if items_por_pagina not in [10, 25, 50, 100]:
+            items_por_pagina = 25
+    except ValueError:
+        items_por_pagina = 25
+    
+    inventario_lista = Inventario.objects.select_related('material').all()
+    
+    if query:
+        inventario_lista = inventario_lista.filter(
+            Q(material__codigo__icontains=query) |
+            Q(material__descripcion__icontains=query) |
+            Q(material__ubicacion__icontains=query)
+        )
+    
+    inventario_lista = inventario_lista.order_by('material__codigo')
+    
+    paginator = Paginator(inventario_lista, items_por_pagina)
+    page_number = request.GET.get('page', 1)
+    inventario = paginator.get_page(page_number)
+    
     for item in inventario:
         promedio_ml = MLResult.objects.filter(
             material=item.material
         ).aggregate(
             promedio=Avg('stock_min_calculado')
         )['promedio']
-        
-        # Agregar como atributo temporal
         item.stock_critico_promedio = round(promedio_ml) if promedio_ml else None
     
-    return render(request, 'funcionalidad/inv_inventario.html', {'inventario': inventario})
+    context = {
+        'inventario': inventario,
+        'total_items': paginator.count,
+        'query': query,
+        'items_por_pagina': items_por_pagina,
+    }
+    
+    return render(request, 'funcionalidad/inv_inventario.html', context)
 
 @login_required
 def detalle_material(request, id):
+    # TODOS pueden ver detalles si tienen acceso al inventario
+    if request.user.rol not in ['BODEGA', 'GERENCIA']:
+        messages.error(request, 'No tienes permiso para ver el inventario.')
+        return redirect('dashboard')
     material = get_object_or_404(Material, id=id)
     return render(request, 'funcionalidad/inv_detalle_material.html', {'material': material})
 
 @login_required
+@verificar_rol('BODEGA')  # SOLO BODEGA puede editar
 def editar_material(request, id):
     material = get_object_or_404(Material, id=id)
     
@@ -169,43 +177,38 @@ def editar_material(request, id):
         'material': material
     })
 
-
-
 @login_required
+@verificar_rol('BODEGA')  # SOLO BODEGA puede ingresar
 def ingreso_material(request):
-    # Calcular código sugerido
     last_material = Material.objects.order_by('-id').first()
     next_id = (last_material.id + 1) if last_material else 1
     codigo_sugerido = f"MAT{next_id:04d}"
-
+    
     if request.method == 'POST':
         form = MaterialInventarioForm(request.POST)
         if form.is_valid():
             material = form.save(commit=False)
-            # Si el usuario no editó el código, queda el sugerido
             if not material.codigo:
                 material.codigo = codigo_sugerido
             material.save()
+            
             Inventario.objects.create(
                 material=material,
                 stock_actual=form.cleaned_data['stock_actual'],
                 stock_seguridad=form.cleaned_data['stock_seguridad'],
             )
+            
             return redirect('inventario')
     else:
-        # Pre-cargar el código sugerido en el form
         form = MaterialInventarioForm(initial={'codigo': codigo_sugerido})
+    
     return render(request, 'funcionalidad/inv_ingreso_material.html', {'form': form})
 
-
-
 # ============================================= SOLICITUDES DE MATERIALES ====================================
-
 @login_required
+@verificar_rol('TECNICO')  # SOLO TÉCNICO ve sus solicitudes
 def crear_solicitud(request):
-    """
-    Vista para crear una solicitud con múltiples materiales
-    """
+    """Vista para crear una solicitud con múltiples materiales"""
     if request.method == 'POST':
         form = SolicitudForm(request.POST)
         formset = DetalleSolicitudFormSet(request.POST)
@@ -213,17 +216,15 @@ def crear_solicitud(request):
         if form.is_valid() and formset.is_valid():
             try:
                 with transaction.atomic():
-                    # Crear la solicitud
                     solicitud = form.save(commit=False)
                     solicitud.solicitante = request.user
                     solicitud.save()
                     
-                    # Asociar el formset a la solicitud y guardar
                     formset.instance = solicitud
                     formset.save()
                     
                     messages.success(
-                        request, 
+                        request,
                         f'Solicitud #{solicitud.id} creada exitosamente con {solicitud.total_items()} materiales.'
                     )
                     return redirect('mis_solicitudes')
@@ -239,13 +240,12 @@ def crear_solicitud(request):
         'form': form,
         'formset': formset,
     }
+    
     return render(request, 'funcionalidad/solmat_crear_solicitud.html', context)
 
 @login_required
 def mis_solicitudes(request):
-    """
-    Vista para listar las solicitudes del usuario actual
-    """
+    """Vista para listar las solicitudes del usuario actual"""
     solicitudes = Solicitud.objects.filter(
         solicitante=request.user
     ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
@@ -253,37 +253,40 @@ def mis_solicitudes(request):
     context = {
         'solicitudes': solicitudes,
     }
+    
     return render(request, 'funcionalidad/solmat_mis_solicitudes.html', context)
 
 @login_required
 def detalle_solicitud(request, solicitud_id):
-    """
-    Vista para ver el detalle completo de una solicitud
-    """
+    """Vista para ver el detalle completo de una solicitud"""
     solicitud = get_object_or_404(
         Solicitud.objects.prefetch_related('detalles__material'),
         id=solicitud_id
     )
     
-    # Verificar permisos (solo el solicitante o staff puede ver)
-    if solicitud.solicitante != request.user and not request.user.is_staff:
-        messages.error(request, 'No tienes permiso para ver esta solicitud.')
-        return redirect('mis_solicitudes')
+    # Verificar permisos según rol
+    if request.user.rol == 'TECNICO':
+        # TÉCNICO solo ve las suyas
+        if solicitud.solicitante != request.user:
+            messages.error(request, 'No tienes permiso para ver esta solicitud.')
+            return redirect('mis_solicitudes')
+    elif request.user.rol in ['BODEGA', 'GERENCIA']:
+        # BODEGA y GERENCIA ven todas
+        pass
+    else:
+        messages.error(request, 'No tienes permiso para ver solicitudes.')
+        return redirect('dashboard')
     
     context = {
         'solicitud': solicitud,
     }
+    
     return render(request, 'funcionalidad/solmat_detalle_solicitud.html', context)
 
-def es_staff(user):
-    return user.is_staff
-
 @login_required
-@verificar_rol(['BODEGA', 'GERENCIA'])
+@verificar_rol(['BODEGA']) # SOLO BODEGA puede gestionar
 def gestionar_solicitudes(request):
-    """
-    Vista para que staff/bodega gestione todas las solicitudes
-    """
+    """Vista para que BODEGA gestione todas las solicitudes"""
     solicitudes_pendientes = Solicitud.objects.filter(
         estado='pendiente'
     ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
@@ -296,14 +299,13 @@ def gestionar_solicitudes(request):
         'solicitudes_pendientes': solicitudes_pendientes,
         'todas_solicitudes': todas_solicitudes,
     }
+    
     return render(request, 'funcionalidad/solmat_gestionar.html', context)
 
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol('BODEGA')
 def aprobar_solicitud(request, solicitud_id):
-    """
-    Aprobar una solicitud
-    """
+    """Aprobar una solicitud"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
     if request.method == 'POST':
@@ -312,17 +314,24 @@ def aprobar_solicitud(request, solicitud_id):
         solicitud.fecha_respuesta = timezone.now()
         solicitud.save()
         
-        messages.success(request, f'Solicitud #{solicitud.id} aprobada exitosamente.')
+        # CREAR NOTIFICACIÓN PARA EL TÉCNICO
+        Notificacion.objects.create(
+            usuario=solicitud.solicitante,
+            tipo='solicitud_aprobada',
+            mensaje=f'Tu solicitud #{solicitud.id} ha sido aprobada y está en proceso de despacho.',
+            url=f'/solicitud/{solicitud.id}/'
+        )
+        
+        messages.success(request, f'✓ Solicitud #{solicitud.id} aprobada exitosamente. Técnico notificado.')
         return redirect('gestionar_solicitudes')
     
     return redirect('detalle_solicitud', solicitud_id=solicitud_id)
 
+
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol('BODEGA')
 def rechazar_solicitud(request, solicitud_id):
-    """
-    Rechazar una solicitud
-    """
+    """Rechazar una solicitud"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
     if request.method == 'POST':
@@ -333,16 +342,28 @@ def rechazar_solicitud(request, solicitud_id):
         solicitud.observaciones = observaciones
         solicitud.save()
         
-        messages.warning(request, f'Solicitud #{solicitud.id} rechazada.')
+        # CREAR NOTIFICACIÓN PARA EL TÉCNICO
+        mensaje_notif = f'Tu solicitud #{solicitud.id} ha sido rechazada.'
+        if observaciones:
+            mensaje_notif += f' Motivo: {observaciones[:100]}'
+        
+        Notificacion.objects.create(
+            usuario=solicitud.solicitante,
+            tipo='solicitud_rechazada',
+            mensaje=mensaje_notif,
+            url=f'/solicitud/{solicitud.id}/'
+        )
+        
+        messages.warning(request, f'⚠ Solicitud #{solicitud.id} rechazada. Técnico notificado.')
         return redirect('gestionar_solicitudes')
     
     return redirect('detalle_solicitud', solicitud_id=solicitud_id)
 
+
 @login_required
+@verificar_rol('TECNICO')  # SOLO el TÉCNICO puede cancelar las suyas
 def cancelar_solicitud(request, solicitud_id):
-    """
-    Cancelar una solicitud propia (solo si está pendiente)
-    """
+    """Cancelar una solicitud propia (solo si está pendiente)"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id, solicitante=request.user)
     
     if solicitud.estado == 'pendiente' and request.method == 'POST':
@@ -353,13 +374,10 @@ def cancelar_solicitud(request, solicitud_id):
     messages.error(request, 'No se puede cancelar esta solicitud.')
     return redirect('detalle_solicitud', solicitud_id=solicitud_id)
 
-
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol(['BODEGA'])
 def despachar_solicitud(request, solicitud_id):
-    """
-    Marcar una solicitud aprobada como despachada y descontar stock
-    """
+    """Marcar una solicitud aprobada como despachada y descontar stock"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
     if solicitud.estado != 'aprobada':
@@ -369,7 +387,6 @@ def despachar_solicitud(request, solicitud_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # Descontar stock de cada material
                 for detalle in solicitud.detalles.all():
                     try:
                         inventario = detalle.material.inventario
@@ -377,7 +394,7 @@ def despachar_solicitud(request, solicitud_id):
                         # Verificar stock suficiente
                         if inventario.stock_actual < detalle.cantidad:
                             messages.error(
-                                request, 
+                                request,
                                 f'Stock insuficiente para {detalle.material.descripcion}. '
                                 f'Disponible: {inventario.stock_actual}, Solicitado: {detalle.cantidad}'
                             )
@@ -388,13 +405,13 @@ def despachar_solicitud(request, solicitud_id):
                         inventario.stock_actual -= detalle.cantidad
                         inventario.save()
                         
-                        # Registrar movimiento de salida
+                        # Obtener usuario del modelo Usuario
                         try:
                             usuario_movimiento = Usuario.objects.get(email=request.user.email)
                         except Usuario.DoesNotExist:
-                            # Si no existe en Usuario, crear el movimiento sin ese campo o manejarlo diferente
                             usuario_movimiento = None
                         
+                        # REGISTRAR UN SOLO MOVIMIENTO (SIN DUPLICAR)
                         if usuario_movimiento:
                             Movimiento.objects.create(
                                 material=detalle.material,
@@ -404,123 +421,132 @@ def despachar_solicitud(request, solicitud_id):
                                 cantidad=detalle.cantidad,
                                 detalle=f'Despacho solicitud #{solicitud.id} - {solicitud.motivo}'
                             )
-                        
+                        else:
+                            # Fallback si no existe el usuario en el modelo Usuario
+                            Movimiento.objects.create(
+                                material=detalle.material,
+                                tipo='salida',
+                                cantidad=detalle.cantidad,
+                                motivo=f'Despacho solicitud #{solicitud.id}',
+                                usuario=request.user  # Si tu modelo acepta esto
+                            )
+                    
                     except Inventario.DoesNotExist:
                         messages.error(
-                            request, 
+                            request,
                             f'El material {detalle.material.codigo} no tiene inventario asociado.'
                         )
                         return redirect('detalle_solicitud', solicitud_id=solicitud_id)
                 
-                # Actualizar estado de la solicitud
+                # Cambiar estado de la solicitud
                 solicitud.estado = 'despachada'
                 solicitud.save()
                 
+                # CREAR NOTIFICACIÓN PARA EL TÉCNICO
+                Notificacion.objects.create(
+                    usuario=solicitud.solicitante,
+                    tipo='solicitud_despachada',
+                    mensaje=f'Tu solicitud #{solicitud.id} ha sido despachada y está lista para retirar.',
+                    url=f'/solicitud/{solicitud.id}/'
+                )
+                
                 messages.success(
-                    request, 
-                    f'Solicitud #{solicitud.id} despachada exitosamente. Stock actualizado.'
+                    request,
+                    f'✓ Solicitud #{solicitud.id} despachada exitosamente. Stock actualizado y técnico notificado.'
                 )
                 return redirect('gestionar_solicitudes')
-                
+        
         except Exception as e:
             messages.error(request, f'Error al despachar solicitud: {str(e)}')
             return redirect('detalle_solicitud', solicitud_id=solicitud_id)
     
-    # Si es GET, mostrar confirmación
     context = {
         'solicitud': solicitud,
     }
+    
     return render(request, 'funcionalidad/solmat_confirmar_despacho.html', context)
 
 
-
 @login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def historial_solicitudes(request):
     """
-    Vista del historial de solicitudes con filtros
+    Vista para ver historial completo de todas las solicitudes.
+    Solo accesible para BODEGA y GERENCIA.
     """
-    # Obtener todas las solicitudes (staff ve todas, usuarios solo las suyas)
-    if request.user.is_staff:
-        solicitudes = Solicitud.objects.all()
-    else:
-        solicitudes = Solicitud.objects.filter(solicitante=request.user)
+    from datetime import datetime
     
-    # Aplicar filtros si se envió el formulario
-    form = FiltroSolicitudesForm(request.GET or None)
+    # Filtros desde GET
+    estado_filtro = request.GET.get('estado', '')
+    solicitante_filtro = request.GET.get('solicitante', '')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
     
-    if form.is_valid():
-        # Filtro por fecha desde
-        fecha_desde = form.cleaned_data.get('fecha_desde')
-        if fecha_desde:
-            solicitudes = solicitudes.filter(fecha_solicitud__date__gte=fecha_desde)
-        
-        # Filtro por fecha hasta
-        fecha_hasta = form.cleaned_data.get('fecha_hasta')
-        if fecha_hasta:
-            solicitudes = solicitudes.filter(fecha_solicitud__date__lte=fecha_hasta)
-        
-        # Filtro por estado
-        estado = form.cleaned_data.get('estado')
-        if estado:
-            solicitudes = solicitudes.filter(estado=estado)
-        
-        # Filtro por material
-        material = form.cleaned_data.get('material')
-        if material:
-            solicitudes = solicitudes.filter(detalles__material=material).distinct()
-
-        
-        # Filtro por solicitante (solo para staff)
-        if request.user.is_staff:
-            solicitante = form.cleaned_data.get('solicitante')
-            if solicitante:
-                solicitudes = solicitudes.filter(solicitante=solicitante)
-        
-        # Búsqueda por texto
-        buscar = form.cleaned_data.get('buscar')
-        if buscar:
-            solicitudes = solicitudes.filter(
-                Q(id__icontains=buscar) | 
-                Q(motivo__icontains=buscar) |
-                Q(observaciones__icontains=buscar)
-            )
-    
-    # Ordenar por fecha (más recientes primero)
-    solicitudes = solicitudes.select_related(
+    # Consulta base con agregación de cantidad total
+    solicitudes = Solicitud.objects.select_related(
         'solicitante', 'respondido_por'
-    ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
-
+    ).prefetch_related('detalles__material').annotate(
+        total_materiales=Sum('detalles__cantidad')  # ← AGREGAR ESTO
+    ).order_by('-fecha_solicitud')
     
-    # Paginación (15 por página)
-    paginator = Paginator(solicitudes, 15)
-    page_number = request.GET.get('page')
+    # Aplicar filtros
+    if estado_filtro:
+        solicitudes = solicitudes.filter(estado=estado_filtro)
+    
+    if solicitante_filtro:
+        solicitudes = solicitudes.filter(solicitante__username=solicitante_filtro)
+    
+    if fecha_desde:
+        try:
+            fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d')
+            solicitudes = solicitudes.filter(fecha_solicitud__gte=fecha_desde_dt)
+        except ValueError:
+            pass
+    
+    if fecha_hasta:
+        try:
+            fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            solicitudes = solicitudes.filter(fecha_solicitud__lte=fecha_hasta_dt)
+        except ValueError:
+            pass
+    
+    # Paginación
+    paginator = Paginator(solicitudes, 20)
+    page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
-    # Estadísticas del filtro actual
+    # Estadísticas generales
     stats = {
-        'total': solicitudes.count(),
-        'pendientes': solicitudes.filter(estado='pendiente').count(),
-        'aprobadas': solicitudes.filter(estado='aprobada').count(),
-        'rechazadas': solicitudes.filter(estado='rechazada').count(),
+        'total': Solicitud.objects.count(),
+        'pendientes': Solicitud.objects.filter(estado='pendiente').count(),
+        'aprobadas': Solicitud.objects.filter(estado='aprobada').count(),
+        'despachadas': Solicitud.objects.filter(estado='despachada').count(),
+        'rechazadas': Solicitud.objects.filter(estado='rechazada').count(),
+        'canceladas': Solicitud.objects.filter(estado='cancelada').count(),
     }
     
+    # Lista de técnicos para el filtro
+    tecnicos = User.objects.filter(rol='TECNICO').order_by('first_name')
+    
     context = {
-        'form': form,
-        'page_obj': page_obj,
         'solicitudes': page_obj,
+        'page_obj': page_obj,
         'stats': stats,
+        'tecnicos': tecnicos,
+        'estado_filtro': estado_filtro,
+        'solicitante_filtro': solicitante_filtro,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
     }
     
     return render(request, 'funcionalidad/solmat_historial.html', context)
 
-# ============================================= Registro de movimientos ====================================
 
+# ============================================= Registro de movimientos ====================================
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol(['BODEGA']) # SOLO BODEGA puede registrar entradas
 def registrar_entrada(request, material_id):
-    """
-    Registrar entrada manual de material
-    """
+    """Registrar entrada manual de material"""
     material = get_object_or_404(Material, id=material_id)
     
     try:
@@ -541,11 +567,9 @@ def registrar_entrada(request, material_id):
                     stock_anterior = inventario.stock_actual
                     stock_nuevo = stock_anterior + cantidad
                     
-                    # Actualizar inventario
                     inventario.stock_actual = stock_nuevo
                     inventario.save()
                     
-                    # Buscar usuario en modelo Usuario personalizado
                     try:
                         usuario_movimiento = Usuario.objects.get(
                             email=request.user.email
@@ -554,7 +578,6 @@ def registrar_entrada(request, material_id):
                         messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
                         return redirect('detalle_material', id=material_id)
                     
-                    # Crear movimiento
                     Movimiento.objects.create(
                         material=material,
                         usuario=usuario_movimiento,
@@ -564,11 +587,10 @@ def registrar_entrada(request, material_id):
                     )
                     
                     messages.success(
-                        request, 
+                        request,
                         f'Entrada registrada: +{cantidad} {material.unidad_medida}. Stock actual: {stock_nuevo}'
                     )
                     return redirect('detalle_material', id=material_id)
-                    
             except Exception as e:
                 messages.error(request, f'Error al registrar entrada: {str(e)}')
     
@@ -576,15 +598,13 @@ def registrar_entrada(request, material_id):
         'material': material,
         'inventario': inventario,
     }
+    
     return render(request, 'funcionalidad/mov_registrar_entrada.html', context)
 
-
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol('BODEGA')  # SOLO BODEGA puede registrar salidas
 def registrar_salida(request, material_id):
-    """
-    Registrar salida manual de material
-    """
+    """Registrar salida manual de material"""
     material = get_object_or_404(Material, id=material_id)
     
     try:
@@ -607,11 +627,9 @@ def registrar_salida(request, material_id):
                     stock_anterior = inventario.stock_actual
                     stock_nuevo = stock_anterior - cantidad
                     
-                    # Actualizar inventario
                     inventario.stock_actual = stock_nuevo
                     inventario.save()
                     
-                    # Buscar usuario en modelo Usuario personalizado
                     try:
                         usuario_movimiento = Usuario.objects.get(
                             email=request.user.email
@@ -620,7 +638,6 @@ def registrar_salida(request, material_id):
                         messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
                         return redirect('detalle_material', id=material_id)
                     
-                    # Crear movimiento
                     Movimiento.objects.create(
                         material=material,
                         usuario=usuario_movimiento,
@@ -630,11 +647,10 @@ def registrar_salida(request, material_id):
                     )
                     
                     messages.success(
-                        request, 
+                        request,
                         f'Salida registrada: -{cantidad} {material.unidad_medida}. Stock actual: {stock_nuevo}'
                     )
                     return redirect('detalle_material', id=material_id)
-                    
             except Exception as e:
                 messages.error(request, f'Error al registrar salida: {str(e)}')
     
@@ -642,15 +658,13 @@ def registrar_salida(request, material_id):
         'material': material,
         'inventario': inventario,
     }
+    
     return render(request, 'funcionalidad/mov_registrar_salida.html', context)
 
-
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol('BODEGA')  # SOLO BODEGA puede ajustar
 def ajustar_inventario(request, material_id):
-    """
-    Ajustar inventario (correcciones)
-    """
+    """Ajustar inventario (correcciones)"""
     material = get_object_or_404(Material, id=material_id)
     
     try:
@@ -671,11 +685,9 @@ def ajustar_inventario(request, material_id):
                     stock_anterior = inventario.stock_actual
                     diferencia = nuevo_stock - stock_anterior
                     
-                    # Actualizar inventario
                     inventario.stock_actual = nuevo_stock
                     inventario.save()
                     
-                    # Buscar usuario en modelo Usuario personalizado
                     try:
                         usuario_movimiento = Usuario.objects.get(
                             email=request.user.email
@@ -684,7 +696,6 @@ def ajustar_inventario(request, material_id):
                         messages.error(request, 'Tu usuario no está registrado en el sistema de personal.')
                         return redirect('detalle_material', id=material_id)
                     
-                    # Crear movimiento
                     Movimiento.objects.create(
                         material=material,
                         usuario=usuario_movimiento,
@@ -694,11 +705,10 @@ def ajustar_inventario(request, material_id):
                     )
                     
                     messages.success(
-                        request, 
+                        request,
                         f'Inventario ajustado. Stock anterior: {stock_anterior}, Stock nuevo: {nuevo_stock}'
                     )
                     return redirect('detalle_material', id=material_id)
-                    
             except Exception as e:
                 messages.error(request, f'Error al ajustar inventario: {str(e)}')
     
@@ -706,14 +716,13 @@ def ajustar_inventario(request, material_id):
         'material': material,
         'inventario': inventario,
     }
+    
     return render(request, 'funcionalidad/mov_ajustar_inventario.html', context)
 
-
 @login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])  # Ambos pueden ver historial
 def historial_movimientos(request, material_id):
-    """
-    Ver historial de movimientos de un material
-    """
+    """Ver historial de movimientos de un material"""
     material = get_object_or_404(Material, id=material_id)
     movimientos = Movimiento.objects.filter(
         material=material
@@ -723,767 +732,707 @@ def historial_movimientos(request, material_id):
         'material': material,
         'movimientos': movimientos,
     }
+    
     return render(request, 'funcionalidad/mov_historial.html', context)
 
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol(['BODEGA', 'GERENCIA'])  # Ambos pueden ver historial global
 def historial_movimientos_global(request):
-    """
-    Historial completo de todos los movimientos del sistema
-    """
+    """Historial completo de todos los movimientos del sistema"""
     movimientos = Movimiento.objects.select_related(
         'material', 'usuario'
-    ).all()
-    
-    # Filtros opcionales
-    tipo_filtro = request.GET.get('tipo')
-    if tipo_filtro:
-        movimientos = movimientos.filter(tipo=tipo_filtro)
-    
-    fecha_desde = request.GET.get('fecha_desde')
-    if fecha_desde:
-        movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
-    
-    fecha_hasta = request.GET.get('fecha_hasta')
-    if fecha_hasta:
-        movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
-    
-    # Ordenar por fecha descendente
-    movimientos = movimientos.order_by('-fecha')
-    
-    # Paginación
-    paginator = Paginator(movimientos, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    ).all().order_by('-fecha')[:100]
     
     context = {
-        'movimientos': page_obj,
-        'page_obj': page_obj,
-        'tipo_filtro': tipo_filtro,
-        'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
+        'movimientos': movimientos
     }
     
     return render(request, 'funcionalidad/mov_historial_global.html', context)
 
 
-# ====================================== NOTIFICACIONES ============================================
+@login_required
+def solicitud(request):
+    """
+    Vista simple de solicitud.
+    Redirige a crear solicitud.
+    """
+    return redirect('crear_solicitud')
+
+# ============================================= NOTIFICACIONES ====================================
 
 @login_required
 def mis_notificaciones(request):
     """
-    Vista para ver todas las notificaciones del usuario
+    Vista para listar todas las notificaciones del usuario.
+    
+    - TÉCNICO: Solo notificaciones de sus solicitudes
+    - BODEGA/GERENCIA: Todas las notificaciones
     """
-    notificaciones = Notificacion.objects.filter(
-        usuario=request.user
-    ).order_by('-creada_en')
+    usuario = request.user
+    rol = usuario.rol
+    
+    # Filtrar notificaciones según el rol
+    if rol == 'TECNICO':
+        notificaciones = Notificacion.objects.filter(
+            usuario=usuario,
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+        ).order_by('-creada_en')
+    elif rol in ['BODEGA', 'GERENCIA']:
+        notificaciones = Notificacion.objects.filter(
+            usuario=usuario
+        ).order_by('-creada_en')
+    else:
+        notificaciones = Notificacion.objects.none()
     
     # Paginación
-    from django.core.paginator import Paginator
     paginator = Paginator(notificaciones, 20)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
+    
+    # Estadísticas
+    stats = {
+        'total': notificaciones.count(),
+        'no_leidas': notificaciones.filter(leida=False).count(),
+        'leidas': notificaciones.filter(leida=True).count(),
+    }
     
     context = {
         'notificaciones': page_obj,
-        'no_leidas': notificaciones.filter(leida=False).count()
+        'page_obj': page_obj,
+        'stats': stats,
     }
+    
     return render(request, 'funcionalidad/notificaciones.html', context)
-
 
 @login_required
 def marcar_leida(request, id):
-    """
-    Marcar una notificación como leída
-    """
+    """Marcar una notificación como leída"""
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     notificacion.leida = True
     notificacion.save()
     
-    # Si tiene URL, redirigir ahí
+    # Si tiene URL asociada, redirigir ahí
     if notificacion.url:
         return redirect(notificacion.url)
-    return redirect('mis_notificaciones')
-
-
-@login_required
-def marcar_todas_leidas(request):
-    """
-    Marcar todas las notificaciones como leídas
-    """
-    if request.method == 'POST':
-        Notificacion.objects.filter(
-            usuario=request.user, 
-            leida=False
-        ).update(leida=True)
-        messages.success(request, 'Todas las notificaciones han sido marcadas como leídas.')
     
     return redirect('mis_notificaciones')
 
+@login_required
+def marcar_todas_leidas(request):
+    """Marcar todas las notificaciones del usuario como leídas"""
+    if request.method == 'POST':
+        count = Notificacion.objects.filter(
+            usuario=request.user,
+            leida=False
+        ).update(leida=True)
+        
+        messages.success(request, f'✓ {count} notificaciones marcadas como leídas.')
+    
+    return redirect('mis_notificaciones')
 
 @login_required
 def eliminar_notificacion(request, id):
-    """
-    Eliminar una notificación
-    """
+    """Eliminar una notificación"""
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
-    notificacion.delete()
-    messages.success(request, 'Notificación eliminada.')
+    
+    if request.method == 'POST':
+        notificacion.delete()
+        messages.success(request, '✓ Notificación eliminada.')
+    
     return redirect('mis_notificaciones')
-
 
 @login_required
 def obtener_notificaciones_json(request):
     """
-    API para obtener notificaciones no leídas (AJAX)
+    API endpoint para obtener notificaciones no leídas en formato JSON.
+    Usado por el dropdown del navbar.
+    
+    - TÉCNICO: Solo notificaciones de sus solicitudes
+    - BODEGA/GERENCIA: Todas las notificaciones del sistema
     """
-    notificaciones = Notificacion.objects.filter(
-        usuario=request.user,
-        leida=False
-    ).order_by('-creada_en')[:10]
+    usuario = request.user
+    rol = usuario.rol
+    
+    # Filtrar notificaciones según el rol
+    if rol == 'TECNICO':
+        # TÉCNICO: Solo notificaciones relacionadas a SUS solicitudes
+        notificaciones = Notificacion.objects.filter(
+            usuario=usuario,
+            leida=False,
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+        ).order_by('-creada_en')[:10]
+    elif rol in ['BODEGA', 'GERENCIA']:
+        # BODEGA y GERENCIA: Todas las notificaciones
+        notificaciones = Notificacion.objects.filter(
+            usuario=usuario,
+            leida=False
+        ).order_by('-creada_en')[:10]
+    else:
+        # Otro rol: Sin notificaciones
+        notificaciones = Notificacion.objects.none()
+    
+    # Contar total de no leídas
+    if rol == 'TECNICO':
+        count_total = Notificacion.objects.filter(
+            usuario=usuario,
+            leida=False,
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+        ).count()
+    elif rol in ['BODEGA', 'GERENCIA']:
+        count_total = Notificacion.objects.filter(
+            usuario=usuario,
+            leida=False
+        ).count()
+    else:
+        count_total = 0
     
     data = {
-        'count': notificaciones.count(),
+        'count': count_total,
         'notificaciones': [
             {
                 'id': n.id,
                 'tipo': n.tipo,
                 'mensaje': n.mensaje,
-                'url': n.url or '#',
+                'url': n.url or '',
                 'fecha': n.creada_en.strftime('%d/%m/%Y %H:%M'),
                 'icono': get_icono_notificacion(n.tipo)
             }
             for n in notificaciones
         ]
     }
+    
     return JsonResponse(data)
 
-
 def get_icono_notificacion(tipo):
-    """
-    Retorna el ícono FontAwesome según el tipo de notificación
-    """
+    """Retorna el ícono FontAwesome según el tipo de notificación"""
     iconos = {
         'stock_critico': 'fa-exclamation-triangle',
         'solicitud_pendiente': 'fa-clipboard-list',
         'material_nuevo': 'fa-box',
         'aprobacion': 'fa-check-circle',
+        'solicitud_aprobada': 'fa-check-circle',      # Para técnicos
+        'solicitud_rechazada': 'fa-times-circle',     # Para técnicos
+        'solicitud_despachada': 'fa-truck',           # Para técnicos
     }
     return iconos.get(tipo, 'fa-bell')
 
 
-@login_required
-@user_passes_test(es_staff)
-def verificar_alertas_stock(request):
-    """
-    Verifica materiales en stock crítico y genera alertas
-    """
-    # Materiales con stock actual <= stock crítico dinámico
-    materiales_criticos = Inventario.objects.filter(
-        stock_actual__lte=F('stock_min_dinamico')
-    ).select_related('material')
-    
-    alertas_generadas = 0
-    
-    for inventario in materiales_criticos:
-        # Verificar si ya existe una alerta activa para este material
-        alerta_existente = Alerta.objects.filter(
-            material=inventario.material,
-            atendida=False
-        ).exists()
-        
-        if not alerta_existente:
-            # Calcular severidad
-            porcentaje = (inventario.stock_actual / inventario.stock_min_dinamico * 100) if inventario.stock_min_dinamico > 0 else 0
-            
-            if porcentaje <= 30:
-                severidad = 'alta'
-            elif porcentaje <= 60:
-                severidad = 'media'
-            else:
-                severidad = 'baja'
-            
-            # Crear alerta
-            alerta = Alerta.objects.create(
-                material=inventario.material,
-                umbral_dinamico=inventario.stock_min_dinamico,
-                stock_actual=inventario.stock_actual,
-                severidad=severidad,
-                atendida=False
-            )
-            
-            # Crear notificaciones para bodega y gerencia
-            usuarios_notificar = User.objects.filter(
-                is_staff=True, 
-                is_active=True
-            )
-            
-            for usuario in usuarios_notificar:
-                Notificacion.objects.create(
-                    alerta=alerta,
-                    usuario=usuario,
-                    canal='in-app',
-                    estado='enviada'
-                )
-            
-            alertas_generadas += 1
-    
-    messages.success(request, f'{alertas_generadas} alertas generadas.')
-    return redirect('dashboard')
-
-# ============================================= DASHBOARD ===============================================
-
-
+# ============================================= DASHBOARD ====================================
 @login_required
 def dashboard(request):
-    """
-    Dashboard principal con estadísticas adaptadas según el rol del usuario.
-    Muestra todas las métricas pero organiza la información según el rol.
-    """
+    """Dashboard principal con estadísticas adaptadas según el rol del usuario."""
     usuario = request.user
+    rol = usuario.rol
     
-    # ==================== KPIs BASE (para todos los roles) ====================
+    # KPIs BASE para todos los roles
     total_materiales = Material.objects.count()
-    
-    # Solicitudes
     solicitudes_totales = Solicitud.objects.count()
     solicitudes_pendientes = Solicitud.objects.filter(estado='pendiente').count()
-    solicitudes_aprobadas = Solicitud.objects.filter(estado='aprobada').count()
-    solicitudes_rechazadas = Solicitud.objects.filter(estado='rechazada').count()
     
-    # Inventario
+    # Materiales críticos
+    materiales_criticos_lista = Inventario.objects.filter(
+        stock_actual__lte=F('stock_seguridad')
+    ).select_related('material')[:5]
     materiales_criticos = Inventario.objects.filter(
         stock_actual__lte=F('stock_seguridad')
     ).count()
     
-    stock_total = Inventario.objects.aggregate(
-        total=Sum('stock_actual')
-    )['total'] or 0
+    # Context base
+    context = {
+        'usuario': usuario,
+        'rol': rol,
+        'total_materiales': total_materiales,
+        'solicitudes_totales': solicitudes_totales,
+        'solicitudes_pendientes': solicitudes_pendientes,
+        'materiales_criticos': materiales_criticos,
+        'materiales_criticos_lista': materiales_criticos_lista,
+    }
     
-    # ==================== DATOS ESPECÍFICOS POR ROL ====================
-    # Inicializar variables específicas
-    mis_solicitudes = None
-    mis_solicitudes_count = 0
-    mis_pendientes = 0
-    mis_aprobadas = 0
-    total_usuarios = 0
-    
-    if usuario.rol == 'TECNICO':
-        # Estadísticas personales del técnico
+    # ========== TÉCNICO ==========
+    if rol == 'TECNICO':
         mis_solicitudes = Solicitud.objects.filter(solicitante=usuario)
-        mis_solicitudes_count = mis_solicitudes.count()
-        mis_pendientes = mis_solicitudes.filter(estado='pendiente').count()
-        mis_aprobadas = mis_solicitudes.filter(estado='aprobada').count()
         
-    elif usuario.rol == 'BODEGA':
-        # Para bodega, mostrar solicitudes que requieren atención
-        total_usuarios = User.objects.filter(is_active=True).count()
+        # Stats para gráfico de solicitudes
+        solicitudes_data = [
+            mis_solicitudes.filter(estado='pendiente').count(),
+            mis_solicitudes.filter(estado='aprobada').count(),
+            mis_solicitudes.filter(estado='rechazada').count(),
+            mis_solicitudes.filter(estado='despachada').count(),
+        ]
         
-    elif usuario.rol == 'GERENCIA':
-        # Para gerencia, mostrar todos los KPIs administrativos
-        total_usuarios = User.objects.filter(is_active=True).count()
+        context.update({
+            'mis_solicitudes_count': mis_solicitudes.count(),
+            'mis_pendientes': mis_solicitudes.filter(estado='pendiente').count(),
+            'mis_aprobadas': mis_solicitudes.filter(estado='aprobada').count(),
+            'solicitudes_recientes': mis_solicitudes.order_by('-fecha_solicitud')[:5],
+            
+            # Top materiales del técnico
+            'top_materiales': DetalleSolicitud.objects.filter(
+                solicitud__solicitante=usuario
+            ).values(
+                'material__codigo', 'material__descripcion'
+            ).annotate(
+                total_solicitado=Sum('cantidad')
+            ).order_by('-total_solicitado')[:5],
+            
+            # Stats para gráfico - JSON serializado
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_data': json.dumps(solicitudes_data),
+        })
     
-    # ==================== GRÁFICO 1: MATERIALES POR CATEGORÍA ====================
+    # ========== BODEGA ==========
+    elif rol == 'BODEGA':
+        # Stock total
+        stock_total = Inventario.objects.aggregate(
+            total=Sum('stock_actual')
+        )['total'] or 0
+        
+        # Stats para gráfico de solicitudes
+        solicitudes_data = [
+            Solicitud.objects.filter(estado='pendiente').count(),
+            Solicitud.objects.filter(estado='aprobada').count(),
+            Solicitud.objects.filter(estado='rechazada').count(),
+            Solicitud.objects.filter(estado='despachada').count(),
+        ]
+        
+        # ========== PROCESAR MOVIMIENTOS DE LOS ÚLTIMOS 7 DÍAS ==========
+        movimientos_7dias = Movimiento.objects.filter(
+            fecha__gte=timezone.now() - timedelta(days=7)
+        ).values('fecha__date', 'tipo').annotate(
+            total=Sum('cantidad')
+        ).order_by('fecha__date')
+        
+        # Agrupar por fecha y tipo
+        mov_dict = defaultdict(lambda: {'entrada': 0, 'salida': 0})
+        for mov in movimientos_7dias:
+            fecha = mov['fecha__date'].strftime('%d/%m')
+            mov_dict[fecha][mov['tipo']] = mov['total']
+        
+        # Obtener últimos 7 días
+        fechas = []
+        entradas = []
+        salidas = []
+        for i in range(6, -1, -1):
+            fecha = (timezone.now() - timedelta(days=i)).date()
+            fecha_str = fecha.strftime('%d/%m')
+            fechas.append(fecha_str)
+            entradas.append(mov_dict[fecha_str]['entrada'])
+            salidas.append(mov_dict[fecha_str]['salida'])
+        
+        context.update({
+            'stock_total': stock_total,
+            'solicitudes_recientes': Solicitud.objects.select_related('solicitante').order_by('-fecha_solicitud')[:5],
+            
+            # Top materiales del sistema
+            'top_materiales': DetalleSolicitud.objects.values(
+                'material__codigo', 'material__descripcion'
+            ).annotate(
+                total_solicitado=Sum('cantidad')
+            ).order_by('-total_solicitado')[:5],
+            
+            # Actividad reciente
+            'actividad_reciente': Movimiento.objects.select_related(
+                'material', 'usuario'
+            ).order_by('-fecha')[:10],
+            
+            # Stats para gráficos - JSON serializado
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_data': json.dumps(solicitudes_data),
+            
+            # Datos para gráfico de movimientos
+            'movimientos_fechas': json.dumps(fechas),
+            'movimientos_entradas': json.dumps(entradas),
+            'movimientos_salidas': json.dumps(salidas),
+        })
+    
+    # ========== GERENCIA ==========
+    elif rol == 'GERENCIA':
+        total_usuarios = User.objects.filter(is_active=True).count()
+        stock_total = Inventario.objects.aggregate(
+            total=Sum('stock_actual')
+        )['total'] or 0
+        
+        # Stats para gráfico de solicitudes
+        solicitudes_data = [
+            Solicitud.objects.filter(estado='pendiente').count(),
+            Solicitud.objects.filter(estado='aprobada').count(),
+            Solicitud.objects.filter(estado='rechazada').count(),
+            Solicitud.objects.filter(estado='despachada').count(),
+        ]
+        
+        # ========== PROCESAR MOVIMIENTOS DE LOS ÚLTIMOS 7 DÍAS ==========
+        movimientos_7dias = Movimiento.objects.filter(
+            fecha__gte=timezone.now() - timedelta(days=7)
+        ).values('fecha__date', 'tipo').annotate(
+            total=Sum('cantidad')
+        ).order_by('fecha__date')
+        
+        # Agrupar por fecha y tipo
+        mov_dict = defaultdict(lambda: {'entrada': 0, 'salida': 0})
+        for mov in movimientos_7dias:
+            fecha = mov['fecha__date'].strftime('%d/%m')
+            mov_dict[fecha][mov['tipo']] = mov['total']
+        
+        # Obtener últimos 7 días
+        fechas = []
+        entradas = []
+        salidas = []
+        for i in range(6, -1, -1):
+            fecha = (timezone.now() - timedelta(days=i)).date()
+            fecha_str = fecha.strftime('%d/%m')
+            fechas.append(fecha_str)
+            entradas.append(mov_dict[fecha_str]['entrada'])
+            salidas.append(mov_dict[fecha_str]['salida'])
+        
+        context.update({
+            'total_usuarios': total_usuarios,
+            'stock_total': stock_total,
+            'solicitudes_recientes': Solicitud.objects.select_related('solicitante').order_by('-fecha_solicitud')[:5],
+            
+            # Top materiales del sistema
+            'top_materiales': DetalleSolicitud.objects.values(
+                'material__codigo', 'material__descripcion'
+            ).annotate(
+                total_solicitado=Sum('cantidad')
+            ).order_by('-total_solicitado')[:5],
+            
+            # Actividad reciente
+            'actividad_reciente': Movimiento.objects.select_related(
+                'material', 'usuario'
+            ).order_by('-fecha')[:10],
+            
+            # Stats para gráficos - JSON serializado
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_data': json.dumps(solicitudes_data),
+            
+            # Datos para gráfico de movimientos
+            'movimientos_fechas': json.dumps(fechas),
+            'movimientos_entradas': json.dumps(entradas),
+            'movimientos_salidas': json.dumps(salidas),
+        })
+    
+    # ========== MATERIALES POR CATEGORÍA (para todos) ==========
     materiales_por_categoria = Material.objects.values('categoria').annotate(
         total=Count('id')
     ).order_by('-total')
     
-    categorias_labels = [item['categoria'] for item in materiales_por_categoria]
+    categorias_labels = [dict(Material.CATEGORIA_CHOICES).get(item['categoria'], item['categoria']) 
+                         for item in materiales_por_categoria]
     categorias_data = [item['total'] for item in materiales_por_categoria]
     
-    # ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
-    if usuario.rol == 'TECNICO':
-        # Para técnicos: solo sus solicitudes
-        solicitudes_stats = {
-            'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
-            'data': [
-                mis_solicitudes.filter(estado='pendiente').count(),
-                mis_solicitudes.filter(estado='aprobada').count(),
-                mis_solicitudes.filter(estado='rechazada').count(),
-                mis_solicitudes.filter(estado='despachada').count(),
-            ]
-        }
-    else:
-        # Para bodega/gerencia: todas las solicitudes
-        solicitudes_stats = {
-            'labels': ['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas'],
-            'data': [
-                Solicitud.objects.filter(estado='pendiente').count(),
-                Solicitud.objects.filter(estado='aprobada').count(),
-                Solicitud.objects.filter(estado='rechazada').count(),
-                Solicitud.objects.filter(estado='despachada').count(),
-            ]
-        }
-    
-    # ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
-    hace_7_dias = timezone.now() - timedelta(days=7)
-    movimientos_recientes = Movimiento.objects.filter(
-        fecha__gte=hace_7_dias
-    ).annotate(
-        fecha_corta=TruncDate('fecha')
-    ).values('fecha_corta', 'tipo').annotate(
-        total=Count('id')
-    ).order_by('fecha_corta')
-    
-    # Preparar datos para el gráfico de líneas
-    fechas_set = set()
-    for mov in movimientos_recientes:
-        fechas_set.add(mov['fecha_corta'])
-    
-    fechas_ordenadas = sorted(list(fechas_set))
-    fechas_labels = [fecha.strftime('%d/%m') for fecha in fechas_ordenadas]
-    
-    entradas_data = []
-    salidas_data = []
-    
-    for fecha in fechas_ordenadas:
-        entradas = sum(m['total'] for m in movimientos_recientes 
-                      if m['fecha_corta'] == fecha and m['tipo'] == 'entrada')
-        salidas = sum(m['total'] for m in movimientos_recientes 
-                     if m['fecha_corta'] == fecha and m['tipo'] == 'salida')
-        entradas_data.append(entradas)
-        salidas_data.append(salidas)
-    
-    # ==================== TOP 5 MATERIALES MÁS SOLICITADOS ====================
-    if usuario.rol == 'TECNICO':
-        # Para técnicos: materiales que ellos más solicitan
-        top_materiales = DetalleSolicitud.objects.filter(
-            solicitud__solicitante=usuario
-        ).values(
-            'material__descripcion', 'material__codigo'
-        ).annotate(
-            total_solicitado=Sum('cantidad')
-        ).order_by('-total_solicitado')[:5]
-    else:
-        # Para bodega/gerencia: materiales más solicitados en general
-        top_materiales = DetalleSolicitud.objects.values(
-            'material__descripcion', 'material__codigo'
-        ).annotate(
-            total_solicitado=Sum('cantidad')
-        ).order_by('-total_solicitado')[:5]
-    
-    # ==================== MATERIALES EN STOCK CRÍTICO ====================
-    materiales_criticos_lista = Inventario.objects.filter(
-        stock_actual__lte=F('stock_seguridad')
-    ).select_related('material').order_by('stock_actual')[:5]
-    
-    # ==================== SOLICITUDES RECIENTES ====================
-    if usuario.rol == 'TECNICO':
-        # Para técnicos: sus solicitudes recientes
-        solicitudes_recientes = Solicitud.objects.filter(
-            solicitante=usuario
-        ).select_related(
-            'solicitante'
-        ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
-    else:
-        # Para bodega/gerencia: todas las solicitudes recientes
-        solicitudes_recientes = Solicitud.objects.select_related(
-            'solicitante'
-        ).prefetch_related('detalles__material').order_by('-fecha_solicitud')[:5]
-    
-    # ==================== ACTIVIDAD RECIENTE (MOVIMIENTOS) ====================
-    actividad_reciente = Movimiento.objects.select_related(
-        'material', 'usuario'
-    ).order_by('-fecha')[:10]
-    
-    # ==================== CONTEXT UNIFICADO ====================
-    context = {
-        # Información del usuario
-        'usuario': usuario,
-        'rol': usuario.rol,
-        
-        # KPIs generales (se mostrarán según rol en template)
-        'total_materiales': total_materiales,
-        'total_usuarios': total_usuarios,
-        'solicitudes_totales': solicitudes_totales,
-        'solicitudes_pendientes': solicitudes_pendientes,
-        'solicitudes_aprobadas': solicitudes_aprobadas,
-        'solicitudes_rechazadas': solicitudes_rechazadas,
-        'materiales_criticos': materiales_criticos,
-        'stock_total': stock_total,
-        
-        # KPIs específicos de técnico
-        'mis_solicitudes_count': mis_solicitudes_count,
-        'mis_pendientes': mis_pendientes,
-        'mis_aprobadas': mis_aprobadas,
-        
-        # Gráficos (convertir a JSON)
+    context.update({
         'categorias_labels': json.dumps(categorias_labels),
         'categorias_data': json.dumps(categorias_data),
-        'solicitudes_labels': json.dumps(solicitudes_stats['labels']),
-        'solicitudes_data': json.dumps(solicitudes_stats['data']),
-        'movimientos_fechas': json.dumps(fechas_labels),
-        'movimientos_entradas': json.dumps(entradas_data),
-        'movimientos_salidas': json.dumps(salidas_data),
-        
-        # Listas
-        'top_materiales': top_materiales,
-        'materiales_criticos_lista': materiales_criticos_lista,
-        'solicitudes_recientes': solicitudes_recientes,
-        'actividad_reciente': actividad_reciente,
-    }
+    })
     
-    return render(request, 'funcionalidad/dashboard.html', context)
+    return render(request, 'general/dashboard.html', context)
 
 
-# ==================== EXPORTACIÓN A EXCEL ====================
 
-def crear_estilo_header():
-    """
-    Estilo para los headers de las tablas Excel
-    """
-    return {
-        'font': Font(bold=True, color='FFFFFF', size=12),
-        'fill': PatternFill(start_color='366092', end_color='366092', fill_type='solid'),
-        'alignment': Alignment(horizontal='center', vertical='center'),
-        'border': Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-    }
-
-def aplicar_estilo_celda(celda, estilo):
-    """
-    Aplica un estilo a una celda
-    """
-    if 'font' in estilo:
-        celda.font = estilo['font']
-    if 'fill' in estilo:
-        celda.fill = estilo['fill']
-    if 'alignment' in estilo:
-        celda.alignment = estilo['alignment']
-    if 'border' in estilo:
-        celda.border = estilo['border']
+# ============================================= EXPORTACIONES A EXCEL ====================================
 
 @login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])  # Ambos pueden exportar
 def exportar_inventario_excel(request):
-    """
-    Exportar inventario completo a Excel
-    """
-    # Crear workbook
+    """Exportar inventario completo a Excel"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Inventario"
     
     # Headers
-    headers = ['Código', 'Descripción', 'Categoría', 'Unidad de Medida', 
-               'Stock Actual', 'Stock Seguridad', 'Estado', 'Ubicación', 'Fecha Creación']
+    headers = ['Código', 'Descripción', 'Categoría', 'Stock Actual', 'Stock Seguridad', 'Estado', 'Ubicación']
+    ws.append(headers)
     
-    estilo_header = crear_estilo_header()
+    # Estilo para headers
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center')
     
-    # Escribir headers
-    for col_num, header in enumerate(headers, 1):
-        celda = ws.cell(row=1, column=col_num, value=header)
-        aplicar_estilo_celda(celda, estilo_header)
-    
-    # Obtener datos
+    # Datos
     inventario = Inventario.objects.select_related('material').all()
-    
-    # Escribir datos
-    for row_num, inv in enumerate(inventario, 2):
-        material = inv.material
-        
-        # Determinar estado
+    for inv in inventario:
         if inv.stock_actual <= inv.stock_seguridad:
             estado = 'CRÍTICO'
-            fill_color = 'FFCCCC'  # Rojo claro
-        elif inv.stock_actual <= inv.stock_seguridad * 1.5:
-            estado = 'BAJO'
-            fill_color = 'FFFFCC'  # Amarillo claro
         else:
             estado = 'NORMAL'
-            fill_color = 'CCFFCC'  # Verde claro
         
-        # Datos de la fila
-        fila_datos = [
-            material.codigo,
-            material.descripcion,
-            material.get_categoria_display(),
-            material.get_unidad_medida_display(),
+        ws.append([
+            inv.material.codigo,
+            inv.material.descripcion,
+            inv.material.get_categoria_display(),
             inv.stock_actual,
             inv.stock_seguridad,
             estado,
-            material.ubicacion or 'No especificada',
-            material.fecha_creacion.strftime('%d/%m/%Y %H:%M')
-        ]
-        
-        for col_num, valor in enumerate(fila_datos, 1):
-            celda = ws.cell(row=row_num, column=col_num, value=valor)
-            
-            # Aplicar color según estado
-            if col_num == 7:  # Columna Estado
-                celda.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
-                celda.font = Font(bold=True)
-            
-            # Alineación
-            if col_num in [5, 6]:  # Columnas numéricas
-                celda.alignment = Alignment(horizontal='right')
-            else:
-                celda.alignment = Alignment(horizontal='left')
+            inv.material.ubicacion or 'No especificada'
+        ])
     
-    # Ajustar ancho de columnas
-    for col_num in range(1, len(headers) + 1):
-        ws.column_dimensions[get_column_letter(col_num)].width = 18
+    # Ajustar anchos
+    for col in range(1, 8):
+        ws.column_dimensions[get_column_letter(col)].width = 20
     
     # Preparar respuesta
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=inventario_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    
     wb.save(response)
     return response
 
-
 @login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def exportar_solicitudes_excel(request):
-    """
-    Exportar solicitudes a Excel
-    """
-    # Crear workbook
+    """Exportar solicitudes a Excel"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Solicitudes"
     
     # Headers
-    headers = ['ID', 'Fecha', 'Solicitante', 'Estado', 'Total Items', 
-               'Cantidad Total', 'Respondido Por', 'Fecha Respuesta', 'Motivo']
+    headers = ['ID', 'Fecha', 'Solicitante', 'Estado', 'Total Items', 'Motivo']
+    ws.append(headers)
     
-    estilo_header = crear_estilo_header()
+    # Estilo para headers
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center')
     
-    # Escribir headers
-    for col_num, header in enumerate(headers, 1):
-        celda = ws.cell(row=1, column=col_num, value=header)
-        aplicar_estilo_celda(celda, estilo_header)
+    # Datos
+    solicitudes = Solicitud.objects.select_related('solicitante').prefetch_related('detalles').order_by('-fecha_solicitud')[:100]
+    for sol in solicitudes:
+        ws.append([
+            sol.id,
+            sol.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
+            sol.solicitante.username,
+            sol.get_estado_display(),
+            sol.total_items(),
+            sol.motivo[:50]
+        ])
     
-    # Obtener datos (últimos 3 meses)
-    hace_3_meses = timezone.now() - timedelta(days=90)
-    solicitudes = Solicitud.objects.filter(
-        fecha_solicitud__gte=hace_3_meses
-    ).select_related('solicitante', 'respondido_por').prefetch_related('detalles').order_by('-fecha_solicitud')
-    
-    # Escribir datos
-    for row_num, solicitud in enumerate(solicitudes, 2):
-        # Color según estado
-        if solicitud.estado == 'pendiente':
-            fill_color = 'FFF4CC'  # Amarillo
-        elif solicitud.estado == 'aprobada':
-            fill_color = 'CCFFCC'  # Verde
-        elif solicitud.estado == 'rechazada':
-            fill_color = 'FFCCCC'  # Rojo
-        else:
-            fill_color = 'CCE5FF'  # Azul
-        
-        fila_datos = [
-            solicitud.id,
-            solicitud.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
-            solicitud.solicitante.get_full_name() or solicitud.solicitante.username,
-            solicitud.get_estado_display(),
-            solicitud.total_items(),
-            solicitud.total_cantidad(),
-            solicitud.respondido_por.username if solicitud.respondido_por else '-',
-            solicitud.fecha_respuesta.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_respuesta else '-',
-            solicitud.motivo[:50] + '...' if len(solicitud.motivo) > 50 else solicitud.motivo
-        ]
-        
-        for col_num, valor in enumerate(fila_datos, 1):
-            celda = ws.cell(row=row_num, column=col_num, value=valor)
-            
-            # Aplicar color
-            if col_num == 4:  # Columna Estado
-                celda.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
-                celda.font = Font(bold=True)
-            
-            # Alineación
-            if col_num in [1, 5, 6]:  # Columnas numéricas
-                celda.alignment = Alignment(horizontal='center')
-            else:
-                celda.alignment = Alignment(horizontal='left')
-    
-    # Ajustar ancho de columnas
-    anchos = [8, 18, 20, 15, 12, 15, 18, 18, 40]
-    for col_num, ancho in enumerate(anchos, 1):
-        ws.column_dimensions[get_column_letter(col_num)].width = ancho
+    # Ajustar anchos
+    for col in range(1, 7):
+        ws.column_dimensions[get_column_letter(col)].width = 20
     
     # Preparar respuesta
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=solicitudes_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    
     wb.save(response)
     return response
 
-
 @login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def exportar_movimientos_excel(request):
-    """
-    Exportar movimientos a Excel (últimos 30 días)
-    """
-    # Crear workbook
+    """Exportar movimientos a Excel"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Movimientos"
     
     # Headers
-    headers = ['Fecha', 'Material', 'Código', 'Tipo', 'Cantidad', 
-               'Usuario', 'Detalle']
+    headers = ['Fecha', 'Material', 'Tipo', 'Cantidad', 'Usuario', 'Detalle']
+    ws.append(headers)
     
-    estilo_header = crear_estilo_header()
+    # Estilo para headers
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center')
     
-    # Escribir headers
-    for col_num, header in enumerate(headers, 1):
-        celda = ws.cell(row=1, column=col_num, value=header)
-        aplicar_estilo_celda(celda, estilo_header)
-    
-    # Obtener datos (últimos 30 días)
-    hace_30_dias = timezone.now() - timedelta(days=30)
-    movimientos = Movimiento.objects.filter(
-        fecha__gte=hace_30_dias
-    ).select_related('material', 'usuario').order_by('-fecha')
-    
-    # Escribir datos
-    for row_num, mov in enumerate(movimientos, 2):
-        # Color según tipo
-        if mov.tipo == 'entrada':
-            fill_color = 'CCFFCC'  # Verde
-        elif mov.tipo == 'salida':
-            fill_color = 'FFCCCC'  # Rojo
-        else:
-            fill_color = 'FFF4CC'  # Amarillo
-        
-        fila_datos = [
+    # Datos
+    movimientos = Movimiento.objects.select_related('material', 'usuario').order_by('-fecha')[:200]
+    for mov in movimientos:
+        ws.append([
             mov.fecha.strftime('%d/%m/%Y %H:%M'),
-            mov.material.descripcion,
-            mov.material.codigo,
+            f"{mov.material.codigo} - {mov.material.descripcion}",
             mov.tipo.upper(),
             mov.cantidad,
-            f"{mov.usuario.nombre} {mov.usuario.apellido}",
-            mov.detalle[:60] + '...' if mov.detalle and len(mov.detalle) > 60 else (mov.detalle or '-')
-        ]
-        
-        for col_num, valor in enumerate(fila_datos, 1):
-            celda = ws.cell(row=row_num, column=col_num, value=valor)
-            
-            # Aplicar color
-            if col_num == 4:  # Columna Tipo
-                celda.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
-                celda.font = Font(bold=True)
-            
-            # Alineación
-            if col_num == 5:  # Columna Cantidad
-                celda.alignment = Alignment(horizontal='right')
-            else:
-                celda.alignment = Alignment(horizontal='left')
+            f"{mov.usuario.nombre} {mov.usuario.apellido}" if mov.usuario else 'Sistema',
+            mov.detalle[:60]
+        ])
     
-    # Ajustar ancho de columnas
-    anchos = [18, 30, 15, 12, 12, 25, 45]
-    for col_num, ancho in enumerate(anchos, 1):
-        ws.column_dimensions[get_column_letter(col_num)].width = ancho
+    # Ajustar anchos
+    for col in range(1, 7):
+        ws.column_dimensions[get_column_letter(col)].width = 20
     
     # Preparar respuesta
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=movimientos_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    
     wb.save(response)
     return response
 
-
 @login_required
-@user_passes_test(es_staff)
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def exportar_reporte_completo_excel(request):
-    """
-    Reporte completo con múltiples hojas: Inventario, Solicitudes, Movimientos
-    """
-    # Crear workbook
+    """Reporte completo con múltiples hojas: Inventario, Solicitudes, Movimientos"""
     wb = Workbook()
-    wb.remove(wb.active)  # Remover hoja por defecto
+    wb.remove(wb.active)
     
-    estilo_header = crear_estilo_header()
-    
-    # ========== HOJA 1: RESUMEN ==========
-    ws_resumen = wb.create_sheet("Resumen")
-    
-    # Título
-    ws_resumen['A1'] = 'REPORTE COMPLETO - STOCKER'
-    ws_resumen['A1'].font = Font(bold=True, size=16, color='366092')
-    ws_resumen['A2'] = f'Generado: {timezone.now().strftime("%d/%m/%Y %H:%M")}'
-    
-    # KPIs
-    ws_resumen['A4'] = 'INDICADORES CLAVE'
-    ws_resumen['A4'].font = Font(bold=True, size=14)
-    
-    kpis = [
-        ['Total Materiales', Material.objects.count()],
-        ['Stock Total', Inventario.objects.aggregate(Sum('stock_actual'))['stock_actual__sum'] or 0],
-        ['Materiales Críticos', Inventario.objects.filter(stock_actual__lte=F('stock_seguridad')).count()],
-        ['Solicitudes Pendientes', Solicitud.objects.filter(estado='pendiente').count()],
-        ['Solicitudes Mes Actual', Solicitud.objects.filter(fecha_solicitud__month=timezone.now().month).count()],
-    ]
-    
-    for row_num, (label, valor) in enumerate(kpis, 5):
-        ws_resumen[f'A{row_num}'] = label
-        ws_resumen[f'B{row_num}'] = valor
-        ws_resumen[f'A{row_num}'].font = Font(bold=True)
-    
-    # Ajustar ancho
-    ws_resumen.column_dimensions['A'].width = 30
-    ws_resumen.column_dimensions['B'].width = 20
-    
-    # ========== HOJA 2: INVENTARIO ==========
+    # ========== HOJA 1: INVENTARIO ==========
     ws_inv = wb.create_sheet("Inventario")
     headers_inv = ['Código', 'Descripción', 'Categoría', 'Stock Actual', 'Stock Seguridad', 'Estado']
+    ws_inv.append(headers_inv)
     
-    for col_num, header in enumerate(headers_inv, 1):
-        celda = ws_inv.cell(row=1, column=col_num, value=header)
-        aplicar_estilo_celda(celda, estilo_header)
+    # Estilo headers
+    for cell in ws_inv[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
     
     inventario = Inventario.objects.select_related('material').all()
-    for row_num, inv in enumerate(inventario, 2):
-        ws_inv.cell(row=row_num, column=1, value=inv.material.codigo)
-        ws_inv.cell(row=row_num, column=2, value=inv.material.descripcion)
-        ws_inv.cell(row=row_num, column=3, value=inv.material.get_categoria_display())
-        ws_inv.cell(row=row_num, column=4, value=inv.stock_actual)
-        ws_inv.cell(row=row_num, column=5, value=inv.stock_seguridad)
-        
+    for inv in inventario:
         estado = 'CRÍTICO' if inv.stock_actual <= inv.stock_seguridad else 'NORMAL'
-        celda_estado = ws_inv.cell(row=row_num, column=6, value=estado)
-        if estado == 'CRÍTICO':
-            celda_estado.fill = PatternFill(start_color='FFCCCC', end_color='FFCCCC', fill_type='solid')
+        ws_inv.append([
+            inv.material.codigo,
+            inv.material.descripcion,
+            inv.material.get_categoria_display(),
+            inv.stock_actual,
+            inv.stock_seguridad,
+            estado
+        ])
     
-    # Ajustar anchos
-    for col in range(1, 7):
-        ws_inv.column_dimensions[get_column_letter(col)].width = 20
-    
-    # ========== HOJA 3: SOLICITUDES RECIENTES ==========
+    # ========== HOJA 2: SOLICITUDES ==========
     ws_sol = wb.create_sheet("Solicitudes")
     headers_sol = ['ID', 'Fecha', 'Solicitante', 'Estado', 'Items']
+    ws_sol.append(headers_sol)
     
-    for col_num, header in enumerate(headers_sol, 1):
-        celda = ws_sol.cell(row=1, column=col_num, value=header)
-        aplicar_estilo_celda(celda, estilo_header)
+    for cell in ws_sol[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
     
     solicitudes = Solicitud.objects.select_related('solicitante').prefetch_related('detalles').order_by('-fecha_solicitud')[:100]
-    for row_num, sol in enumerate(solicitudes, 2):
-        ws_sol.cell(row=row_num, column=1, value=sol.id)
-        ws_sol.cell(row=row_num, column=2, value=sol.fecha_solicitud.strftime('%d/%m/%Y'))
-        ws_sol.cell(row=row_num, column=3, value=sol.solicitante.username)
-        ws_sol.cell(row=row_num, column=4, value=sol.get_estado_display())
-        ws_sol.cell(row=row_num, column=5, value=sol.total_items())
-    
-    # Ajustar anchos
-    for col in range(1, 6):
-        ws_sol.column_dimensions[get_column_letter(col)].width = 18
+    for sol in solicitudes:
+        ws_sol.append([
+            sol.id,
+            sol.fecha_solicitud.strftime('%d/%m/%Y'),
+            sol.solicitante.username,
+            sol.get_estado_display(),
+            sol.total_items()
+        ])
     
     # Preparar respuesta
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=reporte_completo_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    
     wb.save(response)
     return response
+
+
+ # ==================================== GESTION DE LOCALES ==============================================
+
+@login_required
+@verificar_rol('GERENCIA')
+def gestion_locales(request):
+    """
+    Vista para gestión de locales (solo GERENCIA).
+    Lista todos los locales con búsqueda y paginación.
+    """
+    locales = Local.objects.all().order_by('codigo', 'nombre')
+    
+    # Búsqueda
+    query = request.GET.get('q', '').strip()
+    if query:
+        locales = locales.filter(
+            Q(nombre__icontains=query) | 
+            Q(codigo__icontains=query) |
+            Q(comuna__icontains=query)
+        )
+    
+    # Paginación
+    paginator = Paginator(locales, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'locales': page_obj,
+        'page_obj': page_obj,
+        'query': query,
+        'total_locales': locales.count()
+    }
+    return render(request, 'funcionalidad/local_gestion.html', context)
+
+@login_required
+@verificar_rol('GERENCIA')
+def local_crear(request):
+    """
+    Vista para crear un nuevo local (solo GERENCIA).
+    """
+    if request.method == 'POST':
+        form = LocalForm(request.POST)
+        if form.is_valid():
+            local = form.save()
+            messages.success(
+                request, 
+                f'✓ Local {local.codigo} - {local.nombre} creado exitosamente.'
+            )
+            return redirect('gestion_locales')
+    else:
+        form = LocalForm()
+    
+    context = {
+        'form': form,
+        'titulo': 'Agregar Local',
+        'accion': 'Crear'
+    }
+    return render(request, 'funcionalidad/local_form.html', context)
+
+@login_required
+@verificar_rol('GERENCIA')
+def local_editar(request, local_id):
+    """
+    Vista para editar un local existente (solo GERENCIA).
+    """
+    local = get_object_or_404(Local, pk=local_id)
+    
+    if request.method == 'POST':
+        form = LocalForm(request.POST, instance=local)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, 
+                f'✓ Local {local.codigo} - {local.nombre} actualizado exitosamente.'
+            )
+            return redirect('gestion_locales')
+    else:
+        form = LocalForm(instance=local)
+    
+    context = {
+        'form': form,
+        'local': local,
+        'titulo': 'Editar Local',
+        'accion': 'Actualizar'
+    }
+    return render(request, 'funcionalidad/local_form.html', context)
+
+@login_required
+@verificar_rol('GERENCIA')
+def local_eliminar(request, local_id):
+    """
+    Vista para eliminar un local (solo GERENCIA).
+    Verifica que no tenga solicitudes asociadas.
+    """
+    local = get_object_or_404(Local, pk=local_id)
+    
+    if request.method == 'POST':
+        # Verificar si tiene solicitudes asociadas
+        if local.solicitudes.exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el local {local.codigo} - {local.nombre} '
+                f'porque tiene {local.solicitudes.count()} solicitudes asociadas.'
+            )
+            return redirect('gestion_locales')
+        
+        nombre = str(local)
+        local.delete()
+        messages.success(request, f'✓ Local {nombre} eliminado exitosamente.')
+        return redirect('gestion_locales')
+    
+    context = {
+        'local': local,
+        'solicitudes_count': local.solicitudes.count()
+    }
+    return render(request, 'funcionalidad/local_confirm_delete.html', context)
+

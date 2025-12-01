@@ -1,7 +1,7 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}Historial de Solicitudes{% endblock %}
+{% block title %}<h2><i class="fas fa-history"></i> Historial de Solicitudes</h2>{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -28,8 +28,8 @@
 {% block contenido %}
 <div class="container mt-4">
     <!-- Header con botón de exportar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-history"></i> Historial de Solicitudes</h2>
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        
         
         <!-- BOTÓN EXPORTAR -->
         <a href="{% url 'exportar_solicitudes_excel' %}" class="btn btn-success">
@@ -74,45 +74,70 @@
     </div>
 
     <!-- Filtros -->
-    <div class="card filter-card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" id="filtro-form">
-                <div class="row g-3">
-                    <div class="col-md-6 col-lg-3">
-                        <label class="form-label">{{ form.fecha_desde.label }}</label>
-                        {{ form.fecha_desde }}
+    <div class="card mb-3">
+        <div class="card-body py-3">
+            <form method="get" id="formFiltros">
+                <div class="row g-3 align-items-end">
+                    <!-- Estado -->
+                    <div class="col-md-2">
+                        <label for="estado" class="form-label small mb-1">
+                            <i class="fas fa-filter"></i> Estado
+                        </label>
+                        <select name="estado" id="estado" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendientes</option>
+                            <option value="aprobada" {% if estado_filtro == 'aprobada' %}selected{% endif %}>Aprobadas</option>
+                            <option value="despachada" {% if estado_filtro == 'despachada' %}selected{% endif %}>Despachadas</option>
+                            <option value="rechazada" {% if estado_filtro == 'rechazada' %}selected{% endif %}>Rechazadas</option>
+                            <option value="cancelada" {% if estado_filtro == 'cancelada' %}selected{% endif %}>Canceladas</option>
+                        </select>
                     </div>
-                    <div class="col-md-6 col-lg-3">
-                        <label class="form-label">{{ form.fecha_hasta.label }}</label>
-                        {{ form.fecha_hasta }}
+                    
+                    <!-- Solicitante (solo para BODEGA/GERENCIA) -->
+                    <div class="col-md-3">
+                        <label for="solicitante" class="form-label small mb-1">
+                            <i class="fas fa-user"></i> Solicitante
+                        </label>
+                        <select name="solicitante" id="solicitante" class="form-select form-select-sm">
+                            <option value="">Todos los técnicos</option>
+                            {% for tecnico in tecnicos %}
+                            <option value="{{ tecnico.username }}" {% if solicitante_filtro == tecnico.username %}selected{% endif %}>
+                                {{ tecnico.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="col-md-6 col-lg-2">
-                        <label class="form-label">{{ form.estado.label }}</label>
-                        {{ form.estado }}
+                    
+                    <!-- Fecha Desde -->
+                    <div class="col-md-2">
+                        <label for="fecha_desde" class="form-label small mb-1">
+                            <i class="fas fa-calendar-alt"></i> Desde
+                        </label>
+                        <input type="date" name="fecha_desde" id="fecha_desde" 
+                            class="form-control form-control-sm" 
+                            value="{{ fecha_desde }}">
                     </div>
-                    <div class="col-md-6 col-lg-2">
-                        <label class="form-label">{{ form.material.label }}</label>
-                        {{ form.material }}
+                    
+                    <!-- Fecha Hasta -->
+                    <div class="col-md-2">
+                        <label for="fecha_hasta" class="form-label small mb-1">
+                            <i class="fas fa-calendar-alt"></i> Hasta
+                        </label>
+                        <input type="date" name="fecha_hasta" id="fecha_hasta" 
+                            class="form-control form-control-sm" 
+                            value="{{ fecha_hasta }}">
                     </div>
-                    {% if user.is_staff %}
-                    <div class="col-md-6 col-lg-2">
-                        <label class="form-label">{{ form.solicitante.label }}</label>
-                        {{ form.solicitante }}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="row g-3 mt-2">
-                    <div class="col-md-8">
-                        <label class="form-label">{{ form.buscar.label }}</label>
-                        {{ form.buscar }}
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="fas fa-search"></i> Filtrar
-                        </button>
-                        <a href="{% url 'historial_solicitudes' %}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Limpiar
-                        </a>
+                    
+                    <!-- Botones -->
+                    <div class="col-md-3">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                                <i class="fas fa-search"></i> Filtrar
+                            </button>
+                            <a href="{% url 'historial_solicitudes' %}" class="btn btn-secondary btn-sm flex-fill">
+                                <i class="fas fa-redo"></i> Limpiar
+                            </a>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -120,108 +145,136 @@
     </div>
 
     <!-- Tabla de resultados -->
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-list"></i> Resultados ({{ page_obj.paginator.count }} solicitudes)</h5>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list"></i> Resultados 
+                ({{ page_obj.paginator.count }} solicitudes)
+            </h6>
         </div>
+        
         <div class="card-body p-0">
+            {% if solicitudes %}
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-light sticky-top">
                         <tr>
-                            <th>ID</th>
-                            <th>Solicitante</th>
+                            <th class="text-center" style="width: 80px;">ID</th>
+                            <th style="width: 150px;">Solicitante</th>
                             <th>Material</th>
-                            <th>Cantidad</th>
-                            <th>Estado</th>
-                            <th>Fecha Solicitud</th>
-                            <th>Respondido Por</th>
-                            <th>Acciones</th>
+                            <th class="text-center" style="width: 100px;">Cantidad</th>
+                            <th class="text-center" style="width: 120px;">Estado</th>
+                            <th class="text-center" style="width: 150px;">Fecha Solicitud</th>
+                            <th class="text-center" style="width: 150px;">Respondido Por</th>
+                            <th class="text-center" style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for solicitud in solicitudes %}
-                            <tr>
-                                <td class="text-center">#{{ solicitud.id }}</td>
-                                <td>{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</td>
-                                <td>
-                                    {% if solicitud.detalles.count == 1 %}
-                                        {{ solicitud.detalles.first.material.descripcion }}
-                                    {% else %}
+                        <tr>
+                            <td class="text-center fw-bold">#{{ solicitud.id }}</td>
+                            <td>{{ solicitud.solicitante.get_full_name }}</td>
+                            <td>
+                                {% if solicitud.detalles.count == 1 %}
+                                    {{ solicitud.detalles.first.material.descripcion }}
+                                {% else %}
+                                    <span class="text-muted">
                                         Múltiples ({{ solicitud.detalles.count }})
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    {% if solicitud.detalles.count == 1 %}
-                                        {{ solicitud.detalles.first.cantidad }}
-                                    {% else %}
-                                        {{ solicitud.total_cantidad }}
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    {% if solicitud.estado == 'pendiente' %}
-                                        <span class="badge bg-warning text-dark">Pendiente</span>
-                                    {% elif solicitud.estado == 'aprobada' %}
-                                        <span class="badge bg-success">Aprobada</span>
-                                    {% elif solicitud.estado == 'rechazada' %}
-                                        <span class="badge bg-danger">Rechazada</span>
-                                    {% elif solicitud.estado == 'despachada' %}
-                                        <span class="badge bg-info">Despachada</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-                                <td class="text-center">
-                                    {% if solicitud.respondido_por %}
-                                        {{ solicitud.respondido_por.username }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye"></i> Ver
-                                    </a>
-                                </td>
-                            </tr>
-
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if solicitud.detalles.count == 1 %}
+                                    {{ solicitud.detalles.first.cantidad }}
+                                {% else %}
+                                    {{ solicitud.total_materiales }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if solicitud.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif solicitud.estado == 'aprobada' %}
+                                    <span class="badge bg-success">Aprobada</span>
+                                {% elif solicitud.estado == 'despachada' %}
+                                    <span class="badge bg-info">Despachada</span>
+                                {% elif solicitud.estado == 'rechazada' %}
+                                    <span class="badge bg-danger">Rechazada</span>
+                                {% elif solicitud.estado == 'cancelada' %}
+                                    <span class="badge bg-secondary">Cancelada</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center small">
+                                {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="text-center">
+                                {% if solicitud.respondido_por %}
+                                    {{ solicitud.respondido_por.get_full_name|default:solicitud.respondido_por.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'detalle_solicitud' solicitud.id %}" 
+                                class="btn btn-sm btn-primary" 
+                                title="Ver detalles">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer bg-light">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if solicitante_filtro %}&solicitante={{ solicitante_filtro }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if solicitante_filtro %}&solicitante={{ solicitante_filtro }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if solicitante_filtro %}&solicitante={{ solicitante_filtro }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if solicitante_filtro %}&solicitante={{ solicitante_filtro }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p class="mb-0">No se encontraron solicitudes con los filtros seleccionados.</p>
+            </div>
+            {% endif %}
         </div>
-
-        <!-- Paginación -->
-        {% if page_obj.has_other_pages %}
-        <div class="card-footer">
-            <nav aria-label="Paginación">
-                <ul class="pagination justify-content-center mb-0">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Primera</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
-                        </li>
-                    {% endif %}
-
-                    <li class="page-item active">
-                        <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-                    </li>
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Última</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
     </div>
-</div>
 
 <!-- Modales de detalle (uno por cada solicitud) -->
 {% for solicitud in solicitudes %}

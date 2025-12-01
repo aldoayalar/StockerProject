@@ -1,14 +1,12 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block title %}Inventario{% endblock %}
+{% block title %}<h2><i class="fas fa-warehouse"></i> Inventario de Materiales</h2>{% endblock %}
 
 {% block contenido %}
 <div class="container-fluid mt-4">
     <!-- Header con botón de exportar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-warehouse"></i> Inventario de Materiales</h2>
-        
+    <div class="d-flex justify-content-end align-items-center mb-4">
         <div>
             {% if user.is_staff %}
             <a href="{% url 'ingreso_material' %}" class="btn btn-success me-2">
@@ -21,6 +19,54 @@
                 <i class="fas fa-file-excel"></i> Exportar a Excel
             </a>
         </div>
+    </div>
+
+    <!-- NUEVA: Barra de búsqueda y filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               name="q" 
+                               value="{{ query }}"
+                               placeholder="Buscar por código, descripción o ubicación...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="items" class="form-select">
+                        <option value="10" {% if items_por_pagina == 10 %}selected{% endif %}>10 por página</option>
+                        <option value="25" {% if items_por_pagina == 25 %}selected{% endif %}>25 por página</option>
+                        <option value="50" {% if items_por_pagina == 50 %}selected{% endif %}>50 por página</option>
+                        <option value="100" {% if items_por_pagina == 100 %}selected{% endif %}>100 por página</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    {% if query %}
+                    <a href="{% url 'inventario' %}" class="btn btn-secondary w-100 mt-2">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NUEVA: Info de resultados -->
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        Mostrando <strong>{{ inventario.start_index }}</strong> - <strong>{{ inventario.end_index }}</strong> 
+        de <strong>{{ total_items }}</strong> materiales
+        {% if query %}
+        | Búsqueda: "<strong>{{ query }}</strong>"
+        {% endif %}
     </div>
 
     <div class="inventario-scroll">
@@ -45,58 +91,136 @@
         <tbody>
           {% for item in inventario %}
           <!-- ACTUALIZADO: Ahora resalta en rojo si está bajo el stock dinámico (ML) -->
-          <tr {% if item.stock_actual <= item.stock_min_dinamico %} class="table-danger" 
-              {% elif item.stock_actual <= item.stock_seguridad %} class="table-warning" 
-              {% endif %}>
-            
-            <td><span class="badge bg-secondary">{{ item.material.codigo }}</span></td>
-            <td>{{ item.material.descripcion }}</td>
-            
-            <!-- Stock Actual con badge de color -->
-            <td>
-              <span class="badge 
-                {% if item.stock_actual <= item.stock_min_dinamico %}bg-danger
-                {% elif item.stock_actual <= item.stock_seguridad %}bg-warning text-dark
-                {% else %}bg-success{% endif %}">
-                {{ item.stock_actual }}
-              </span>
-            </td>
-            
-            <!-- Stock Seguridad (estático) -->
-            <td>{{ item.stock_seguridad }}</td>
-            
-            <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
-            <td>
-                {% if item.stock_critico_promedio %}
-                    {{ item.stock_critico_promedio }} <small class="text-muted">(ML)</small>
-                {% elif item.stock_min_dinamico %}
-                    {{ item.stock_min_dinamico }} <small class="text-muted">(Est.)</small>
-                {% else %}
-                    {{ item.stock_seguridad }} <small class="text-muted">(Manual)</small>
-                {% endif %}
-            </td>
-            
-            <td>{{ item.material.ubicacion }}</td>
-            <td>
-              <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
-                <i class="fas fa-eye"></i>
-              </a>
-              <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm" title="Editar">
-                <i class="fas fa-edit"></i>
-              </a>
-            </td>
-          </tr>
+            <tr {% if item.stock_actual <= item.stock_min_dinamico %} class="table-danger" 
+                {% elif item.stock_actual <= item.stock_seguridad %} class="table-warning" 
+                {% endif %}>
+              
+              <td><span class="badge bg-secondary">{{ item.material.codigo }}</span></td>
+              <td>{{ item.material.descripcion }}</td>
+              
+              <!-- Stock Actual con badge de color -->
+              <td>
+                <span class="badge 
+                  {% if item.stock_actual <= item.stock_min_dinamico %}bg-danger
+                  {% elif item.stock_actual <= item.stock_seguridad %}bg-warning text-dark
+                  {% else %}bg-success{% endif %}">
+                  {{ item.stock_actual }}
+                </span>
+              </td>
+              
+              <!-- Stock Seguridad (estático) -->
+              <td>{{ item.stock_seguridad }}</td>
+              
+              <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
+              <td>
+                  {% if item.stock_critico_promedio %}
+                      {{ item.stock_critico_promedio }} <small class="text-muted">(ML)</small>
+                  {% elif item.stock_min_dinamico %}
+                      {{ item.stock_min_dinamico }} <small class="text-muted">(Est.)</small>
+                  {% else %}
+                      {{ item.stock_seguridad }} <small class="text-muted">(Manual)</small>
+                  {% endif %}
+              </td>
+              
+              <td>{{ item.material.ubicacion }}</td>
+              <td>
+                <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </a>
+              </td>
+            </tr>
           {% empty %}
-          <tr>
-            <td colspan="7" class="text-center text-muted">No hay registros de inventario.</td>
-          </tr>
+            <tr>
+              <td colspan="7" class="text-center text-muted">
+                {% if query %}
+                  No se encontraron materiales que coincidan con "<strong>{{ query }}</strong>".
+                {% else %}
+                  No hay registros de inventario.
+                {% endif %}
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     
+    <!-- ACTUALIZADO: Paginación con filtros -->
+    {% if inventario.has_other_pages %}
+    <nav aria-label="Paginación de inventario" class="mt-4">
+        <ul class="pagination justify-content-center">
+            
+            <!-- Botón Primera Página -->
+            {% if inventario.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}&items={{ items_por_pagina }}">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            <!-- Botón Anterior -->
+            {% if inventario.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ inventario.previous_page_number }}{% if query %}&q={{ query }}{% endif %}&items={{ items_por_pagina }}">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <i class="fas fa-angle-left"></i>
+                </span>
+            </li>
+            {% endif %}
+            
+            <!-- Números de página -->
+            {% for num in inventario.paginator.page_range %}
+                {% if inventario.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > inventario.number|add:'-3' and num < inventario.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}&items={{ items_por_pagina }}">
+                        {{ num }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Botón Siguiente -->
+            {% if inventario.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ inventario.next_page_number }}{% if query %}&q={{ query }}{% endif %}&items={{ items_por_pagina }}">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <i class="fas fa-angle-right"></i>
+                </span>
+            </li>
+            {% endif %}
+            
+            <!-- Botón Última Página -->
+            {% if inventario.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ inventario.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}&items={{ items_por_pagina }}">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+        </ul>
+    </nav>
+    {% endif %}
+    
     <!-- FOOTER ACTUALIZADO con leyenda del ML -->
-    <div class="card-footer bg-light">
+    <div class="card-footer bg-light mt-3">
       <div class="row">
         <div class="col-md-12">
           <span class="text-danger me-3">
@@ -111,16 +235,28 @@
         </div>
       </div>
     </div>
-  </div>
 </div>
 
 {% block extra_js %}
 <script>
-// Activar tooltips de Bootstrap
-var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-  return new bootstrap.Tooltip(tooltipTriggerEl)
-})
+    // Esperar a que el DOM y Bootstrap estén listos
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verificar que Bootstrap esté cargado
+        if (typeof bootstrap !== 'undefined') {
+            // Inicializar tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Inicializar popovers (si los usas)
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+        }
+    });
 </script>
 {% endblock %}
+
 {% endblock %}

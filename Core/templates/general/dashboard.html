@@ -1,7 +1,7 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block title %}Dashboard - Stocker{% endblock %}
+{% block title %}Dashboard - Stocker - Sistema de gestión de inventario inteligente{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -118,11 +118,6 @@
             </h2>
             <p class="text-muted mb-0">Bienvenido, <strong>{{ usuario.get_full_name|default:usuario.username }}</strong></p>
         </div>
-        <div class="text-end">
-            <small class="text-muted">
-                <i class="far fa-clock"></i> {{ "now"|date:"d/m/Y H:i" }}
-            </small>
-        </div>
     </div>
 
     <!-- KPIs ADAPTADOS POR ROL -->
@@ -231,7 +226,8 @@
         {% endif %}
     </div>
 
-    <!-- Gráficos -->
+    <!-- Gráficos (SOLO BODEGA Y GERENCIA) -->
+    {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
     <div class="row mb-4">
         <!-- Gráfico: Materiales por Categoría -->
         <div class="col-lg-6 mb-4">
@@ -241,7 +237,7 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
-                        anvas id="chartCategorias"></canvas>
+                        <canvas id="chartCategorias"></canvas>
                     </div>
                 </div>
             </div>
@@ -251,23 +247,35 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-bar"></i> 
-                        {% if rol == 'TECNICO' %}
-                            Mis Solicitudes por Estado
-                        {% else %}
-                            Solicitudes del Sistema
-                        {% endif %}
-                    </h5>
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Solicitudes del Sistema</h5>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
-                        anvas id="chartSolicitudes"></canvas>
+                        <canvas id="chartSolicitudes"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
+
+    <!-- Gráfico de Solicitudes para TÉCNICO -->
+    {% if rol == 'TECNICO' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Mis Solicitudes por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartSolicitudes"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Gráfico: Movimientos Últimos 7 Días (solo para Bodega y Gerencia) -->
     {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
@@ -279,7 +287,7 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-container" style="height: 250px;">
-                        anvas id="chartMovimientos"></canvas>
+                        <canvas id="chartMovimientos"></canvas>
                     </div>
                 </div>
             </div>
@@ -288,18 +296,12 @@
     {% endif %}
 
     <div class="row">
-        <!-- Top 5 Materiales Más Solicitados -->
+        <!-- Top 5 Materiales Más Solicitados (SOLO BODEGA Y GERENCIA) -->
+        {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-warning">
-                    <h5 class="mb-0">
-                        <i class="fas fa-star"></i> 
-                        {% if rol == 'TECNICO' %}
-                            Mis Materiales Más Solicitados
-                        {% else %}
-                            Top 5 Materiales Más Solicitados
-                        {% endif %}
-                    </h5>
+                    <h5 class="mb-0"><i class="fas fa-star"></i> Top 5 Materiales Más Solicitados</h5>
                 </div>
                 <div class="card-body">
                     {% if top_materiales %}
@@ -323,8 +325,10 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Materiales en Stock Crítico -->
+        <!-- Materiales en Stock Crítico (SOLO BODEGA Y GERENCIA) -->
+        {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-danger text-white">
@@ -357,6 +361,38 @@
                 </div>
             </div>
         </div>
+        {% endif %}
+
+        <!-- Mis Materiales Más Solicitados (SOLO TÉCNICO) -->
+        {% if rol == 'TECNICO' %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-star"></i> Mis Materiales Más Solicitados</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_materiales %}
+                    <div class="list-group list-group-flush">
+                        {% for item in top_materiales %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.material__descripcion }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.material__codigo }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ item.total_solicitado }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No has solicitado materiales aún</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Actividad Reciente y Solicitudes Recientes -->
@@ -454,7 +490,7 @@
                 <div class="card-body">
                     <div class="alert alert-info mb-2">
                         <i class="fas fa-lightbulb"></i> 
-                        <strong>Tip:</strong> Revisa el stock disponible antes de crear una solicitud.
+                        <strong>Tip:</strong> Puedes crear solicitudes de materiales desde el menú lateral.
                     </div>
                     <div class="alert alert-warning mb-2">
                         <i class="fas fa-clock"></i> 
@@ -462,7 +498,7 @@
                     </div>
                     <div class="alert alert-success mb-0">
                         <i class="fas fa-check"></i> 
-                        Puedes ver el historial completo de tus solicitudes en el menú lateral.
+                        Puedes ver el historial completo de tus solicitudes en el menú Solicitudes.
                     </div>
                 </div>
             </div>
@@ -486,117 +522,167 @@ const colors = {
     info: '#17a2b8',
 };
 
+{% if rol == 'BODEGA' or rol == 'GERENCIA' %}
 // ==================== GRÁFICO 1: MATERIALES POR CATEGORÍA ====================
-const ctxCategorias = document.getElementById('chartCategorias').getContext('2d');
-new Chart(ctxCategorias, {
-    type: 'doughnut',
-    data: {
-        labels: JSON.parse('{{ categorias_labels|escapejs }}'),
-        datasets: [{
-            data: JSON.parse('{{ categorias_data|escapejs }}'),
-            backgroundColor: [
-                colors.primary,
-                colors.success,
-                colors.warning,
-                colors.danger,
-                colors.info
-            ],
-            borderWidth: 2,
-            borderColor: '#fff'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-            }
-        }
-    }
-});
-
-// ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
-const ctxSolicitudes = document.getElementById('chartSolicitudes').getContext('2d');
-new Chart(ctxSolicitudes, {
-    type: 'bar',
-    data: {
-        labels: JSON.parse('{{ solicitudes_labels|escapejs }}'),
-        datasets: [{
-            label: 'Cantidad',
-            data: JSON.parse('{{ solicitudes_data|escapejs }}'),
-            backgroundColor: [
-                colors.warning,
-                colors.success,
-                colors.danger,
-                colors.info
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
+const ctxCategorias = document.getElementById('chartCategorias');
+if (ctxCategorias) {
+    new Chart(ctxCategorias.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: JSON.parse('{{ categorias_labels|escapejs }}'),
+            datasets: [{
+                data: JSON.parse('{{ categorias_data|escapejs }}'),
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.info,
+                    '#a29bfe',
+                    '#fd79a8',
+                    '#fdcb6e',
+                    '#6c5ce7',
+                    '#fab1a0'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
                 }
             }
         }
-    }
-});
+    });
+}
+{% endif %}
+
+// ==================== GRÁFICO 2: SOLICITUDES POR ESTADO ====================
+const ctxSolicitudes = document.getElementById('chartSolicitudes');
+if (ctxSolicitudes) {
+    new Chart(ctxSolicitudes.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: JSON.parse('{{ solicitudes_labels|escapejs }}'),
+            datasets: [{
+                label: 'Cantidad',
+                data: JSON.parse('{{ solicitudes_data|escapejs }}'),
+                backgroundColor: [
+                    colors.warning,
+                    colors.success,
+                    colors.danger,
+                    colors.info
+                ],
+                borderWidth: 0,
+                borderRadius: 8,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            return Number.isInteger(value) ? value : '';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 
 // ==================== GRÁFICO 3: MOVIMIENTOS ÚLTIMOS 7 DÍAS ====================
 {% if rol == 'BODEGA' or rol == 'GERENCIA' %}
-const ctxMovimientos = document.getElementById('chartMovimientos').getContext('2d');
-new Chart(ctxMovimientos, {
-    type: 'line',
-    data: {
-        labels: JSON.parse('{{ movimientos_fechas|escapejs }}'),
-        datasets: [
-            {
-                label: 'Entradas',
-                data: JSON.parse('{{ movimientos_entradas|escapejs }}'),
-                borderColor: colors.success,
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                tension: 0.4,
-                fill: true
-            },
-            {
-                label: 'Salidas',
-                data: JSON.parse('{{ movimientos_salidas|escapejs }}'),
-                borderColor: colors.danger,
-                backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                tension: 0.4,
-                fill: true
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top',
-            }
+const ctxMovimientos = document.getElementById('chartMovimientos');
+if (ctxMovimientos) {
+    new Chart(ctxMovimientos.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: JSON.parse('{{ movimientos_fechas|escapejs }}'),
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: JSON.parse('{{ movimientos_entradas|escapejs }}'),
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: colors.success,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: 'Salidas',
+                    data: JSON.parse('{{ movimientos_salidas|escapejs }}'),
+                    borderColor: colors.danger,
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: colors.danger,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ]
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            return Number.isInteger(value) ? value : '';
+                        }
+                    }
                 }
             }
         }
-    }
-});
+    });
+}
 {% endif %}
 </script>
 {% endblock %}
