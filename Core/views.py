@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db import models, transaction
 from django.db.models import Avg, Sum, Count, Q, F
@@ -10,8 +11,10 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario, Alerta, MLResult, Local
-from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, DetalleSolicitudFormSet, EditarMaterialForm, LocalForm
+from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, DetalleSolicitudFormSet, EditarMaterialForm, LocalForm, CargaMasivaStockForm
 from .decorators import verificar_rol
+from .ml_stock_critico import ejecutar_calculo_global
+from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from datetime import timedelta
 from django.http import HttpResponse
@@ -203,6 +206,144 @@ def ingreso_material(request):
         form = MaterialInventarioForm(initial={'codigo': codigo_sugerido})
     
     return render(request, 'funcionalidad/inv_ingreso_material.html', {'form': form})
+
+@login_required
+@verificar_rol(['BODEGA'])
+def crear_material(request):
+    if request.method == 'POST':
+        form = MaterialForm(request.POST)
+        if form.is_valid():
+            material = form.save()
+            # Crear inventario asociado en 0 si no existe
+            Inventario.objects.get_or_create(
+                material=material,
+                defaults={
+                    'stock_actual': 0,
+                    'stock_seguridad': 0,
+                }
+            )
+            messages.success(request, 'Material creado correctamente.')
+            return redirect('inventario')  # tu vista de listado de inventario
+    else:
+        form = MaterialForm()
+
+    return render(request, 'funcionalidad/material_form.html', {'form': form})
+
+@login_required
+@verificar_rol(['BODEGA'])
+def carga_masiva_stock(request):
+    if request.method == 'POST':
+        form = CargaMasivaStockForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo = request.FILES['archivo']
+            modo = form.cleaned_data['modo']
+
+            try:
+                df = pd.read_excel(archivo, engine='openpyxl')
+            except Exception:
+                messages.error(request, "No se pudo leer el archivo. Verifica que sea un Excel válido (.xlsx).")
+                return redirect('carga_masiva_stock')
+
+            # Debug rápido: cuántas filas y qué columnas vienen
+            print("DF rows:", len(df), "cols:", list(df.columns))
+
+            # Normalizar nombres de columnas a str
+            df.columns = df.columns.map(str)
+
+            if 'Código' not in df.columns or 'NuevoStock' not in df.columns:
+                messages.error(request, "El archivo debe tener las columnas 'Código' y 'NuevoStock'.")
+                return redirect('carga_masiva_stock')
+
+            actualizados = 0
+            no_encontrados = []
+
+            with transaction.atomic():
+                for _, row in df.iterrows():
+                    codigo = str(row['Código']).strip()
+                    if not codigo:
+                        continue
+
+                    try:
+                        nuevo_stock = int(row['NuevoStock'])
+                    except (TypeError, ValueError):
+                        continue
+
+                    try:
+                        material = Material.objects.get(codigo=codigo)
+                    except Material.DoesNotExist:
+                        no_encontrados.append(codigo)
+                        continue
+
+                    inv, _ = Inventario.objects.get_or_create(material=material)
+
+                    if modo == 'ajuste':
+                        diferencia = nuevo_stock - inv.stock_actual
+                        inv.stock_actual = nuevo_stock
+                        tipo_mov = 'ajuste'
+                        detalle = f"Ajuste masivo desde archivo. Nuevo stock={nuevo_stock}"
+                    else:  # entrada
+                        diferencia = nuevo_stock
+                        inv.stock_actual += nuevo_stock
+                        tipo_mov = 'entrada'
+                        detalle = f"Entrada masiva desde archivo. +{nuevo_stock}"
+
+                    inv.save()
+
+                    if diferencia != 0:
+                        Movimiento.objects.create(
+                            material=material,
+                            usuario=request.user,
+                            tipo=tipo_mov,
+                            cantidad=abs(diferencia),
+                            detalle=detalle,
+                        )
+
+                    actualizados += 1
+
+            messages.success(
+                request,
+                f"Stock actualizado para {actualizados} materiales. No encontrados: {len(no_encontrados)}"
+            )
+            return redirect('inventario')
+    else:
+        form = CargaMasivaStockForm()
+
+    return render(request, 'funcionalidad/inv_carga_masiva_stock.html', {'form': form})
+
+
+@login_required
+@verificar_rol(['BODEGA', 'GERENCIA'])
+@require_POST
+def recalcular_stock_ml(request):
+    opcion = request.POST.get("estacion", "")
+
+    # Decodificar la opción del combo
+    if opcion == "sin_estacion":
+        usar_estacion = False
+        estacion_manual = None
+        label = "sin considerar estación"
+    elif opcion in ["Verano", "Otoño", "Invierno", "Primavera"]:
+        usar_estacion = True
+        estacion_manual = opcion
+        label = f"forzando estación {opcion}"
+    else:
+        usar_estacion = True
+        estacion_manual = None
+        label = "con estación detectada automáticamente"
+
+    # Ajusta la firma de ejecutar_calculo_global si aún no recibe estos parámetros
+    resultados = ejecutar_calculo_global(
+        usar_estacion=usar_estacion,
+        estacion_manual=estacion_manual,
+    )
+
+    mensajes_mat = len(resultados) if resultados is not None else 0
+    messages.success(
+        request,
+        f"Stock crítico recalculado con ML para {mensajes_mat} materiales ({label})."
+    )
+    return redirect("inventario")
+
 
 # ============================================= SOLICITUDES DE MATERIALES ====================================
 @login_required

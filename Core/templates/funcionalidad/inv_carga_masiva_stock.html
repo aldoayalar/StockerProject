@@ -1,0 +1,81 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block title %}Carga Masiva de Stock{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex align-items-center">
+          <span class="me-2">
+            <i class="fas fa-file-upload"></i>
+          </span>
+          <h5 class="mb-0">Carga Masiva de Stock</h5>
+        </div>
+
+        <div class="card-body">
+          <p class="text-muted mb-4">
+            Sube un archivo Excel con las columnas
+            <strong>Código</strong> y <strong>NuevoStock</strong>.
+            Puedes elegir si quieres <strong>reemplazar</strong> el stock actual
+            o <strong>sumar</strong> al existente.
+          </p>
+
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Archivo Excel</label>
+              {{ form.archivo }}
+              <div class="form-text">
+                Formato recomendado: plantilla oficial de carga masiva.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Modo de actualización</label>
+              {{ form.modo }}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-play-circle me-1"></i> Procesar archivo
+                </button>
+                <a href="{% url 'inventario' %}" class="btn btn-outline-secondary ms-2">
+                  <i class="fas fa-times me-1"></i> Cancelar
+                </a>
+              </div>
+              <div class="text-end">
+                <small class="text-muted d-block">
+                  ¿No tienes el formato?
+                </small>
+                <a href="{% static 'plantillas/plantilla_carga_masiva_stock.xlsx' %}"
+                   class="small"
+                   download>
+                  <i class="fas fa-download me-1"></i>
+                  Descargar plantilla de carga masiva
+                </a>
+              </div>
+            </div>
+          </form>
+
+          <hr>
+
+          <div class="small text-muted">
+            <strong>Notas:</strong>
+            <ul class="mb-0">
+              <li>Los códigos deben coincidir exactamente con los materiales existentes.</li>
+              <li>Los valores de <strong>NuevoStock</strong> deben ser números enteros.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

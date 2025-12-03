@@ -421,6 +421,11 @@
                     <a href="{% url 'ingreso_material' %}" class="{% if request.resolver_match.url_name == 'ingreso_material' %}active{% endif %}">
                         <i class="fas fa-plus-circle"></i> Nuevo Material
                     </a>
+                    <a href="{% url 'carga_masiva_stock' %}">
+                        <i class="fas fa-file-excel me-1"></i>
+                        Carga masiva de stock (Excel)
+                    </a>
+
                 </li>
                 {% endif %}
                 
@@ -512,7 +517,7 @@
                 </li>
                 {% endif %}
                 
-                <!-- ========== GESTIÓN DE LOCALES (SOLO GERENCIA - SIN DROPDOWN) ========== -->
+                <!-- ========== GESTIÓN DE LOCALES (SOLO GERENCIA ) ========== -->
                 {% if user.rol == 'GERENCIA' %}
                 <li>
                     <a href="{% url 'gestion_locales' %}" class="{% if 'locales' in request.resolver_match.url_name %}active{% endif %}">

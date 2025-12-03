@@ -94,6 +94,16 @@ class EditarMaterialForm(forms.ModelForm):
         
         return codigo
     
+class CargaMasivaStockForm(forms.Form):
+    archivo = forms.FileField(label="Archivo Excel")
+    modo = forms.ChoiceField(
+        choices=[
+            ('entrada', 'Sumar al stock actual (entrada)'),
+            ('ajuste', 'Reemplazar stock (ajuste)'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
 class LocalForm(forms.ModelForm):
     #crear/editar locales
     class Meta:

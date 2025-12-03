@@ -19,11 +19,14 @@ class StockCriticoCalculator:
     - Variabilidad de la demanda
     """
     
-    def __init__(self, material, dias_historial=180, nivel_servicio=0.95):
+    def __init__(self, material, dias_historial=180, nivel_servicio=0.95,
+                 usar_estacion=True, estacion_manual=None):
         self.material = material
         self.dias_historial = dias_historial
-        self.nivel_servicio = nivel_servicio  # 95% de probabilidad de no quedar sin stock
-        self.z_score = 1.65  # Para 95% de nivel de servicio
+        self.nivel_servicio = nivel_servicio
+        self.z_score = 1.65
+        self.usar_estacion = usar_estacion
+        self.estacion_manual = estacion_manual
         
     def obtener_demanda_historica(self):
         """
@@ -162,18 +165,30 @@ class StockCriticoCalculator:
             return None
 
 
-def ejecutar_calculo_global():
+def ejecutar_calculo_global(usar_estacion=True, estacion_manual=None):
     """
-    Ejecuta el cálculo de stock crítico para todos los materiales activos
+    Ejecuta el cálculo de stock crítico para todos los materiales activos.
+
+    usar_estacion:
+        - True  → aplica ajuste estacional
+        - False → ignora estación (usa promedio general)
+
+    estacion_manual:
+        - None       → detecta estación actual automáticamente
+        - 'Verano', 'Otoño', 'Invierno', 'Primavera'
     """
     materiales = Material.objects.filter(inventario__isnull=False)
     resultados = []
-    
+
     for material in materiales:
-        calculator = StockCriticoCalculator(material)
+        calculator = StockCriticoCalculator(
+            material,
+            usar_estacion=usar_estacion,
+            estacion_manual=estacion_manual,
+        )
         resultado = calculator.calcular_stock_critico()
         if resultado:
             resultados.append(resultado)
-    
+
     logger.info(f"Cálculo completado. {len(resultados)} materiales procesados.")
     return resultados

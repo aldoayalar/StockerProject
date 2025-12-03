@@ -24,6 +24,10 @@ urlpatterns = [
     path('material/<int:id>/', views.detalle_material, name='detalle_material'),
     path('material/<int:id>/editar/', views.editar_material, name='editar_material'),
     path('ingreso-material/', views.ingreso_material, name='ingreso_material'),
+    path('materiales/nuevo/', views.crear_material, name='material_crear'),
+    path("inventario/carga-masiva/", views.carga_masiva_stock, name="carga_masiva_stock"),
+    path("inventario/recalcular-ml/", views.recalcular_stock_ml, name="recalcular_stock_ml"),
+
     
     # Solicitud de materiales
         # Nuevas rutas de solicitudes multidetalle
