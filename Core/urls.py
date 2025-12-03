@@ -64,6 +64,7 @@ urlpatterns = [
     path('exportar/inventario/', views.exportar_inventario_excel, name='exportar_inventario_excel'),
     path('exportar/solicitudes/', views.exportar_solicitudes_excel, name='exportar_solicitudes_excel'),
     path('exportar/movimientos/', views.exportar_movimientos_excel, name='exportar_movimientos_excel'),
+    path('exportar/movimientos/<int:material_id>/', views.exportar_movimientos_excel, name='exportar_movimientos_excel'),
     path('exportar/reporte-completo/', views.exportar_reporte_completo_excel, name='exportar_reporte_completo'),
     
     # Gestión de Locales

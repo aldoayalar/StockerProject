@@ -312,7 +312,10 @@ class DetalleSolicitud(models.Model):
 # ==================== MOVIMIENTO ====================
 
 class Movimiento(models.Model):
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.ForeignKey(
+        Material, on_delete=models.CASCADE, 
+        related_name='movimientos'
+    )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -337,6 +340,7 @@ class Movimiento(models.Model):
     
     class Meta:
         db_table = 'movimiento'
+        ordering = ['-fecha']
     
     def __str__(self):
         return f"{self.tipo.upper()} - {self.material.codigo} - {self.cantidad}"

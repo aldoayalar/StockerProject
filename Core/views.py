@@ -16,12 +16,15 @@ from .decorators import verificar_rol
 from .ml_stock_critico import ejecutar_calculo_global
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
+
+
+
 
 User = get_user_model()
 
@@ -152,12 +155,26 @@ def inventario(request):
 
 @login_required
 def detalle_material(request, id):
-    # TODOS pueden ver detalles si tienen acceso al inventario
     if request.user.rol not in ['BODEGA', 'GERENCIA']:
         messages.error(request, 'No tienes permiso para ver el inventario.')
         return redirect('dashboard')
+
     material = get_object_or_404(Material, id=id)
-    return render(request, 'funcionalidad/inv_detalle_material.html', {'material': material})
+
+    # Inventario asociado (puede no existir si algo quedó inconsistente)
+    inventario = Inventario.objects.filter(material=material).first()
+
+    # Últimos 10 movimientos de este material
+    movimientos_recientes = Movimiento.objects.filter(
+        material=material
+    ).select_related('usuario').order_by('-fecha')[:10]
+
+    context = {
+        'material': material,
+        'inventario': inventario,
+        'movimientos_recientes': movimientos_recientes,
+    }
+    return render(request, 'funcionalidad/inv_detalle_material.html', context)
 
 @login_required
 @verificar_rol('BODEGA')  # SOLO BODEGA puede editar
@@ -1401,54 +1418,45 @@ def exportar_solicitudes_excel(request):
 
 @login_required
 @verificar_rol(['BODEGA', 'GERENCIA'])
-def exportar_movimientos_excel(request):
-    """Exportar movimientos a Excel"""
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment
-    from django.http import HttpResponse
-    from datetime import datetime
-    
+def exportar_movimientos_excel(request, material_id):
+    """Exportar movimientos de UN material a Excel"""
+    material = get_object_or_404(Material, id=material_id)
+
     # Crear workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Movimientos"
-    
+
     # Encabezados
     headers = [
-        'ID', 'Fecha', 'Material', 'Código', 'Tipo', 
+        'ID', 'Fecha', 'Material', 'Código', 'Tipo',
         'Cantidad', 'Usuario', 'Detalle', 'Solicitud'
     ]
-    
-    # Estilo de encabezado
+
     header_fill = PatternFill(start_color="0066CC", end_color="0066CC", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=12)
-    
+
     for col_num, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_num)
         cell.value = header
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
-    
-    # Obtener movimientos
+
+    # SOLO movimientos de este material
     movimientos = Movimiento.objects.select_related(
         'material', 'usuario', 'solicitud'
-    ).order_by('-fecha')
-    
-    # Agregar datos
+    ).filter(material=material).order_by('-fecha')
+
     for row_num, mov in enumerate(movimientos, 2):
-        # Usuario
         if mov.usuario:
             usuario_nombre = mov.usuario.get_full_name() or mov.usuario.username
         else:
             usuario_nombre = 'Sistema'
-        
-        # Solicitud
+
         solicitud_id = f"#{mov.solicitud.id}" if mov.solicitud else "-"
-        
-        # Tipo de movimiento
         tipo_display = mov.get_tipo_display() if hasattr(mov, 'get_tipo_display') else mov.tipo
-        
+
         ws.append([
             mov.id,
             mov.fecha.strftime('%d/%m/%Y %H:%M') if mov.fecha else '',
@@ -1457,11 +1465,10 @@ def exportar_movimientos_excel(request):
             tipo_display.upper(),
             mov.cantidad,
             usuario_nombre,
-            mov.detalle or mov.motivo or '-',
+            mov.detalle or '-',
             solicitud_id
         ])
-    
-    # Ajustar anchos de columna
+
     column_widths = {
         'A': 8,   # ID
         'B': 18,  # Fecha
@@ -1473,16 +1480,12 @@ def exportar_movimientos_excel(request):
         'H': 40,  # Detalle
         'I': 12   # Solicitud
     }
-    
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
-    
-    # Aplicar formato a filas de datos
+
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
         for cell in row:
             cell.alignment = Alignment(vertical='center', wrap_text=True)
-            
-            # Color según tipo de movimiento
             if cell.column == 5:  # Columna Tipo
                 if cell.value == 'ENTRADA':
                     cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
@@ -1493,17 +1496,15 @@ def exportar_movimientos_excel(request):
                 elif cell.value == 'AJUSTE':
                     cell.fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
                     cell.font = Font(color="9C5700", bold=True)
-    
-    # Crear response
+
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    
-    filename = f'movimientos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    filename = f'movimientos_{material.codigo}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
     wb.save(response)
     return response
+
 
 
 @login_required
