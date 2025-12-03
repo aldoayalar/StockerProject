@@ -123,33 +123,21 @@
               <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
               <td>
                 {% if solicitud.estado == 'pendiente' %}
-                  <!-- Formulario para aprobar -->
-                  <form method="POST" action="{% url 'aprobar_solicitud' solicitud.id %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm" 
-                            onclick="return confirm('¿Aprobar esta solicitud?')">
-                      <i class="fas fa-check"></i> Aprobar
-                    </button>
-                  </form>
+                  <!-- Botón para APROBAR - lleva al template de confirmación -->
+                  <a href="{% url 'aprobar_solicitud' solicitud.id %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-check"></i> Aprobar
+                  </a>
                   
-                  <!-- Formulario para rechazar -->
-                  <form method="POST" action="{% url 'rechazar_solicitud' solicitud.id %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm" 
-                            onclick="return confirm('¿Rechazar esta solicitud?')">
-                      <i class="fas fa-times"></i> Rechazar
-                    </button>
-                  </form>
+                  <!-- Botón para RECHAZAR - lleva al formulario -->
+                  <a href="{% url 'rechazar_solicitud' solicitud.id %}" class="btn btn-danger btn-sm">
+                    <i class="fas fa-times-circle"></i> Rechazar
+                  </a>
                   
                 {% elif solicitud.estado == 'aprobada' %}
-                  <!-- Formulario para despachar -->
-                  <form method="POST" action="{% url 'despachar_solicitud' solicitud.id %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm" 
-                            onclick="return confirm('¿Despachar esta solicitud? Se descontará el stock.')">
-                      <i class="fas fa-truck"></i> Despachar
-                    </button>
-                  </form>
+                  <!-- Botón para DESPACHAR - lleva al template de confirmación -->
+                  <a href="{% url 'despachar_solicitud' solicitud.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-truck"></i> Despachar
+                  </a>
                   
                 {% else %}
                   <span class="text-muted small">

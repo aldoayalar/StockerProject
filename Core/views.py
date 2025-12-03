@@ -308,6 +308,10 @@ def aprobar_solicitud(request, solicitud_id):
     """Aprobar una solicitud"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
+    if solicitud.estado != 'pendiente':
+        messages.error(request, 'Solo se pueden aprobar solicitudes pendientes.')
+        return redirect('gestionar_solicitudes')
+    
     if request.method == 'POST':
         solicitud.estado = 'aprobada'
         solicitud.respondido_por = request.user
@@ -325,17 +329,36 @@ def aprobar_solicitud(request, solicitud_id):
         messages.success(request, f'✓ Solicitud #{solicitud.id} aprobada exitosamente. Técnico notificado.')
         return redirect('gestionar_solicitudes')
     
-    return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+    # GET: Mostrar formulario de confirmación
+    context = {
+        'solicitud': solicitud,
+    }
+    return render(request, 'funcionalidad/solmat_aprobar.html', context)
 
 
 @login_required
-@verificar_rol('BODEGA')
+@verificar_rol(['BODEGA'])
 def rechazar_solicitud(request, solicitud_id):
-    """Rechazar una solicitud"""
+    """Rechazar una solicitud con justificación obligatoria"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
+    if solicitud.estado != 'pendiente':
+        messages.error(request, 'Solo se pueden rechazar solicitudes pendientes.')
+        return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+    
     if request.method == 'POST':
-        observaciones = request.POST.get('observaciones', '')
+        observaciones = request.POST.get('observaciones', '').strip()
+        
+        # Validar que haya observaciones
+        if not observaciones:
+            messages.error(request, 'Debes ingresar una justificación para rechazar la solicitud.')
+            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+        
+        if len(observaciones) < 10:
+            messages.error(request, 'La justificación debe tener al menos 10 caracteres.')
+            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+        
+        # Rechazar solicitud
         solicitud.estado = 'rechazada'
         solicitud.respondido_por = request.user
         solicitud.fecha_respuesta = timezone.now()
@@ -343,21 +366,24 @@ def rechazar_solicitud(request, solicitud_id):
         solicitud.save()
         
         # CREAR NOTIFICACIÓN PARA EL TÉCNICO
-        mensaje_notif = f'Tu solicitud #{solicitud.id} ha sido rechazada.'
-        if observaciones:
-            mensaje_notif += f' Motivo: {observaciones[:100]}'
-        
         Notificacion.objects.create(
             usuario=solicitud.solicitante,
             tipo='solicitud_rechazada',
-            mensaje=mensaje_notif,
+            mensaje=f'Tu solicitud #{solicitud.id} ha sido rechazada. Motivo: {observaciones[:100]}',
             url=f'/solicitud/{solicitud.id}/'
         )
         
-        messages.warning(request, f'⚠ Solicitud #{solicitud.id} rechazada. Técnico notificado.')
+        messages.warning(
+            request, 
+            f'⚠ Solicitud #{solicitud.id} rechazada. El técnico ha sido notificado.'
+        )
         return redirect('gestionar_solicitudes')
     
-    return redirect('detalle_solicitud', solicitud_id=solicitud_id)
+    # GET: Mostrar formulario de rechazo
+    context = {
+        'solicitud': solicitud,
+    }
+    return render(request, 'funcionalidad/solmat_rechazar.html', context)
 
 
 @login_required
@@ -459,9 +485,20 @@ def despachar_solicitud(request, solicitud_id):
         except Exception as e:
             messages.error(request, f'Error al despachar solicitud: {str(e)}')
             return redirect('detalle_solicitud', solicitud_id=solicitud_id)
-    
+        
+    detalles_info = []
+    for detalle in solicitud.detalles.all():
+        stock_disponible = detalle.material.inventario.stock_actual
+        nuevo_stock = stock_disponible - detalle.cantidad
+        detalles_info.append({
+            'detalle': detalle,
+            'stock_disponible': stock_disponible,
+            'nuevo_stock': nuevo_stock,
+        })
+
     context = {
         'solicitud': solicitud,
+        'detalles_info': detalles_info,
     }
     
     return render(request, 'funcionalidad/solmat_confirmar_despacho.html', context)
@@ -1225,43 +1262,108 @@ def exportar_solicitudes_excel(request):
 @verificar_rol(['BODEGA', 'GERENCIA'])
 def exportar_movimientos_excel(request):
     """Exportar movimientos a Excel"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    from datetime import datetime
+    
+    # Crear workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Movimientos"
     
-    # Headers
-    headers = ['Fecha', 'Material', 'Tipo', 'Cantidad', 'Usuario', 'Detalle']
-    ws.append(headers)
+    # Encabezados
+    headers = [
+        'ID', 'Fecha', 'Material', 'Código', 'Tipo', 
+        'Cantidad', 'Usuario', 'Detalle', 'Solicitud'
+    ]
     
-    # Estilo para headers
-    for cell in ws[1]:
-        cell.font = Font(bold=True, color='FFFFFF')
-        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
-        cell.alignment = Alignment(horizontal='center')
+    # Estilo de encabezado
+    header_fill = PatternFill(start_color="0066CC", end_color="0066CC", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
     
-    # Datos
-    movimientos = Movimiento.objects.select_related('material', 'usuario').order_by('-fecha')[:200]
-    for mov in movimientos:
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Obtener movimientos
+    movimientos = Movimiento.objects.select_related(
+        'material', 'usuario', 'solicitud'
+    ).order_by('-fecha')
+    
+    # Agregar datos
+    for row_num, mov in enumerate(movimientos, 2):
+        # Usuario
+        if mov.usuario:
+            usuario_nombre = mov.usuario.get_full_name() or mov.usuario.username
+        else:
+            usuario_nombre = 'Sistema'
+        
+        # Solicitud
+        solicitud_id = f"#{mov.solicitud.id}" if mov.solicitud else "-"
+        
+        # Tipo de movimiento
+        tipo_display = mov.get_tipo_display() if hasattr(mov, 'get_tipo_display') else mov.tipo
+        
         ws.append([
-            mov.fecha.strftime('%d/%m/%Y %H:%M'),
-            f"{mov.material.codigo} - {mov.material.descripcion}",
-            mov.tipo.upper(),
+            mov.id,
+            mov.fecha.strftime('%d/%m/%Y %H:%M') if mov.fecha else '',
+            mov.material.descripcion,
+            mov.material.codigo,
+            tipo_display.upper(),
             mov.cantidad,
-            f"{mov.usuario.nombre} {mov.usuario.apellido}" if mov.usuario else 'Sistema',
-            mov.detalle[:60]
+            usuario_nombre,
+            mov.detalle or mov.motivo or '-',
+            solicitud_id
         ])
     
-    # Ajustar anchos
-    for col in range(1, 7):
-        ws.column_dimensions[get_column_letter(col)].width = 20
+    # Ajustar anchos de columna
+    column_widths = {
+        'A': 8,   # ID
+        'B': 18,  # Fecha
+        'C': 35,  # Material
+        'D': 12,  # Código
+        'E': 12,  # Tipo
+        'F': 10,  # Cantidad
+        'G': 20,  # Usuario
+        'H': 40,  # Detalle
+        'I': 12   # Solicitud
+    }
     
-    # Preparar respuesta
+    for col, width in column_widths.items():
+        ws.column_dimensions[col].width = width
+    
+    # Aplicar formato a filas de datos
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for cell in row:
+            cell.alignment = Alignment(vertical='center', wrap_text=True)
+            
+            # Color según tipo de movimiento
+            if cell.column == 5:  # Columna Tipo
+                if cell.value == 'ENTRADA':
+                    cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+                    cell.font = Font(color="006100", bold=True)
+                elif cell.value == 'SALIDA':
+                    cell.fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+                    cell.font = Font(color="9C0006", bold=True)
+                elif cell.value == 'AJUSTE':
+                    cell.fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+                    cell.font = Font(color="9C5700", bold=True)
+    
+    # Crear response
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=movimientos_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    
+    filename = f'movimientos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
     wb.save(response)
     return response
+
 
 @login_required
 @verificar_rol(['BODEGA', 'GERENCIA'])
@@ -1436,3 +1538,54 @@ def local_eliminar(request, local_id):
     }
     return render(request, 'funcionalidad/local_confirm_delete.html', context)
 
+
+
+
+@login_required
+def prediccion_stock(request):
+    mes = timezone.now().month
+    if mes in (12, 1, 2):
+        estacion_actual = "Verano"
+    elif mes in (3, 4, 5):
+        estacion_actual = "Otoño"
+    elif mes in (6, 7, 8):
+        estacion_actual = "Invierno"
+    else:
+        estacion_actual = "Primavera"
+
+    fecha_limite = timezone.now() - timedelta(days=30)
+    resultados_recientes = MLResult.objects.filter(
+        fecha_calculo__gte=fecha_limite
+    ).select_related('material', 'material__inventario').order_by('-fecha_calculo')
+
+    materiales_en_riesgo = []
+    for r in resultados_recientes:
+        try:
+            inv = r.material.inventario
+            if inv.stock_actual < inv.stock_seguridad:
+                materiales_en_riesgo.append({
+                    'material': r.material,
+                    'stock_actual': inv.stock_actual,
+                    'stock_critico': inv.stock_seguridad,
+                    'deficit': inv.stock_seguridad - inv.stock_actual,
+                    'demanda_promedio': r.demanda_promedio,
+                })
+        except Inventario.DoesNotExist:
+            continue
+
+    materiales_en_riesgo.sort(key=lambda x: x['deficit'], reverse=True)
+
+    total_materiales = Material.objects.filter(inventario__isnull=False).count()
+    materiales_calculados = resultados_recientes.values('material').distinct().count()
+    ultimo_calculo = resultados_recientes.first()
+
+    context = {
+        'estacion_actual': estacion_actual,
+        'total_materiales': total_materiales,
+        'materiales_calculados': materiales_calculados,
+        'materiales_en_riesgo': materiales_en_riesgo[:20],
+        'total_en_riesgo': len(materiales_en_riesgo),
+        'ultimo_calculo': ultimo_calculo,
+        'resultados_recientes': resultados_recientes[:10],
+    }
+    return render(request, 'funcionalidad/prediccion_stock.html', context)

@@ -13,7 +13,7 @@
                 <i class="fas fa-plus"></i> Nuevo Material
             </a>
             {% endif %}
-            
+
             <!-- BOTÓN EXPORTAR -->
             <a href="{% url 'exportar_inventario_excel' %}" class="btn btn-primary">
                 <i class="fas fa-file-excel"></i> Exportar a Excel
@@ -21,7 +21,8 @@
         </div>
     </div>
 
-    <!-- NUEVA: Barra de búsqueda y filtros -->
+
+    <!-- Barra de búsqueda y filtros -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -59,7 +60,8 @@
         </div>
     </div>
 
-    <!-- NUEVA: Info de resultados -->
+
+    <!-- Info de resultados -->
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> 
         Mostrando <strong>{{ inventario.start_index }}</strong> - <strong>{{ inventario.end_index }}</strong> 
@@ -69,6 +71,7 @@
         {% endif %}
     </div>
 
+
     <div class="inventario-scroll">
       <table class="table table-hover mb-0">
         <thead class="table-light">
@@ -76,13 +79,11 @@
             <th scope="col"><i class="fas fa-barcode"></i> Código</th>
             <th scope="col"><i class="fas fa-info-circle"></i> Descripción</th>
             <th scope="col"><i class="fas fa-cubes"></i> Stock Actual</th>
-            <th scope="col"><i class="fas fa-shield-alt"></i> Stock Seguridad</th>
-            <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
             <th scope="col">
               <i class="fas fa-brain"></i> Stock Crítico (ML)
               <i class="fas fa-info-circle text-info" 
                  data-bs-toggle="tooltip" 
-                 title="Calculado con Machine Learning"></i>
+                 title="Calculado con Machine Learning basado en movimientos históricos"></i>
             </th>
             <th scope="col"><i class="fas fa-map-marker-alt"></i> Ubicación</th>
             <th scope="col"><i class="fas fa-cog"></i> Acciones</th>
@@ -90,38 +91,30 @@
         </thead>
         <tbody>
           {% for item in inventario %}
-          <!-- ACTUALIZADO: Ahora resalta en rojo si está bajo el stock dinámico (ML) -->
-            <tr {% if item.stock_actual <= item.stock_min_dinamico %} class="table-danger" 
-                {% elif item.stock_actual <= item.stock_seguridad %} class="table-warning" 
+            <!-- Fila resaltada si está bajo stock crítico ML -->
+            <tr {% if item.stock_actual < item.stock_seguridad %} class="table-danger" 
+                {% elif item.stock_actual == item.stock_seguridad %} class="table-warning" 
                 {% endif %}>
-              
+
               <td><span class="badge bg-secondary">{{ item.material.codigo }}</span></td>
               <td>{{ item.material.descripcion }}</td>
-              
-              <!-- Stock Actual con badge de color -->
+
+              <!-- Stock Actual con badge de color según nivel ML -->
               <td>
                 <span class="badge 
-                  {% if item.stock_actual <= item.stock_min_dinamico %}bg-danger
-                  {% elif item.stock_actual <= item.stock_seguridad %}bg-warning text-dark
+                  {% if item.stock_actual < item.stock_seguridad %}bg-danger
+                  {% elif item.stock_actual == item.stock_seguridad %}bg-warning text-dark
                   {% else %}bg-success{% endif %}">
                   {{ item.stock_actual }}
                 </span>
               </td>
-              
-              <!-- Stock Seguridad (estático) -->
-              <td>{{ item.stock_seguridad }}</td>
-              
-              <!-- NUEVA COLUMNA: Stock Dinámico (ML) -->
+
+              <!-- Stock Crítico calculado con ML -->
               <td>
-                  {% if item.stock_critico_promedio %}
-                      {{ item.stock_critico_promedio }} <small class="text-muted">(ML)</small>
-                  {% elif item.stock_min_dinamico %}
-                      {{ item.stock_min_dinamico }} <small class="text-muted">(Est.)</small>
-                  {% else %}
-                      {{ item.stock_seguridad }} <small class="text-muted">(Manual)</small>
-                  {% endif %}
+                <span class="badge bg-info">{{ item.stock_seguridad }}</span>
+                <small class="text-muted">(ML)</small>
               </td>
-              
+
               <td>{{ item.material.ubicacion }}</td>
               <td>
                 <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
@@ -134,7 +127,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" class="text-center text-muted">
+              <td colspan="6" class="text-center text-muted">
                 {% if query %}
                   No se encontraron materiales que coincidan con "<strong>{{ query }}</strong>".
                 {% else %}
@@ -146,12 +139,12 @@
         </tbody>
       </table>
     </div>
-    
-    <!-- ACTUALIZADO: Paginación con filtros -->
+
+    <!-- Paginación con filtros -->
     {% if inventario.has_other_pages %}
     <nav aria-label="Paginación de inventario" class="mt-4">
         <ul class="pagination justify-content-center">
-            
+
             <!-- Botón Primera Página -->
             {% if inventario.has_previous %}
             <li class="page-item">
@@ -160,7 +153,7 @@
                 </a>
             </li>
             {% endif %}
-            
+
             <!-- Botón Anterior -->
             {% if inventario.has_previous %}
             <li class="page-item">
@@ -175,7 +168,7 @@
                 </span>
             </li>
             {% endif %}
-            
+
             <!-- Números de página -->
             {% for num in inventario.paginator.page_range %}
                 {% if inventario.number == num %}
@@ -190,7 +183,7 @@
                 </li>
                 {% endif %}
             {% endfor %}
-            
+
             <!-- Botón Siguiente -->
             {% if inventario.has_next %}
             <li class="page-item">
@@ -205,7 +198,7 @@
                 </span>
             </li>
             {% endif %}
-            
+
             <!-- Botón Última Página -->
             {% if inventario.has_next %}
             <li class="page-item">
@@ -214,12 +207,12 @@
                 </a>
             </li>
             {% endif %}
-            
+
         </ul>
     </nav>
     {% endif %}
-    
-    <!-- FOOTER ACTUALIZADO con leyenda del ML -->
+
+    <!-- Footer con leyenda actualizada -->
     <div class="card-footer bg-light mt-3">
       <div class="row">
         <div class="col-md-12">
@@ -227,7 +220,7 @@
             <i class="fas fa-exclamation-circle"></i> Rojo: Stock por debajo del crítico (ML)
           </span>
           <span class="text-warning me-3">
-            <i class="fas fa-exclamation-triangle"></i> Amarillo: Entre crítico (ML) y seguridad
+            <i class="fas fa-exclamation-triangle"></i> Amarillo: Stock igual al crítico (ML)
           </span>
           <span class="text-success">
             <i class="fas fa-check-circle"></i> Verde: Stock normal
@@ -237,19 +230,17 @@
     </div>
 </div>
 
+
 {% block extra_js %}
 <script>
-    // Esperar a que el DOM y Bootstrap estén listos
+    // Inicializar tooltips de Bootstrap
     document.addEventListener('DOMContentLoaded', function() {
-        // Verificar que Bootstrap esté cargado
         if (typeof bootstrap !== 'undefined') {
-            // Inicializar tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
-            
-            // Inicializar popovers (si los usas)
+
             var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
             var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
                 return new bootstrap.Popover(popoverTriggerEl);
@@ -258,5 +249,6 @@
     });
 </script>
 {% endblock %}
+
 
 {% endblock %}

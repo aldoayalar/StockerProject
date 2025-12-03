@@ -1,0 +1,116 @@
+{% extends 'general/base.html' %}
+{% load static %}
+
+{% block titulo %}Aprobar Solicitud #{{ solicitud.id }}{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Encabezado -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-check-circle text-success"></i>
+                    Aprobar Solicitud #{{ solicitud.id }}
+                </h2>
+                <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <!-- Información de la Solicitud -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Información de la Solicitud
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="fas fa-user"></i> Solicitante:</strong><br>
+                                {{ solicitud.solicitante.get_full_name }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="fas fa-calendar"></i> Fecha de Solicitud:</strong><br>
+                                {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="fas fa-clipboard-list"></i> Motivo:</strong><br>
+                                {{ solicitud.motivo }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="fas fa-boxes"></i> Total de Materiales:</strong><br>
+                                {{ solicitud.detalles.count }} material(es)
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Materiales solicitados -->
+                    <div class="mt-3">
+                        <strong><i class="fas fa-box"></i> Materiales Solicitados:</strong>
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Código</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th class="text-center">Stock Disponible</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for detalle in solicitud.detalles.all %}
+                                    <tr>
+                                        <td>{{ detalle.material.descripcion }}</td>
+                                        <td><span class="badge bg-secondary">{{ detalle.material.codigo }}</span></td>
+                                        <td class="text-center"><strong>{{ detalle.cantidad }}</strong></td>
+                                        <td class="text-center">
+                                            {% if detalle.stock_disponible >= detalle.cantidad %}
+                                                <span class="text-success">
+                                                    <i class="fas fa-check-circle"></i> {{ detalle.stock_disponible }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i> {{ detalle.stock_disponible }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmación -->
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Confirmación:</strong> Al aprobar esta solicitud, el técnico recibirá una notificación 
+                        y la solicitud quedará lista para ser despachada.
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> Confirmar Aprobación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

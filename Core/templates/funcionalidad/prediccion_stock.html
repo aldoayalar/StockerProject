@@ -1,0 +1,13 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block title %}Predicción de Stock - ML{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Debug Predicción Stock</h2>
+  <p>total_materiales = {{ total_materiales }}</p>
+  <p>materiales_calculados = {{ materiales_calculados }}</p>
+  <p>total_en_riesgo = {{ total_en_riesgo }}</p>
+</div>
+{% endblock %}

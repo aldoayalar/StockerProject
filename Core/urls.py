@@ -67,4 +67,7 @@ urlpatterns = [
     path('locales/crear/', views.local_crear, name='local_crear'),
     path('locales/<int:local_id>/editar/', views.local_editar, name='local_editar'),
     path('locales/<int:local_id>/eliminar/', views.local_eliminar, name='local_eliminar'),
+    
+    #calculo Stock Critico
+    path('prediccion-stock/', views.prediccion_stock, name='prediccion_stock'),
 ]

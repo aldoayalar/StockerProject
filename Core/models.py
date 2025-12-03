@@ -170,8 +170,8 @@ class Material(models.Model):
     unidad_medida = models.CharField(max_length=20, choices=UNIDAD_CHOICES, default='unidad')
     categoria = models.CharField(max_length=50, choices=CATEGORIA_CHOICES, default='insumo')
     ubicacion = models.CharField(max_length=100, blank=True, null=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_modificacion = models.DateTimeField(auto_now=True)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_modificacion = models.DateTimeField(default=timezone.now)
     
     class Meta:
         verbose_name_plural = "Materiales"
@@ -187,8 +187,8 @@ class Inventario(models.Model):
     material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='inventario')
     stock_actual = models.IntegerField(default=0)
     stock_seguridad = models.IntegerField(default=5)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_actualizacion = models.DateTimeField(default=timezone.now)
     
     class Meta:
         verbose_name_plural = "Inventarios"
@@ -226,7 +226,7 @@ class Alerta(models.Model):
     stock_actual = models.FloatField()
     stock_min = models.FloatField()
     observacion = models.TextField(blank=True, null=True)
-    creado_en = models.DateTimeField(auto_now_add=True)
+    creado_en = models.DateTimeField(default=timezone.now)
     
     class Meta:
         verbose_name_plural = "Alertas"
@@ -262,9 +262,9 @@ class Solicitud(models.Model):
     )
     motivo = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    fecha_solicitud = models.DateTimeField(default=timezone.now)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_actualizacion = models.DateTimeField(default=timezone.now)
     respondido_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -333,7 +333,7 @@ class Movimiento(models.Model):
     ])
     cantidad = models.IntegerField()
     detalle = models.CharField(max_length=255, blank=True)
-    fecha = models.DateTimeField(auto_now_add=True)
+    fecha = models.DateTimeField(default=timezone.now)
     
     class Meta:
         db_table = 'movimiento'
@@ -360,8 +360,8 @@ class Notificacion(models.Model):
     mensaje = models.TextField()
     leida = models.BooleanField(default=False)
     url = models.CharField(max_length=200, blank=True, null=True)
-    creada_en = models.DateTimeField(auto_now_add=True)
-    actualizada_en = models.DateTimeField(auto_now=True)
+    creada_en = models.DateTimeField(default=timezone.now)
+    actualizada_en = models.DateTimeField(default=timezone.now)
     
     class Meta:
         ordering = ['-creada_en']
@@ -379,7 +379,7 @@ class MLResult(models.Model):
     leadtime_dias = models.IntegerField()
     stock_min_calculado = models.IntegerField()
     version_modelo = models.CharField(max_length=40, default='v1.0')
-    fecha_calculo = models.DateTimeField(auto_now_add=True)
+    fecha_calculo = models.DateTimeField(default=timezone.now)
     
     class Meta:
         db_table = 'ml_result'
