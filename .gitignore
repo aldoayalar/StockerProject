@@ -1,0 +1,13 @@
+# Python / Django
+__pycache__/
+*.pyc
+
+# Entorno virtual
+venv/
+StockerEnv
+
+# Base de datos local
+db.sqlite3
+
+# Settings locales
+Stocker/settings.py
