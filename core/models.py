@@ -192,6 +192,7 @@ class Inventario(models.Model):
     
     class Meta:
         verbose_name_plural = "Inventarios"
+        indexes = [models.Index(fields=['material'])]
     
     def __str__(self):
         return f"Inventario: {self.material.descripcion} - Stock: {self.stock_actual}"
@@ -243,7 +244,6 @@ class Solicitud(models.Model):
         ('pendiente', 'Pendiente'),
         ('aprobada', 'Aprobada'),
         ('rechazada', 'Rechazada'),
-        ('despachada', 'Despachada'),
     ]
     
     local_destino = models.ForeignKey(
@@ -276,6 +276,11 @@ class Solicitud(models.Model):
     
     class Meta:
         ordering = ['-fecha_solicitud']
+        indexes = [
+            models.Index(fields=['estado', 'fecha_solicitud']),
+            models.Index(fields=['solicitante']),
+            models.Index(fields=['estado', 'solicitante']),
+        ]
     
     def __str__(self):
         return f"Solicitud #{self.id} - {self.solicitante.username}"
@@ -298,6 +303,7 @@ class DetalleSolicitud(models.Model):
     class Meta:
         verbose_name_plural = "Detalles de Solicitud"
         unique_together = ('solicitud', 'material')
+        indexes = [models.Index(fields=['solicitud', 'material'])]
     
     def __str__(self):
         return f"{self.material.descripcion} - Cant: {self.cantidad}"

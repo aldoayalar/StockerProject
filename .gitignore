@@ -11,3 +11,5 @@ db.sqlite3
 
 # Settings locales
 Stocker/settings.py
+Stocker/__pycache__/settings.cpython-310.pyc
+

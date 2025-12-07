@@ -424,19 +424,42 @@ def detalle_solicitud(request, solicitud_id):
     
     # Verificar permisos según rol
     if request.user.rol == 'TECNICO':
-        # TÉCNICO solo ve las suyas
         if solicitud.solicitante != request.user:
             messages.error(request, 'No tienes permiso para ver esta solicitud.')
             return redirect('mis_solicitudes')
-    elif request.user.rol in ['BODEGA', 'GERENCIA']:
-        # BODEGA y GERENCIA ven todas
+    elif request.user.rol in ['BODEGA']:
         pass
     else:
         messages.error(request, 'No tienes permiso para ver solicitudes.')
         return redirect('dashboard')
     
+    
+    detalles_info = []
+    tiene_stock_suficiente = True
+    
+    if request.user.rol in ['BODEGA']:
+        for detalle in solicitud.detalles.all():
+            try:
+                inventario = detalle.material.inventario
+                stock_disponible = inventario.stock_actual
+                nuevo_stock = stock_disponible - detalle.cantidad
+                if nuevo_stock < 0:
+                    tiene_stock_suficiente = False
+            except Inventario.DoesNotExist:
+                stock_disponible = 0
+                nuevo_stock = 0
+            
+            detalles_info.append({
+                'detalle': detalle,
+                'stock_disponible': stock_disponible,
+                'nuevo_stock': nuevo_stock
+            })
+    
     context = {
         'solicitud': solicitud,
+        'detalles_info': detalles_info, 
+        'tiene_stock_suficiente': tiene_stock_suficiente, 
+        'es_bodega': request.user.rol in ['BODEGA'] 
     }
     
     return render(request, 'funcionalidad/solmat_detalle_solicitud.html', context)
@@ -461,43 +484,115 @@ def gestionar_solicitudes(request):
     return render(request, 'funcionalidad/solmat_gestionar.html', context)
 
 @login_required
+def detalle_solicitud(request, solicitud_id):
+    """Vista para ver el detalle completo de una solicitud"""
+    solicitud = get_object_or_404(
+        Solicitud.objects.prefetch_related('detalles__material'),
+        id=solicitud_id
+    )
+    
+    # Verificar permisos según rol
+    if request.user.rol == 'TECNICO':
+        if solicitud.solicitante != request.user:
+            messages.error(request, 'No tienes permiso para ver esta solicitud.')
+            return redirect('mis_solicitudes')
+    elif request.user.rol in ['BODEGA', 'GERENCIA']:
+        pass
+    else:
+        messages.error(request, 'No tienes permiso para ver solicitudes.')
+        return redirect('dashboard')
+    
+    detalles_info = []
+    tiene_stock_suficiente = True
+    
+    for detalle in solicitud.detalles.all():
+        try:
+            inventario = detalle.material.inventario
+            stock_disponible = inventario.stock_actual
+            nuevo_stock = stock_disponible - detalle.cantidad
+            if nuevo_stock < 0:
+                tiene_stock_suficiente = False
+        except Inventario.DoesNotExist:
+            stock_disponible = 0
+            nuevo_stock = 0
+            tiene_stock_suficiente = False
+        
+        detalles_info.append({
+            'detalle': detalle,
+            'stock_disponible': stock_disponible,
+            'nuevo_stock': nuevo_stock
+        })
+    
+    context = {
+        'solicitud': solicitud,
+        'detalles_info': detalles_info,
+        'tiene_stock_suficiente': tiene_stock_suficiente,
+        'es_bodega_gerencia': request.user.rol in ['BODEGA', 'GERENCIA'],
+        'es_bodega': request.user.rol == 'BODEGA'
+    }
+    
+    
+    return render(request, 'funcionalidad/solmat_detalle_solicitud.html', context)
+
+        
+@login_required
 @verificar_rol('BODEGA')
 def aprobar_solicitud(request, solicitud_id):
-    """Aprobar una solicitud"""
+    
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
     if solicitud.estado != 'pendiente':
-        messages.error(request, 'Solo se pueden aprobar solicitudes pendientes.')
+        messages.error(request, 'Solo solicitudes pendientes.')
         return redirect('gestionar_solicitudes')
     
     if request.method == 'POST':
-        solicitud.estado = 'aprobada'
-        solicitud.respondido_por = request.user
-        solicitud.fecha_respuesta = timezone.now()
-        solicitud.save()
-        
-        # CREAR NOTIFICACIÓN PARA EL TÉCNICO
-        Notificacion.objects.create(
-            usuario=solicitud.solicitante,
-            tipo='solicitud_aprobada',
-            mensaje=f'Tu solicitud #{solicitud.id} ha sido aprobada y está en proceso de despacho.',
-            url=f'/solicitud/{solicitud.id}/'
-        )
-        
-        messages.success(request, f'✓ Solicitud #{solicitud.id} aprobada exitosamente. Técnico notificado.')
+        with transaction.atomic():
+            # VERIFICAR STOCK PRIMERO (separar verificación de descuento)
+            for detalle in solicitud.detalles.all():
+                inventario = detalle.material.inventario
+                if inventario.stock_actual < detalle.cantidad:
+                    messages.error(request, f'Stock insuficiente: {detalle.material.descripcion} (Disp: {inventario.stock_actual})')
+                    return redirect('detalle_solicitud', solicitud_id=solicitud.id)
+    
+            # DESCONTAR STOCK (segunda pasada)
+            for detalle in solicitud.detalles.all():
+                inventario = detalle.material.inventario
+                inventario.stock_actual -= detalle.cantidad
+                inventario.save()
+                # MOVIMIENTO
+                Movimiento.objects.create(
+                    material=detalle.material,
+                    usuario=request.user,
+                    solicitud=solicitud,
+                    tipo='salida',
+                    cantidad=detalle.cantidad,
+                    detalle=f'Aprobación solicitud #{solicitud.id}'
+                )
+            
+            # APROBAR FINAL
+            solicitud.estado = 'aprobada'
+            solicitud.respondido_por = request.user
+            solicitud.fecha_respuesta = timezone.now()
+            solicitud.save()
+            
+            # NOTIFICACIÓN
+            Notificacion.objects.create(
+                usuario=solicitud.solicitante,
+                tipo='solicitud_aprobada',
+                mensaje=f'Tu solicitud #{solicitud.id} ha sido APROBADA',
+                url=f'/solicitud/{solicitud.id}/'
+            )
+            messages.success(request, f'Solicitud #{solicitud.id} aprobada y stock descontado.')
         return redirect('gestionar_solicitudes')
     
-    # GET: Mostrar formulario de confirmación
-    context = {
-        'solicitud': solicitud,
-    }
-    return render(request, 'funcionalidad/solmat_aprobar.html', context)
+    return redirect('detalle_solicitud', solicitud_id=solicitud.id)
+
 
 
 @login_required
 @verificar_rol(['BODEGA'])
 def rechazar_solicitud(request, solicitud_id):
-    """Rechazar una solicitud con justificación obligatoria"""
+   
     solicitud = get_object_or_404(Solicitud, id=solicitud_id)
     
     if solicitud.estado != 'pendiente':
@@ -558,109 +653,6 @@ def cancelar_solicitud(request, solicitud_id):
     messages.error(request, 'No se puede cancelar esta solicitud.')
     return redirect('detalle_solicitud', solicitud_id=solicitud_id)
 
-@login_required
-@verificar_rol(['BODEGA'])
-def despachar_solicitud(request, solicitud_id):
-    """Marcar una solicitud aprobada como despachada y descontar stock"""
-    solicitud = get_object_or_404(Solicitud, id=solicitud_id)
-    
-    if solicitud.estado != 'aprobada':
-        messages.error(request, 'Solo se pueden despachar solicitudes aprobadas.')
-        return redirect('gestionar_solicitudes')
-    
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                for detalle in solicitud.detalles.all():
-                    try:
-                        inventario = detalle.material.inventario
-                        
-                        # Verificar stock suficiente
-                        if inventario.stock_actual < detalle.cantidad:
-                            messages.error(
-                                request,
-                                f'Stock insuficiente para {detalle.material.descripcion}. '
-                                f'Disponible: {inventario.stock_actual}, Solicitado: {detalle.cantidad}'
-                            )
-                            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
-                        
-                        # Descontar stock
-                        stock_anterior = inventario.stock_actual
-                        inventario.stock_actual -= detalle.cantidad
-                        inventario.save()
-                        
-                        # Obtener usuario del modelo Usuario
-                        try:
-                            usuario_movimiento = Usuario.objects.get(email=request.user.email)
-                        except Usuario.DoesNotExist:
-                            usuario_movimiento = None
-                        
-                        # REGISTRAR UN SOLO MOVIMIENTO (SIN DUPLICAR)
-                        if usuario_movimiento:
-                            Movimiento.objects.create(
-                                material=detalle.material,
-                                usuario=usuario_movimiento,
-                                solicitud=solicitud,
-                                tipo='salida',
-                                cantidad=detalle.cantidad,
-                                detalle=f'Despacho solicitud #{solicitud.id} - {solicitud.motivo}'
-                            )
-                        else:
-                            # Fallback si no existe el usuario en el modelo Usuario
-                            Movimiento.objects.create(
-                                material=detalle.material,
-                                tipo='salida',
-                                cantidad=detalle.cantidad,
-                                motivo=f'Despacho solicitud #{solicitud.id}',
-                                usuario=request.user  # Si tu modelo acepta esto
-                            )
-                    
-                    except Inventario.DoesNotExist:
-                        messages.error(
-                            request,
-                            f'El material {detalle.material.codigo} no tiene inventario asociado.'
-                        )
-                        return redirect('detalle_solicitud', solicitud_id=solicitud_id)
-                
-                # Cambiar estado de la solicitud
-                solicitud.estado = 'despachada'
-                solicitud.save()
-                
-                # CREAR NOTIFICACIÓN PARA EL TÉCNICO
-                Notificacion.objects.create(
-                    usuario=solicitud.solicitante,
-                    tipo='solicitud_despachada',
-                    mensaje=f'Tu solicitud #{solicitud.id} ha sido despachada y está lista para retirar.',
-                    url=f'/solicitud/{solicitud.id}/'
-                )
-                
-                messages.success(
-                    request,
-                    f'✓ Solicitud #{solicitud.id} despachada exitosamente. Stock actualizado y técnico notificado.'
-                )
-                return redirect('gestionar_solicitudes')
-        
-        except Exception as e:
-            messages.error(request, f'Error al despachar solicitud: {str(e)}')
-            return redirect('detalle_solicitud', solicitud_id=solicitud_id)
-        
-    detalles_info = []
-    for detalle in solicitud.detalles.all():
-        stock_disponible = detalle.material.inventario.stock_actual
-        nuevo_stock = stock_disponible - detalle.cantidad
-        detalles_info.append({
-            'detalle': detalle,
-            'stock_disponible': stock_disponible,
-            'nuevo_stock': nuevo_stock,
-        })
-
-    context = {
-        'solicitud': solicitud,
-        'detalles_info': detalles_info,
-    }
-    
-    return render(request, 'funcionalidad/solmat_confirmar_despacho.html', context)
-
 
 @login_required
 @verificar_rol(['BODEGA', 'GERENCIA'])
@@ -715,7 +707,6 @@ def historial_solicitudes(request):
         'total': Solicitud.objects.count(),
         'pendientes': Solicitud.objects.filter(estado='pendiente').count(),
         'aprobadas': Solicitud.objects.filter(estado='aprobada').count(),
-        'despachadas': Solicitud.objects.filter(estado='despachada').count(),
         'rechazadas': Solicitud.objects.filter(estado='rechazada').count(),
         'canceladas': Solicitud.objects.filter(estado='cancelada').count(),
     }
@@ -970,7 +961,7 @@ def mis_notificaciones(request):
     if rol == 'TECNICO':
         notificaciones = Notificacion.objects.filter(
             usuario=usuario,
-            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada']
         ).order_by('-creada_en')
     elif rol in ['BODEGA', 'GERENCIA']:
         notificaciones = Notificacion.objects.filter(
@@ -1054,7 +1045,7 @@ def obtener_notificaciones_json(request):
         notificaciones = Notificacion.objects.filter(
             usuario=usuario,
             leida=False,
-            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada']
         ).order_by('-creada_en')[:10]
     elif rol in ['BODEGA', 'GERENCIA']:
         # BODEGA y GERENCIA: Todas las notificaciones
@@ -1071,7 +1062,7 @@ def obtener_notificaciones_json(request):
         count_total = Notificacion.objects.filter(
             usuario=usuario,
             leida=False,
-            tipo__in=['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_despachada']
+            tipo__in=['solicitud_aprobada', 'solicitud_rechazada']
         ).count()
     elif rol in ['BODEGA', 'GERENCIA']:
         count_total = Notificacion.objects.filter(
@@ -1107,7 +1098,6 @@ def get_icono_notificacion(tipo):
         'aprobacion': 'fa-check-circle',
         'solicitud_aprobada': 'fa-check-circle',      # Para técnicos
         'solicitud_rechazada': 'fa-times-circle',     # Para técnicos
-        'solicitud_despachada': 'fa-truck',           # Para técnicos
     }
     return iconos.get(tipo, 'fa-bell')
 
@@ -1152,7 +1142,6 @@ def dashboard(request):
             mis_solicitudes.filter(estado='pendiente').count(),
             mis_solicitudes.filter(estado='aprobada').count(),
             mis_solicitudes.filter(estado='rechazada').count(),
-            mis_solicitudes.filter(estado='despachada').count(),
         ]
         
         context.update({
@@ -1171,7 +1160,7 @@ def dashboard(request):
             ).order_by('-total_solicitado')[:5],
             
             # Stats para gráfico - JSON serializado
-            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas']),
             'solicitudes_data': json.dumps(solicitudes_data),
         })
     
@@ -1187,7 +1176,6 @@ def dashboard(request):
             Solicitud.objects.filter(estado='pendiente').count(),
             Solicitud.objects.filter(estado='aprobada').count(),
             Solicitud.objects.filter(estado='rechazada').count(),
-            Solicitud.objects.filter(estado='despachada').count(),
         ]
         
         # ========== PROCESAR MOVIMIENTOS DE LOS ÚLTIMOS 7 DÍAS ==========
@@ -1231,7 +1219,7 @@ def dashboard(request):
             ).order_by('-fecha')[:10],
             
             # Stats para gráficos - JSON serializado
-            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas']),
             'solicitudes_data': json.dumps(solicitudes_data),
             
             # Datos para gráfico de movimientos
@@ -1252,7 +1240,6 @@ def dashboard(request):
             Solicitud.objects.filter(estado='pendiente').count(),
             Solicitud.objects.filter(estado='aprobada').count(),
             Solicitud.objects.filter(estado='rechazada').count(),
-            Solicitud.objects.filter(estado='despachada').count(),
         ]
         
         # ========== PROCESAR MOVIMIENTOS DE LOS ÚLTIMOS 7 DÍAS ==========
@@ -1297,7 +1284,7 @@ def dashboard(request):
             ).order_by('-fecha')[:10],
             
             # Stats para gráficos - JSON serializado
-            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas', 'Despachadas']),
+            'solicitudes_labels': json.dumps(['Pendientes', 'Aprobadas', 'Rechazadas']),
             'solicitudes_data': json.dumps(solicitudes_data),
             
             # Datos para gráfico de movimientos

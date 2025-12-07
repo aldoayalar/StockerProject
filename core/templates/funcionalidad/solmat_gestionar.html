@@ -112,43 +112,25 @@
                 {% if solicitud.estado == 'pendiente' %}
                   <span class="badge bg-warning text-dark">Pendiente</span>
                 {% elif solicitud.estado == 'aprobada' %}
-                  <span class="badge bg-info">Aprobada</span>
-                {% elif solicitud.estado == 'despachada' %}
-                  <span class="badge bg-success">Despachada</span>
+                  <span class="badge bg-success">✓ Aprobada</span>
                 {% elif solicitud.estado == 'rechazada' %}
-                  <span class="badge bg-danger">Rechazada</span>
+                  <span class="badge bg-danger">✗ Rechazada</span>
                 {% endif %}
               </td>
               
               <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
               <td>
                 {% if solicitud.estado == 'pendiente' %}
-                  <!-- Botón para APROBAR - lleva al template de confirmación -->
-                  <a href="{% url 'aprobar_solicitud' solicitud.id %}" class="btn btn-success btn-sm">
-                    <i class="fas fa-check"></i> Aprobar
+                  <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye"></i> Ver y aprobar
                   </a>
-                  
-                  <!-- Botón para RECHAZAR - lleva al formulario -->
-                  <a href="{% url 'rechazar_solicitud' solicitud.id %}" class="btn btn-danger btn-sm">
-                    <i class="fas fa-times-circle"></i> Rechazar
-                  </a>
-                  
-                {% elif solicitud.estado == 'aprobada' %}
-                  <!-- Botón para DESPACHAR - lleva al template de confirmación -->
-                  <a href="{% url 'despachar_solicitud' solicitud.id %}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-truck"></i> Despachar
-                  </a>
-                  
                 {% else %}
-                  <span class="text-muted small">
-                    {% if solicitud.estado == 'despachada' %}
-                      <i class="fas fa-check-circle text-success"></i> Despachada
-                    {% elif solicitud.estado == 'rechazada' %}
-                      <i class="fas fa-times-circle text-danger"></i> Rechazada
-                    {% endif %}
-                  </span>
+                  <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-eye"></i> Ver
+                  </a>
                 {% endif %}
               </td>
+
             </tr>
           {% empty %}
             <tr>

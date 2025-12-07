@@ -30,20 +30,18 @@ urlpatterns = [
 
     
     # Solicitud de materiales
-        # Nuevas rutas de solicitudes multidetalle
+        #tecnico
     path('solicitud/crear/', views.crear_solicitud, name='crear_solicitud'),
     path('solicitud/mis-solicitudes/', views.mis_solicitudes, name='mis_solicitudes'),
+       
+    # Administración de solicitudes
+    path('solicitud/gestionar/', views.gestionar_solicitudes, name='gestionar_solicitudes'),
     path('solicitud/<int:solicitud_id>/', views.detalle_solicitud, name='detalle_solicitud'),
     path('solicitud/<int:solicitud_id>/cancelar/', views.cancelar_solicitud, name='cancelar_solicitud'),
-    path('solicitudes/<int:solicitud_id>/', views.detalle_solicitud, name='detalle_solicitud'),
-        #-----------------------------------------------------------------------------------------
-        #Administracion de solicitudes
-    path('solicitud/gestionar/', views.gestionar_solicitudes, name='gestionar_solicitudes'),
     path('solicitud/<int:solicitud_id>/aprobar/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('solicitud/<int:solicitud_id>/rechazar/', views.rechazar_solicitud, name='rechazar_solicitud'),
-    path('solicitud/<int:solicitud_id>/despachar/', views.despachar_solicitud, name='despachar_solicitud'),
-    
-        #historial de solicitudes
+
+    #historial de solicitudes
     path('historial-solicitudes/', views.historial_solicitudes, name='historial_solicitudes'),
     
     # Movimientos
