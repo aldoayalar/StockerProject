@@ -1,7 +1,7 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block titulo %}Nueva Solicitud{% endblock %}
+{% block title %}<h4 class="mb-0"><i class="fas fa-plus-circle"></i> Nueva Solicitud de Materiales</h4>{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -35,182 +35,184 @@
 
 {% block contenido %}
 <div class="dashboard-container" style="max-height: calc(100vh - 100px); overflow-y: auto;">
-<div class="container mt-4">
+  <div class="container mt-4">
     <div class="card shadow">
-        <div class="card-header bg-success text-white">
-            <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Nueva Solicitud de Materiales</h4>
-        </div>
+
+      <!-- Header -->
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="fas fa-plus-circle"></i> Nueva Solicitud de Materiales
+        </h5>
+      </div>
+
+      <!-- Formulario completo -->
+      <form method="post" id="solicitud-form">
+        {% csrf_token %}
+
         <div class="card-body">
-            <form method="post" id="solicitud-form">
-                {% csrf_token %}
-                
-                
-                {% if form.errors or formset.errors %}
-                    <div class="alert alert-danger">
-                        <strong>Errores en el formulario:</strong>
-                        {{ form.errors }}
-                        {{ formset.non_form_errors }}
-                    </div>
+
+          <!-- Errores globales -->
+          {% if form.errors or formset.errors %}
+            <div class="alert alert-danger">
+              <strong>Errores en el formulario:</strong>
+              {{ form.errors }}
+              {{ formset.non_form_errors }}
+            </div>
+          {% endif %}
+
+          <!-- Contadores ARRIBA -->
+          <div class="row text-center mb-3">
+            <div class="col-md-6 mb-2 mb-md-0">
+              <div class="card shadow-sm">
+                <div class="card-body py-2">
+                  <h3 id="forms-count" class="mb-0">1</h3>
+                  <small class="text-muted">Materiales diferentes</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card shadow-sm">
+                <div class="card-body py-2">
+                  <h3 id="items-count" class="mb-0">0</h3>
+                  <small class="text-muted">Ítems totales</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerta informativa -->
+          <div class="alert alert-info mb-3">
+            <i class="fas fa-info-circle"></i>
+            <strong>Límites de solicitud:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Puedes solicitar hasta <strong>10 materiales diferentes</strong> por solicitud.</li>
+              <li>Máximo <strong>10 unidades por cada material</strong>.</li>
+              <li>Si necesitas más, crea solicitudes adicionales.</li>
+            </ul>
+          </div>
+
+          <!-- Motivo + materiales en la MISMA card -->
+          <div class="card shadow-sm">
+            <div class="card-body">
+
+              <!-- Motivo de la solicitud -->
+              <div class="mb-4">
+                <label for="{{ form.motivo.id_for_label }}" class="form-label fw-semibold">
+                  {{ form.motivo.label }}
+                </label>
+                {{ form.motivo }}
+                {% if form.motivo.errors %}
+                  <div class="text-danger small mt-1">
+                    {{ form.motivo.errors }}
+                  </div>
                 {% endif %}
-                
-                
-                <div class="mb-4">
-                    <label for="{{ form.motivo.id_for_label }}" class="form-label">
-                        <strong>{{ form.motivo.label }}</strong>
-                    </label>
-                    {{ form.motivo }}
-                    {% if form.motivo.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ form.motivo.errors }}
+              </div>
+
+              <hr class="my-3">
+
+              <!-- Alerta límite (única) -->
+              <div id="max-forms-warning" class="alert alert-warning d-none">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Límite alcanzado:</strong>
+                No puedes agregar más de 10 materiales. Si necesitas más, crea otra solicitud.
+              </div>
+
+              <!-- Botón agregar -->
+              <div class="mb-3">
+                <button type="button" id="add-form" class="btn btn-success btn-sm">
+                  <i class="fas fa-plus"></i> Agregar material
+                </button>
+              </div>
+
+              <!-- Formset de materiales -->
+              <div id="detalles-container">
+                {{ formset.management_form }}
+
+                {% for form in formset %}
+                  <div class="detalle-form card mb-2">
+                    <div class="card-body py-2">
+                      <div class="row g-2 align-items-end">
+                        <div class="col-md-6 col-12">
+                          <label class="form-label mb-1 small fw-semibold">
+                            <i class="fas fa-box"></i> Material
+                          </label>
+                          {{ form.material }}
                         </div>
-                    {% endif %}
-                </div>
+                        <div class="col-md-3 col-6">
+                          <label class="form-label mb-1 small fw-semibold">
+                            <i class="fas fa-hashtag"></i> Cantidad
+                          </label>
+                          {{ form.cantidad }}
+                        </div>
+                        <div class="col-md-3 col-6 text-md-end">
+                          <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
+                          <button type="button"
+                                  class="btn btn-outline-danger btn-sm remove-form">
+                            <i class="fas fa-trash"></i> Eliminar
+                          </button>
+                        </div>
+                      </div>
 
-                <hr>
-
-                <!-- Materiales solicitados -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-boxes"></i> Materiales Solicitados
-                        </h5>
+                      {{ form.id }}
+                      {{ form.DELETE }}
                     </div>
-                    <div class="card-body">
-                        <!-- Alerta informativa -->
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Límites de solicitud:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Puedes solicitar hasta <strong>10 materiales diferentes</strong> por solicitud.</li>
-                                <li>Máximo <strong>10 unidades por cada material</strong>.</li>
-                                <li>Si necesitas más, crea solicitudes adicionales.</li>
-                            </ul>
-                        </div>
+                  </div>
+                {% endfor %}
+              </div>
 
-                        <!-- Contador visual -->
-                        <div class="row text-center mb-3">
-                            <div class="col-md-6">
-                                <div class="card shadow-sm">
-                                    <div class="card-body">
-                                        <h3 id="forms-count">1</h3>
-                                        <p class="mb-0">Materiales diferentes</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card shadow-sm">
-                                    <div class="card-body">
-                                        <h3 id="items-count">0</h3>
-                                        <p class="mb-0">Ítems totales</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="max-forms-warning" class="alert alert-info d-none">
-                            Ya alcanzaste el máximo de 10 materiales para esta solicitud.
-                        </div>
-
-                        
-                        <div class="mb-3">
-                            <button type="button" id="add-form" class="btn btn-success">
-                                <i class="fas fa-plus"></i> Agregar Material
-                            </button>
-                        </div>
-
-                        <!-- Alerta límite -->
-                        <div id="max-forms-warning" class="alert alert-warning" style="display: none;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Límite alcanzado:</strong> No puedes agregar más de 10 materiales. Si necesitas más, crea otra solicitud.
-                        </div>
-
-                       <div id="detalles-container">
-                            {{ formset.management_form }}
-
-                            {% for form in formset %}
-                            <div class="detalle-form card mb-2">
-                                <div class="card-body py-2">
-                                    <div class="row g-2 align-items-end">
-                                        <div class="col-md-6 col-12">
-                                            <label class="form-label mb-1 small fw-semibold">
-                                                <i class="fas fa-box"></i> Material
-                                            </label>
-                                            {{ form.material }}
-                                        </div>
-                                        <div class="col-md-3 col-6">
-                                            <label class="form-label mb-1 small fw-semibold">
-                                                <i class="fas fa-hashtag"></i> Cantidad
-                                            </label>
-                                            {{ form.cantidad }}
-                                        </div>
-                                        <div class="col-md-3 col-6 text-md-end">
-                                            <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
-                                            <button type="button"
-                                                    class="btn btn-outline-danger btn-sm remove-form">
-                                                <i class="fas fa-trash"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {{ form.id }}
-                                    {{ form.DELETE }}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div id="empty-form-template" class="d-none">
-                            <div class="detalle-form card mb-2">
-                                <div class="card-body py-2">
-                                    <div class="row g-2 align-items-end">
-                                        <div class="col-md-6 col-12">
-                                            <label class="form-label mb-1 small fw-semibold">
-                                                <i class="fas fa-box"></i> Material
-                                            </label>
-                                            {{ formset.empty_form.material }}
-                                        </div>
-                                        <div class="col-md-3 col-6">
-                                            <label class="form-label mb-1 small fw-semibold">
-                                                <i class="fas fa-hashtag"></i> Cantidad
-                                            </label>
-                                            {{ formset.empty_form.cantidad }}
-                                        </div>
-                                        <div class="col-md-3 col-6 text-md-end">
-                                            <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
-                                            <button type="button"
-                                                    class="btn btn-outline-danger btn-sm remove-form">
-                                                <i class="fas fa-trash"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {{ formset.empty_form.id }}
-                                    {{ formset.empty_form.DELETE }}
-                                </div>
-                            </div>
-                        </div>
-
-
-
-
+              <!-- Template oculto para nuevos materiales -->
+              <div id="empty-form-template" class="d-none">
+                <div class="detalle-form card mb-2">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-end">
+                      <div class="col-md-6 col-12">
+                        <label class="form-label mb-1 small fw-semibold">
+                          <i class="fas fa-box"></i> Material
+                        </label>
+                        {{ formset.empty_form.material }}
+                      </div>
+                      <div class="col-md-3 col-6">
+                        <label class="form-label mb-1 small fw-semibold">
+                          <i class="fas fa-hashtag"></i> Cantidad
+                        </label>
+                        {{ formset.empty_form.cantidad }}
+                      </div>
+                      <div class="col-md-3 col-6 text-md-end">
+                        <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm remove-form">
+                          <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                      </div>
                     </div>
-                </div>
 
-                <!-- Botones de acción -->
-                <div class="d-flex justify-content-between mt-4">
-                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-paper-plane"></i> Enviar Solicitud
-                    </button>
+                    {{ formset.empty_form.id }}
+                    {{ formset.empty_form.DELETE }}
+                  </div>
                 </div>
-            </form>
-        </div>
-    </div>
-</div>
-</div>
+              </div>
+
+            </div> <!-- /card-body motivo+materiales -->
+          </div> <!-- /card motivo+materiales -->
+
+          <!-- Botones de acción -->
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-success btn-lg">
+              <i class="fas fa-paper-plane"></i> Enviar solicitud
+            </button>
+          </div>
+
+        </div> <!-- /card-body -->
+      </form>
+
+    </div> <!-- /card -->
+  </div> <!-- /container -->
+</div> <!-- /dashboard-container -->
 {% endblock %}
+
 
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
