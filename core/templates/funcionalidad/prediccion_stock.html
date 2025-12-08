@@ -1,13 +1,278 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block title %}Predicción de Stock - ML{% endblock %}
+{% block title %}
+<i class="fas fa-chart-line"></i> Predicción de Stock (ML)
+{% endblock %}
 
-{% block content %}
+{% block contenido %}
 <div class="container mt-4">
-  <h2>Debug Predicción Stock</h2>
-  <p>total_materiales = {{ total_materiales }}</p>
-  <p>materiales_calculados = {{ materiales_calculados }}</p>
-  <p>total_en_riesgo = {{ total_en_riesgo }}</p>
+
+  <!-- Panel de recalculo ML -->
+  {% if user.rol == 'SISTEMA' %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">
+        <i class="fas fa-brain me-2"></i> Recalcular stock crítico (ML)
+      </h5>
+
+      <form id="form-recalculo-ml" method="post" action="{% url 'recalcular_stock_ml' %}"
+            class="row g-2 align-items-end">
+        {% csrf_token %}
+
+        <!-- Fórmula -->
+        <div class="col-md-3">
+          <label class="form-label small">Fórmula</label>
+          <select name="formula" class="form-select form-select-sm">
+            <option value="conservadora">Conservadora (7d + 2.5σ)</option>
+            <option value="estandar">Estándar (ROP)</option>
+          </select>
+        </div>
+
+        <!-- Días de historial -->
+        <div class="col-md-2">
+          <label class="form-label small">Historial (días)</label>
+          <select name="dias_historial" class="form-select form-select-sm">
+            <option value="90">90</option>
+            <option value="180" selected>180</option>
+            <option value="365">365</option>
+          </select>
+        </div>
+
+        <!-- Estacionalidad -->
+        <div class="col-md-3">
+          <label class="form-label small">Estacionalidad</label>
+          <select name="estacion" class="form-select form-select-sm" id="select-estacion">
+            <option value="">Detectar automáticamente</option>
+            <option value="Verano">Forzar Verano</option>
+            <option value="Otoño">Forzar Otoño</option>
+            <option value="Invierno">Forzar Invierno</option>
+            <option value="Primavera">Forzar Primavera</option>
+            <option value="sin_estacion">Ignorar estación (usar todo)</option>
+          </select>
+        </div>
+
+        <!-- Nivel de servicio -->
+        <div class="col-md-2">
+          <label class="form-label small">Nivel servicio</label>
+          <select name="nivel_servicio" class="form-select form-select-sm">
+            <option value="0.90">90%</option>
+            <option value="0.95" selected>95%</option>
+            <option value="0.99">99%</option>
+          </select>
+        </div>
+
+        <!-- Botón ejecutar -->
+        <div class="col-md-2">
+          <button type="submit" id="btn-recalcular"
+                  class="btn btn-sm btn-outline-primary w-100">
+            <i class="fas fa-play me-1"></i> Ejecutar ML
+          </button>
+        </div>
+      </form>
+
+      <!-- Barra de progreso -->
+      <div id="ml-progress-container" class="mt-3" style="display: none;">
+        <div class="d-flex justify-content-between mb-1">
+          <small class="text-muted">Ejecutando cálculo de stock crítico...</small>
+          <small class="text-muted" id="ml-progress-label">0%</small>
+        </div>
+        <div class="progress">
+          <div id="ml-progress-bar"
+               class="progress-bar progress-bar-striped progress-bar-animated"
+               role="progressbar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Info del último cálculo -->
+  {% if info_calculo.fecha %}
+  <div class="alert alert-info py-2 px-3 mb-3 d-flex justify-content-between align-items-center shadow-sm">
+    <div>
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>Último cálculo:</strong> {{ info_calculo.fecha|date:"d/m/Y H:i" }}
+    </div>
+    <div class="text-end">
+      <small class="text-muted text-uppercase me-2">Parámetros:</small>
+      <span class="badge bg-white text-dark border shadow-sm">{{ info_calculo.modelo }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <hr class="my-4">
+
+  <!-- Resumen de Resultados -->
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <div class="card bg-light border-0 shadow-sm">
+        <div class="card-body text-center p-2">
+          <h3 class="mb-0 text-primary">{{ materiales_calculados }}</h3>
+          <small class="text-muted">Materiales analizados</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-light border-0 shadow-sm">
+        <div class="card-body text-center p-2">
+          <h3 class="mb-0 text-danger">{{ total_en_riesgo }}</h3>
+          <small class="text-muted">En riesgo de quiebre</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Detalle -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-white py-3 border-bottom">
+      <h5 class="mb-0 text-primary"><i class="fas fa-list-alt me-2"></i>Resultados del Análisis</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered mb-0 align-middle">
+        <thead class="table-light">
+          <tr class="text-center small text-uppercase text-muted">
+            <th class="text-start" style="width: 25%">Material</th>
+            <th style="width: 10%">Demanda<br>Diaria</th>
+            <th style="width: 15%">Variabilidad<br>(Estabilidad)</th>
+            <th style="width: 15%">Desglose<br><small>(Demanda + Seguridad)</small></th>
+            <th style="width: 10%">Stock<br>Crítico</th>
+            <th style="width: 10%">Stock<br>Actual</th>
+            <th style="width: 15%">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in tabla_resultados %}
+          <tr>
+            <!-- Material -->
+            <td>
+              <div class="fw-bold text-dark">{{ item.codigo }}</div>
+              <small class="text-muted">{{ item.descripcion|truncatechars:40 }}</small>
+            </td>
+
+            <!-- Demanda -->
+            <td class="text-center">
+                <span class="fw-bold">{{ item.demanda_promedio|floatformat:1 }}</span>
+                <span class="text-muted small">unid/día</span>
+            </td>
+
+            <!-- Variabilidad (CV) -->
+            <td class="text-center">
+                {% if item.coeficiente_variacion %}
+                    <div class="fw-bold">{{ item.coeficiente_variacion|floatformat:2 }}</div>
+                    {% if item.coeficiente_variacion < 0.2 %}
+                        <span class="badge bg-success" style="font-size: 0.65em;">ESTABLE</span>
+                    {% elif item.coeficiente_variacion < 0.5 %}
+                        <span class="badge bg-warning text-dark" style="font-size: 0.65em;">VARIABLE</span>
+                    {% else %}
+                        <span class="badge bg-danger" style="font-size: 0.65em;">ERRÁTICA</span>
+                    {% endif %}
+                    <div class="small text-muted mt-1" style="font-size: 0.7em;">
+                        σ: {{ item.desviacion|floatformat:1 }}
+                    </div>
+                {% else %}
+                    <span class="text-muted">-</span>
+                {% endif %}
+            </td>
+
+            <!-- Desglose (Demanda Leadtime + Stock Seguridad) -->
+            <td class="text-center">
+                {% if item.stock_seguridad %}
+                <div class="d-flex flex-column align-items-center" style="font-size: 0.85rem;">
+                    <!-- Demanda pura durante leadtime -->
+                    <span title="Demanda esperada durante reposición">
+                        <i class="fas fa-truck text-muted me-1" style="font-size: 0.8em;"></i>
+                        <!-- Calculamos la resta en el template -->
+                        {{ item.demanda_leadtime|floatformat:0 }}
+                    </span>
+                    <!-- Stock de seguridad -->
+                    <span title="Stock de Seguridad (Colchón)" class="text-primary fw-bold mt-1">
+                        <i class="fas fa-shield-alt me-1" style="font-size: 0.8em;"></i>
+                        +{{ item.stock_seguridad|floatformat:0 }}
+                    </span>
+                </div>
+                {% else %}
+                    <span class="text-muted small">N/A</span>
+                {% endif %}
+            </td>
+
+            <!-- Stock Crítico Total -->
+            <td class="text-center fw-bold fs-5 text-primary bg-light">
+                {{ item.stock_critico }}
+            </td>
+
+            <!-- Stock Actual -->
+            <td class="text-center fw-bold">
+                {{ item.stock_actual }}
+            </td>
+
+            <!-- Estado -->
+            <td class="text-center">
+              <span class="badge bg-{{ item.clase_css }} px-3 py-2 rounded-pill w-100">
+                {{ item.estado }}
+              </span>
+              {% if item.diferencia < 0 %}
+              <div class="small text-danger mt-1 fw-bold">
+                 Faltan {{ item.diferencia|stringformat:"+d"|slice:"1:" }}
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <div class="mb-2"><i class="fas fa-robot fa-3x text-secondary"></i></div>
+              <h5 class="fw-normal">No hay análisis recientes</h5>
+              <p class="small">Ejecuta el cálculo ML usando el panel superior para ver resultados.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-3 text-end">
+    <small class="text-muted">
+      * <strong>Variabilidad:</strong> Indica qué tan impredecible es la demanda. <span class="badge bg-danger" style="font-size: 0.6em">ERRÁTICA</span> requiere más stock de seguridad.
+      <br>
+      * <strong>Desglose:</strong> Muestra <i class="fas fa-truck text-muted"></i> (Demanda normal) + <i class="fas fa-shield-alt text-primary"></i> (Stock de Seguridad).
+    </small>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('form-recalculo-ml');
+  if (!form) return;
+
+  const btn = document.getElementById('btn-recalcular');
+  const selectEst = document.getElementById('select-estacion');
+  const cont = document.getElementById('ml-progress-container');
+  const bar = document.getElementById('ml-progress-bar');
+  const label = document.getElementById('ml-progress-label');
+
+  form.addEventListener('submit', function () {
+    // Mostrar barra de progreso y deshabilitar controles
+    cont.style.display = 'block';
+    btn.disabled = true;
+    if (selectEst) selectEst.disabled = true;
+
+    // Animación simple de progreso
+    let progress = 0;
+    const interval = setInterval(function () {
+      if (progress >= 90) {
+        clearInterval(interval);
+        return;
+      }
+      progress += 5;
+      bar.style.width = progress + '%';
+      label.textContent = progress + '%';
+    }, 300);
+  });
+});
+</script>
 {% endblock %}

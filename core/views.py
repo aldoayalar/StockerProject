@@ -15,7 +15,7 @@ from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolici
 from .forms import (MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, 
                     DetalleSolicitudFormSet, EditarMaterialForm, LocalForm, CargaMasivaStockForm, UsuarioForm)
 from .decorators import verificar_rol
-from .ml_stock_critico import ejecutar_calculo_global
+from .services.ml_service import ejecutar_calculo_global
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from datetime import timedelta, datetime
@@ -69,20 +69,29 @@ def gerente(request):
 # ===================================== AUTENTICACIÓN ========================================
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('dashboard')
-    
+        if request.user.is_superuser or getattr(request.user, 'rol', None) == 'SISTEMA':
+            return redirect('sistema_home')   
+        return redirect('dashboard')          
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None:
             login(request, user)
-            next_url = request.GET.get('next', 'dashboard')
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Usuario o contraseña incorrectos')
-    
+            # Si es sistema/superuser -> siempre a su inicio
+            if user.is_superuser or getattr(user, 'rol', None) == 'SISTEMA':
+                return redirect('sistema_home')
+
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('dashboard')
+
+        # Credenciales inválidas (opcional)
+        messages.error(request, '[translate:Usuario o contraseña incorrectos]')
+
     return render(request, 'general/login.html')
 
 def logout_view(request):
@@ -111,7 +120,7 @@ def cambiar_password(request):
 #-------------------------------------------------------------------------------------------------------
 # ======================================== INVENTARIO ========================================
 @login_required
-@verificar_rol(['BODEGA', 'GERENCIA'])  # Solo BODEGA y GERENCIA
+@verificar_rol(['BODEGA', 'GERENCIA']) 
 def inventario(request):
     query = request.GET.get('q', '').strip()
     items_por_pagina = request.GET.get('items', '10')
@@ -159,7 +168,7 @@ def inventario(request):
 def detalle_material(request, id):
     if request.user.rol not in ['BODEGA', 'GERENCIA']:
         messages.error(request, 'No tienes permiso para ver el inventario.')
-        return redirect('dashboard')
+        return redirect('inventario')
 
     material = get_object_or_404(Material, id=id)
 
@@ -331,44 +340,61 @@ def carga_masiva_stock(request):
 
 
 @login_required
-@verificar_rol(['BODEGA', 'GERENCIA'])
+@verificar_rol(['SISTEMA'])  # o incluye BODEGA/GERENCIA si quieres
 @require_POST
 def recalcular_stock_ml(request):
-    opcion = request.POST.get("estacion", "")
+    # Fórmula
+    formula = request.POST.get("formula", "conservadora")
+    usar_conservadora = (formula == "conservadora")
 
-    # Decodificar la opción del combo
-    if opcion == "sin_estacion":
+    # Estación / estacionalidad
+    estacion_opcion = request.POST.get("estacion", "")
+    if estacion_opcion == "sin_estacion":
         usar_estacion = False
         estacion_manual = None
-        label = "sin considerar estación"
-    elif opcion in ["Verano", "Otoño", "Invierno", "Primavera"]:
+    elif estacion_opcion in ["Verano", "Otoño", "Invierno", "Primavera"]:
         usar_estacion = True
-        estacion_manual = opcion
-        label = f"forzando estación {opcion}"
+        estacion_manual = estacion_opcion
     else:
         usar_estacion = True
-        estacion_manual = None
-        label = "con estación detectada automáticamente"
+        estacion_manual = None  # auto
 
-    # Ajusta la firma de ejecutar_calculo_global si aún no recibe estos parámetros
+    # Ventana de historial
+    try:
+        dias_historial = int(request.POST.get("dias_historial", "180"))
+    except ValueError:
+        dias_historial = 180
+
+    # Nivel de servicio
+    try:
+        nivel_servicio = float(request.POST.get("nivel_servicio", "0.95"))
+    except ValueError:
+        nivel_servicio = 0.95
+
     resultados = ejecutar_calculo_global(
+        usar_formula_conservadora=usar_conservadora,
         usar_estacion=usar_estacion,
         estacion_manual=estacion_manual,
+        dias_historial=dias_historial,
+        nivel_servicio=nivel_servicio,
     )
 
-    mensajes_mat = len(resultados) if resultados is not None else 0
+    count = len(resultados) if resultados else 0
     messages.success(
         request,
-        f"Stock crítico recalculado con ML para {mensajes_mat} materiales ({label})."
+        f"Stock crítico recalculado para {count} materiales "
+        f"({formula}, {dias_historial} días, "
+        f"{'con' if usar_estacion else 'sin'} estacionalidad)."
     )
-    return redirect("inventario")
+    return redirect("prediccion_stock")
+
 
 
 # ============================================= SOLICITUDES DE MATERIALES ====================================
 @login_required
 @verificar_rol('TECNICO')
 def crear_solicitud(request):
-    """Vista para crear una solicitud con múltiples materiales"""
+    
     if request.method == 'POST':
         form = SolicitudForm(request.POST)
         formset = DetalleSolicitudFormSet(request.POST)
@@ -449,9 +475,9 @@ def crear_solicitud(request):
                     )
                     return redirect('mis_solicitudes')
             except Exception as e:
-                messages.error(request, f'❌ Error al crear la solicitud: {str(e)}')
+                messages.error(request, f'Error al crear la solicitud: {str(e)}')
         else:
-            messages.error(request, '⚠️ Por favor corrige los errores del formulario.')
+            messages.error(request, 'Por favor corrige los errores del formulario.')
     else:
         form = SolicitudForm()
         formset = DetalleSolicitudFormSet()
@@ -467,7 +493,7 @@ def crear_solicitud(request):
 
 @login_required
 def mis_solicitudes(request):
-    """Vista para listar las solicitudes del usuario actual"""
+    
     solicitudes = Solicitud.objects.filter(
         solicitante=request.user
     ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
@@ -496,7 +522,7 @@ def mis_solicitudes(request):
 
 @login_required
 def detalle_solicitud(request, solicitud_id):
-    """Vista para ver el detalle completo de una solicitud"""
+    
     solicitud = get_object_or_404(
         Solicitud.objects.prefetch_related('detalles__material'),
         id=solicitud_id
@@ -513,7 +539,7 @@ def detalle_solicitud(request, solicitud_id):
         messages.error(request, 'No tienes permiso para ver solicitudes.')
         return redirect('dashboard')
     
-    # Calcular stock...
+    
     detalles_info = []
     tiene_stock_suficiente = True
     
@@ -535,7 +561,7 @@ def detalle_solicitud(request, solicitud_id):
             'nuevo_stock': nuevo_stock
         })
     
-    # ✅ NUEVO: Detectar desde dónde vino
+    
     referer = request.META.get('HTTP_REFERER', '')
     
     if 'notificaciones' in referer:
@@ -557,14 +583,14 @@ def detalle_solicitud(request, solicitud_id):
         'tiene_stock_suficiente': tiene_stock_suficiente,
         'es_bodega_gerencia': request.user.rol in ['BODEGA', 'GERENCIA'],
         'es_bodega': request.user.rol == 'BODEGA',
-        'url_volver': url_volver,  # ✅ NUEVO
-        'texto_volver': texto_volver,  # ✅ NUEVO
+        'url_volver': url_volver,  
+        'texto_volver': texto_volver,  
     }
     
     return render(request, 'funcionalidad/solmat_detalle_solicitud.html', context)
 
 @login_required
-@verificar_rol(['BODEGA']) # SOLO BODEGA puede gestionar
+@verificar_rol(['BODEGA']) 
 def gestionar_solicitudes(request):
     """Vista para que BODEGA gestione todas las solicitudes"""
     solicitudes_pendientes = Solicitud.objects.filter(
@@ -590,7 +616,6 @@ def detalle_solicitud(request, solicitud_id):
         id=solicitud_id
     )
     
-    # Verificar permisos según rol
     if request.user.rol == 'TECNICO':
         if solicitud.solicitante != request.user:
             messages.error(request, 'No tienes permiso para ver esta solicitud.')
@@ -727,7 +752,7 @@ def rechazar_solicitud(request, solicitud_id):
         
         messages.warning(
             request, 
-            f'⚠ Solicitud #{solicitud.id} rechazada. El técnico ha sido notificado.'
+            f'Solicitud #{solicitud.id} rechazada. El técnico ha sido notificado.'
         )
         return redirect('gestionar_solicitudes')
     
@@ -739,7 +764,7 @@ def rechazar_solicitud(request, solicitud_id):
 
 
 @login_required
-@verificar_rol('TECNICO')  # SOLO el TÉCNICO puede cancelar las suyas
+@verificar_rol('TECNICO')
 def cancelar_solicitud(request, solicitud_id):
     """Cancelar una solicitud propia (solo si está pendiente)"""
     solicitud = get_object_or_404(Solicitud, id=solicitud_id, solicitante=request.user)
@@ -756,10 +781,6 @@ def cancelar_solicitud(request, solicitud_id):
 @login_required
 @verificar_rol(['BODEGA', 'GERENCIA'])
 def historial_solicitudes(request):
-    """
-    Vista para ver historial completo de todas las solicitudes.
-    Solo accesible para BODEGA y GERENCIA.
-    """
     from datetime import datetime
     
     # Filtros desde GET
@@ -829,9 +850,9 @@ def historial_solicitudes(request):
 
 # ============================================= Registro de movimientos ====================================
 @login_required
-@verificar_rol(['BODEGA']) # SOLO BODEGA puede registrar entradas
+@verificar_rol(['BODEGA']) 
 def registrar_entrada(request, material_id):
-    """Registrar entrada manual de material"""
+    
     material = get_object_or_404(Material, id=material_id)
     
     try:
@@ -887,7 +908,7 @@ def registrar_entrada(request, material_id):
     return render(request, 'funcionalidad/mov_registrar_entrada.html', context)
 
 @login_required
-@verificar_rol('BODEGA')  # SOLO BODEGA puede registrar salidas
+@verificar_rol('BODEGA') 
 def registrar_salida(request, material_id):
     """Registrar salida manual de material"""
     material = get_object_or_404(Material, id=material_id)
@@ -947,7 +968,7 @@ def registrar_salida(request, material_id):
     return render(request, 'funcionalidad/mov_registrar_salida.html', context)
 
 @login_required
-@verificar_rol('BODEGA')  # SOLO BODEGA puede ajustar
+@verificar_rol('BODEGA')
 def ajustar_inventario(request, material_id):
     """Ajustar inventario (correcciones)"""
     material = get_object_or_404(Material, id=material_id)
@@ -1005,7 +1026,7 @@ def ajustar_inventario(request, material_id):
     return render(request, 'funcionalidad/mov_ajustar_inventario.html', context)
 
 @login_required
-@verificar_rol(['BODEGA', 'GERENCIA'])  # Ambos pueden ver historial
+@verificar_rol(['BODEGA', 'GERENCIA'])
 def historial_movimientos(request, material_id):
     """Ver historial de movimientos de un material"""
     material = get_object_or_404(Material, id=material_id)
@@ -1021,7 +1042,7 @@ def historial_movimientos(request, material_id):
     return render(request, 'funcionalidad/mov_historial.html', context)
 
 @login_required
-@verificar_rol(['BODEGA', 'GERENCIA'])  # Ambos pueden ver historial global
+@verificar_rol(['BODEGA', 'GERENCIA']) 
 def historial_movimientos_global(request):
     """Historial completo de todos los movimientos del sistema"""
     movimientos = Movimiento.objects.select_related(
@@ -1091,7 +1112,7 @@ def mis_notificaciones(request):
 
 @login_required
 def marcar_leida(request, id):
-    """Solo marcar como leída (sin redirigir a URL)"""
+    
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     notificacion.leida = True
     notificacion.save()
@@ -1100,7 +1121,7 @@ def marcar_leida(request, id):
 
 @login_required
 def marcar_todas_leidas(request):
-    """Marcar todas las notificaciones del usuario como leídas"""
+    
     if request.method == 'POST':
         count = Notificacion.objects.filter(
             usuario=request.user,
@@ -1113,7 +1134,7 @@ def marcar_todas_leidas(request):
 
 @login_required
 def leer_notificacion(request, id):
-    """Leer notificación: marca como leída Y redirige a su URL"""
+    
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     notificacion.leida = True
     notificacion.save()
@@ -1125,7 +1146,7 @@ def leer_notificacion(request, id):
 
 @login_required
 def eliminar_notificacion(request, id):
-    """Eliminar una notificación"""
+    
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     
     if request.method == 'POST':
@@ -1661,12 +1682,9 @@ def exportar_reporte_completo_excel(request):
  # ==================================== GESTION DE LOCALES ==============================================
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def gestion_locales(request):
-    """
-    Vista para gestión de locales (solo GERENCIA).
-    Lista todos los locales con búsqueda y paginación.
-    """
+    
     locales = Local.objects.all().order_by('codigo', 'nombre')
     
     # Búsqueda
@@ -1692,11 +1710,9 @@ def gestion_locales(request):
     return render(request, 'funcionalidad/local_gestion.html', context)
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def local_crear(request):
-    """
-    Vista para crear un nuevo local (solo GERENCIA).
-    """
+    
     if request.method == 'POST':
         form = LocalForm(request.POST)
         if form.is_valid():
@@ -1717,11 +1733,9 @@ def local_crear(request):
     return render(request, 'funcionalidad/local_form.html', context)
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def local_editar(request, local_id):
-    """
-    Vista para editar un local existente (solo GERENCIA).
-    """
+    
     local = get_object_or_404(Local, pk=local_id)
     
     if request.method == 'POST':
@@ -1745,12 +1759,9 @@ def local_editar(request, local_id):
     return render(request, 'funcionalidad/local_form.html', context)
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def local_eliminar(request, local_id):
-    """
-    Vista para eliminar un local (solo GERENCIA).
-    Verifica que no tenga solicitudes asociadas.
-    """
+    
     local = get_object_or_404(Local, pk=local_id)
     
     if request.method == 'POST':
@@ -1775,12 +1786,12 @@ def local_eliminar(request, local_id):
     return render(request, 'funcionalidad/local_confirm_delete.html', context)
 
 
-# ==========================================  GESTIÓN DE USUARIOS (SOLO GERENCIA) ==========================================
+# ==========================================  GESTIÓN DE USUARIOS ==========================================
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def gestion_usuarios(request):
-    """Vista para gestión de usuarios (solo GERENCIA)"""
+   
     usuarios = Usuario.objects.all().order_by('-date_joined')
     
     # Búsqueda
@@ -1813,6 +1824,7 @@ def gestion_usuarios(request):
         'tecnicos': Usuario.objects.filter(rol='TECNICO').count(),
         'bodega': Usuario.objects.filter(rol='BODEGA').count(),
         'gerencia': Usuario.objects.filter(rol='GERENCIA').count(),
+        'gerencia': Usuario.objects.filter(rol='SISTEMA').count(),
     }
     
     # Paginación
@@ -1834,9 +1846,9 @@ def gestion_usuarios(request):
 
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def usuario_crear(request):
-    """Vista para crear un nuevo usuario (solo GERENCIA)"""
+    
     if request.method == 'POST':
         form = UsuarioForm(request.POST, is_new=True)
         
@@ -1844,7 +1856,7 @@ def usuario_crear(request):
             usuario = form.save()
             messages.success(
                 request, 
-                f'✅ Usuario "{usuario.username}" creado exitosamente con rol {usuario.get_rol_display()}.'
+                f'Usuario "{usuario.username}" creado exitosamente con rol {usuario.get_rol_display()}.'
             )
             return redirect('gestion_usuarios')
     else:
@@ -1860,14 +1872,14 @@ def usuario_crear(request):
 
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def usuario_editar(request, usuario_id):
-    """Vista para editar un usuario existente (solo GERENCIA)"""
+    
     usuario = get_object_or_404(Usuario, pk=usuario_id)
     
     # Prevenir que se edite a sí mismo (opcional)
     if usuario == request.user:
-        messages.warning(request, '⚠️ No puedes editar tu propio usuario. Usa "Cambiar Contraseña" en tu perfil.')
+        messages.warning(request, 'No puedes editar tu propio usuario. Usa "Cambiar Contraseña" en tu perfil.')
         return redirect('gestion_usuarios')
     
     if request.method == 'POST':
@@ -1877,7 +1889,7 @@ def usuario_editar(request, usuario_id):
             usuario = form.save()
             messages.success(
                 request, 
-                f'✅ Usuario "{usuario.username}" actualizado exitosamente.'
+                f'Usuario "{usuario.username}" actualizado exitosamente.'
             )
             return redirect('gestion_usuarios')
     else:
@@ -1894,14 +1906,14 @@ def usuario_editar(request, usuario_id):
 
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def usuario_eliminar(request, usuario_id):
-    """Vista para eliminar/desactivar un usuario (solo GERENCIA)"""
+    
     usuario = get_object_or_404(Usuario, pk=usuario_id)
     
     # Prevenir que se elimine a sí mismo
     if usuario == request.user:
-        messages.error(request, '❌ No puedes eliminar tu propio usuario.')
+        messages.error(request, 'No puedes eliminar tu propio usuario.')
         return redirect('gestion_usuarios')
     
     if request.method == 'POST':
@@ -1914,13 +1926,13 @@ def usuario_eliminar(request, usuario_id):
             usuario.save()
             messages.warning(
                 request, 
-                f'⚠️ Usuario "{usuario.username}" desactivado (tiene {solicitudes_count} solicitudes asociadas).'
+                f'Usuario "{usuario.username}" desactivado (tiene {solicitudes_count} solicitudes asociadas).'
             )
         else:
             # Eliminar permanentemente
             nombre = f"{usuario.username}"
             usuario.delete()
-            messages.success(request, f'✅ Usuario "{nombre}" eliminado exitosamente.')
+            messages.success(request, f'Usuario "{nombre}" eliminado exitosamente.')
         
         return redirect('gestion_usuarios')
     
@@ -1936,70 +1948,138 @@ def usuario_eliminar(request, usuario_id):
 
 
 @login_required
-@verificar_rol('GERENCIA')
+@verificar_rol('SISTEMA')
 def usuario_toggle_estado(request, usuario_id):
     """Activar/desactivar usuario rápidamente"""
     if request.method == 'POST':
         usuario = get_object_or_404(Usuario, pk=usuario_id)
         
         if usuario == request.user:
-            messages.error(request, '❌ No puedes cambiar tu propio estado.')
+            messages.error(request, 'No puedes cambiar tu propio estado.')
             return redirect('gestion_usuarios')
         
         usuario.is_active = not usuario.is_active
         usuario.save()
         
         estado = "activado" if usuario.is_active else "desactivado"
-        messages.success(request, f'✅ Usuario "{usuario.username}" {estado}.')
+        messages.success(request, f'Usuario "{usuario.username}" {estado}.')
     
     return redirect('gestion_usuarios')
 
-
 @login_required
+@verificar_rol('SISTEMA')
 def prediccion_stock(request):
-    mes = timezone.now().month
-    if mes in (12, 1, 2):
-        estacion_actual = "Verano"
-    elif mes in (3, 4, 5):
-        estacion_actual = "Otoño"
-    elif mes in (6, 7, 8):
-        estacion_actual = "Invierno"
-    else:
-        estacion_actual = "Primavera"
+    total_materiales = Material.objects.count()
+    
+    # Obtener TODOS los resultados ordenados por fecha (el más reciente primero)
+    todos_resultados = MLResult.objects.select_related('material', 'material__inventario').order_by('-fecha_calculo')
+    
+    # Filtrar en Python para quedarnos solo con el último de cada material
+    # Usamos un dict para rastrear si ya procesamos ese material
+    resultados_unicos = {}
+    ultimo_parametro = None
 
-    fecha_limite = timezone.now() - timedelta(days=30)
-    resultados_recientes = MLResult.objects.filter(
-        fecha_calculo__gte=fecha_limite
-    ).select_related('material', 'material__inventario').order_by('-fecha_calculo')
-
-    materiales_en_riesgo = []
-    for r in resultados_recientes:
+    for res in todos_resultados:
+        if res.material.codigo not in resultados_unicos:
+            resultados_unicos[res.material.codigo] = res
+            # Guardamos el primer resultado (el más reciente de todos) para sacar info de parámetros
+            if ultimo_parametro is None:
+                ultimo_parametro = res
+    
+    # Convertir a lista
+    resultados = list(resultados_unicos.values())
+    
+    # Procesar para la tabla
+    tabla_resultados = []
+    en_riesgo = 0
+    
+    for res in resultados:
         try:
-            inv = r.material.inventario
-            if inv.stock_actual < inv.stock_seguridad:
-                materiales_en_riesgo.append({
-                    'material': r.material,
-                    'stock_actual': inv.stock_actual,
-                    'stock_critico': inv.stock_seguridad,
-                    'deficit': inv.stock_seguridad - inv.stock_actual,
-                    'demanda_promedio': r.demanda_promedio,
-                })
+            inv = res.material.inventario
+            stock_actual = inv.stock_actual
+            stock_critico = res.stock_min_calculado
+            diferencia = stock_actual - stock_critico
+            
+            estado = 'OK'
+            clase_css = 'success'
+            
+            if stock_actual <= 0:
+                estado = 'QUIEBRE'
+                clase_css = 'dark'
+                en_riesgo += 1
+            elif stock_actual < stock_critico:
+                estado = 'CRÍTICO'
+                clase_css = 'danger'
+                en_riesgo += 1
+            elif stock_actual < (stock_critico * 1.2):
+                estado = 'ALERTA'
+                clase_css = 'warning'
+            
+            tabla_resultados.append({
+                'codigo': res.material.codigo,
+                'descripcion': res.material.descripcion,
+                'demanda_promedio': res.demanda_promedio,
+                'desviacion': res.desviacion,
+                'stock_critico': stock_critico,
+                'stock_actual': stock_actual,
+                'estado': estado,
+                'clase_css': clase_css,
+                'diferencia': diferencia,
+                'stock_seguridad': getattr(res, 'stock_seguridad', 0),
+                'coeficiente_variacion': getattr(res, 'coeficiente_variacion', 0),
+                'metodo': getattr(res, 'metodo_utilizado', ''),
+                'demanda_leadtime': res.stock_min_calculado - getattr(res, 'stock_seguridad', 0),
+            })
         except Inventario.DoesNotExist:
             continue
 
-    materiales_en_riesgo.sort(key=lambda x: x['deficit'], reverse=True)
+    
+    info_calculo = {
+        'fecha': ultimo_parametro.fecha_calculo if ultimo_parametro else None,
+        'modelo': ultimo_parametro.version_modelo if ultimo_parametro else 'N/A',
+        
+    }
 
-    total_materiales = Material.objects.filter(inventario__isnull=False).count()
-    materiales_calculados = resultados_recientes.values('material').distinct().count()
-    ultimo_calculo = resultados_recientes.first()
+    tabla_resultados.sort(key=lambda x: x['diferencia'])
 
     context = {
-        'estacion_actual': estacion_actual,
         'total_materiales': total_materiales,
-        'materiales_calculados': materiales_calculados,
-        'materiales_en_riesgo': materiales_en_riesgo[:20],
-        'total_en_riesgo': len(materiales_en_riesgo),
-        'ultimo_calculo': ultimo_calculo,
-        'resultados_recientes': resultados_recientes[:10],
+        'materiales_calculados': len(tabla_resultados),
+        'total_en_riesgo': en_riesgo,
+        'tabla_resultados': tabla_resultados,
+        'info_calculo': info_calculo
     }
+    
     return render(request, 'funcionalidad/prediccion_stock.html', context)
+
+
+
+# ---------------- PANEL SISTEMA / SUPERUSUARIO ----------------
+@login_required
+def sistema_home(request):
+    """
+    Pantalla de inicio para el rol SISTEMA / superusuario.
+    Si no es sistema ni superuser, se redirige al dashboard normal.
+    """
+    usuario = request.user
+
+    if not (usuario.is_superuser or usuario.rol == 'SISTEMA'):
+        return redirect('dashboard')
+
+    # Stats básicos que le interesan al admin del sistema
+    total_usuarios = Usuario.objects.count()
+    activos = Usuario.objects.filter(is_active=True).count()
+    inactivos = Usuario.objects.filter(is_active=False).count()
+    total_locales = Local.objects.count()
+    total_materiales = Material.objects.count()
+    solicitudes_totales = Solicitud.objects.count()
+
+    context = {
+        'total_usuarios': total_usuarios,
+        'activos': activos,
+        'inactivos': inactivos,
+        'total_locales': total_locales,
+        'total_materiales': total_materiales,
+        'solicitudes_totales': solicitudes_totales,
+    }
+    return render(request, 'rol/sistema.html', context)

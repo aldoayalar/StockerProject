@@ -112,6 +112,7 @@ class Usuario(AbstractUser):
         ('GERENCIA', 'Gerencia'),
         ('BODEGA', 'Bodega'),
         ('TECNICO', 'Técnico'),
+        ('SISTEMA', 'Sistema'),
     ]
     
     rol = models.CharField(
@@ -390,6 +391,10 @@ class MLResult(models.Model):
     stock_min_calculado = models.IntegerField()
     version_modelo = models.CharField(max_length=40, default='v1.0')
     fecha_calculo = models.DateTimeField(default=timezone.now)
+    
+    stock_seguridad = models.FloatField(default=0.0, help_text="Colchón extra por variabilidad")
+    coeficiente_variacion = models.FloatField(default=0.0, help_text="Variabilidad relativa (sigma/media)")
+    metodo_utilizado = models.CharField(max_length=50, default="Estandar")
     
     class Meta:
         db_table = 'ml_result'

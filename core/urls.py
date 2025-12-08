@@ -81,4 +81,7 @@ urlpatterns = [
     
     #calculo Stock Critico
     path('prediccion-stock/', views.prediccion_stock, name='prediccion_stock'),
+    
+    path('sistema/', views.sistema_home, name='sistema_home'),
+
 ]

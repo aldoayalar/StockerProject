@@ -1,53 +1,33 @@
 {% extends "general/base.html" %}
 {% load static %}
 
-{% block title %}<h2><i class="fas fa-warehouse"></i> Inventario de Materiales</h2>
-
-<!-- BOTÓN Calcular Stock -->
-            <form method="post" action="{% url 'recalcular_stock_ml' %}" class="d-flex align-items-center mb-3">
-              {% csrf_token %}
-
-              <div class="me-2">
-                  <select name="estacion" class="form-select form-select-sm">
-                      <option value="">Estación actual</option>
-                      <option value="Verano">Verano</option>
-                      <option value="Otoño">Otoño</option>
-                      <option value="Invierno">Invierno</option>
-                      <option value="Primavera">Primavera</option>
-                      <option value="sin_estacion">Ignorar estación (promedio general)</option>
-                  </select>
-              </div>
-
-              <button type="submit" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-brain me-1"></i>
-                  Recalcular stock crítico (ML)
-              </button>
-          </form>
-
+{% block title %}
+  <h2 class="mb-0">
+    <i class="fas fa-warehouse"></i> Inventario de Materiales
+  </h2>
 {% endblock %}
 
 {% block contenido %}
+
+
 <div class="container-fluid mt-4">
     <!-- Header con botón de exportar -->
     <div class="d-flex justify-content-end align-items-center mb-4">
-        
-        
-        <div>
-            {% if user.is_staff %}
-            <a href="{% url 'ingreso_material' %}" class="btn btn-success me-2">
-                <i class="fas fa-plus"></i> Nuevo Material
-            </a>
-            {% endif %}
+      <div>
+        {% if user.rol == 'BODEGA' %}
+        <a href="{% url 'ingreso_material' %}" class="btn btn-success me-2">
+          <i class="fas fa-plus"></i> Nuevo Material
+        </a>
+        {% endif %}
 
-
-            <!-- BOTÓN EXPORTAR -->
-            <a href="{% url 'exportar_inventario_excel' %}" class="btn btn-primary">
-                <i class="fas fa-file-excel"></i> Exportar a Excel
-            </a>
-
-        </div>
-
+        {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
+        <a href="{% url 'exportar_inventario_excel' %}" class="btn btn-primary">
+          <i class="fas fa-file-excel"></i> Exportar a Excel
+        </a>
+        {% endif %}
+      </div>
     </div>
+
 
 
     <!-- Barra de búsqueda y filtros -->
@@ -148,9 +128,12 @@
                 <a href="{% url 'detalle_material' item.material.id %}" class="btn btn-info btn-sm" title="Ver detalle">
                   <i class="fas fa-eye"></i>
                 </a>
+
+                {% if user.rol == 'BODEGA' %}
                 <a href="{% url 'editar_material' item.material.id %}" class="btn btn-warning btn-sm" title="Editar">
                   <i class="fas fa-edit"></i>
                 </a>
+                {% endif %}
               </td>
             </tr>
           {% empty %}

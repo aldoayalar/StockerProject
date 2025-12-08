@@ -1,8 +1,7 @@
 """
-Genera movimientos históricos con fechas distribuidas en 180 días
-
+Genera movimientos históricos con patrones estacionales realistas (frecuencia + cantidad).
 Uso:
-    python manage.py generar_movimientos_ml --cantidad 110 --limpiar
+    python manage.py generar_movimientos_ml --cantidad 300 --dias 365 --limpiar
 """
 
 from django.core.management.base import BaseCommand
@@ -10,10 +9,10 @@ from django.utils import timezone
 from datetime import timedelta
 from core.models import Material, Movimiento, Usuario
 import random
-
+import math
 
 class Command(BaseCommand):
-    help = 'Genera movimientos históricos para entrenamiento ML'
+    help = 'Genera movimientos históricos con patrones estacionales realistas para ML'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -24,19 +23,26 @@ class Command(BaseCommand):
         parser.add_argument(
             '--cantidad',
             type=int,
-            default=110,
-            help='Movimientos por material (default: 110)'
+            default=300,
+            help='Movimientos promedio por material (default: 300)'
+        )
+        parser.add_argument(
+            '--dias',
+            type=int,
+            default=365,
+            help='Días de historial a generar (default: 365)'
         )
 
     def handle(self, *args, **options):
         limpiar = options['limpiar']
-        cant_por_material = options['cantidad']
+        cant_promedio = options['cantidad']
+        dias_historial = options['dias']
 
         self.stdout.write(self.style.SUCCESS('=' * 70))
-        self.stdout.write(self.style.SUCCESS('🚀 GENERADOR DE MOVIMIENTOS ML'))
+        self.stdout.write(self.style.SUCCESS('🚀 GENERADOR DE MOVIMIENTOS ML MEJORADO'))
         self.stdout.write(self.style.SUCCESS('=' * 70))
 
-        # Usuario
+        # Usuario BODEGA (para movimientos de salida manual)
         usuario = Usuario.objects.filter(rol='BODEGA').first() or Usuario.objects.first()
         if not usuario:
             self.stdout.write(self.style.ERROR('❌ No hay usuarios'))
@@ -48,115 +54,130 @@ class Command(BaseCommand):
             Movimiento.objects.all().delete()
             self.stdout.write(self.style.WARNING(f'🗑️  {count_prev} movimientos eliminados'))
 
-        # Materiales
         materiales = list(Material.objects.all())
         if not materiales:
             self.stdout.write(self.style.ERROR('❌ No hay materiales'))
             return
 
         self.stdout.write(f'📦 Materiales: {len(materiales)}')
-        self.stdout.write(f'🎲 Movimientos/material: {cant_por_material}')
+        self.stdout.write(f'📅 Historial: {dias_historial} días')
         self.stdout.write('')
 
-        # Patrones de demanda
-        patrones = {
-            'GAS': (10, 15, 4),
-            'CAB': (12, 25, 6),
-            'COMP': (2, 4, 1),
-            'TUB': (20, 35, 8),
-            'MOTOR': (2, 5, 2),
-            'BOMB': (3, 8, 2),
-            'CAP': (4, 10, 3),
-            'VALV': (3, 8, 3),
-            'FILT': (5, 12, 4),
-            'TERM': (2, 6, 2),
-            'SOLD': (6, 15, 4),
-            'ACEI': (4, 10, 3),
-            'COND': (1, 3, 1),
-            'EVAP': (1, 3, 1),
-            'MANO': (2, 5, 2),
-            'FLUX': (3, 8, 2),
+        # Definición de patrones estacionales (Pesos por mes: Ene...Dic)
+        # 1.0 = demanda normal, >1.0 = alta, <1.0 = baja
+        
+        # Verano fuerte (Gases, Aire Acondicionado) - Alta en Dic-Feb
+        patron_verano = [1.5, 1.5, 1.2, 0.8, 0.6, 0.5, 0.5, 0.6, 0.8, 1.0, 1.2, 1.5]
+        
+        # Invierno fuerte (Calefacción, Soldadura, Cables) - Alta en Jun-Ago
+        patron_invierno = [0.6, 0.6, 0.8, 1.0, 1.2, 1.5, 1.5, 1.4, 1.0, 0.8, 0.6, 0.5]
+        
+        # Constante (Ferretería general, tornillos, aceites)
+        patron_plano = [1.0] * 12
+
+        # Asignación de patrones por código
+        config_materiales = {
+            'GAS':  {'patron': patron_verano,   'base': (10, 20)}, # Gases
+            'COMP': {'patron': patron_verano,   'base': (2, 5)},   # Compresores
+            'CAP':  {'patron': patron_verano,   'base': (5, 12)},  # Capacitores
+            'MOT':  {'patron': patron_verano,   'base': (1, 3)},   # Motores
+            
+            'CAB':  {'patron': patron_invierno, 'base': (15, 40)}, # Cables
+            'SOLD': {'patron': patron_invierno, 'base': (5, 15)},  # Soldadura
+            'TERM': {'patron': patron_invierno, 'base': (4, 10)},  # Termostatos
+            
+            'TUB':  {'patron': patron_plano,    'base': (20, 50)}, # Tuberías
+            'VALV': {'patron': patron_plano,    'base': (5, 10)},  # Válvulas
+            'FILT': {'patron': patron_plano,    'base': (8, 15)},  # Filtros
         }
 
-        fecha_base = timezone.now() - timedelta(days=180)
+        fecha_fin = timezone.now()
+        fecha_inicio = fecha_fin - timedelta(days=dias_historial)
+        
         total_creados = 0
         movimientos_batch = []
-        BATCH_SIZE = 1000
+        BATCH_SIZE = 2000
 
-        # Generar movimientos
         for idx, material in enumerate(materiales, 1):
             codigo = material.codigo.upper()
-
-            # Determinar patrón
-            patron = None
-            for prefijo, valores in patrones.items():
+            
+            # Detectar configuración
+            config = {'patron': patron_plano, 'base': (5, 15)} # Default
+            for prefijo, conf in config_materiales.items():
                 if codigo.startswith(prefijo):
-                    patron = valores
+                    config = conf
                     break
+            
+            pesos_mensuales = config['patron']
+            rango_base = config['base']
+            
+            # Generar fechas distribuidas según pesos mensuales
+            # Algoritmo: Iterar día a día y decidir si generar movimiento basado en probabilidad
+            
+            # Ajustar probabilidad diaria para alcanzar el target de cantidad aprox.
+            probabilidad_base = cant_promedio / dias_historial 
+            
+            movs_material = 0
+            current_date = fecha_inicio
+            
+            while current_date <= fecha_fin:
+                mes_idx = current_date.month - 1
+                peso_mes = pesos_mensuales[mes_idx]
+                
+                # Probabilidad de que haya movimiento este día
+                # Se multiplica la prob. base por el peso estacional
+                if random.random() < (probabilidad_base * peso_mes):
+                    
+                    # Calcular cantidad (también afectada levemente por la estación)
+                    cant_min, cant_max = rango_base
+                    cantidad = random.randint(cant_min, cant_max)
+                    
+                    # En temporada alta, también sube un poco el volumen por pedido (20%)
+                    if peso_mes > 1.2:
+                        cantidad = int(cantidad * 1.2)
+                    
+                    # Spike ocasional (urgencia) - 5% de las veces
+                    if random.random() < 0.05:
+                        cantidad = int(cantidad * 2.0)
+                        detalle = 'Salida URGENTE ML'
+                    else:
+                        detalle = 'Consumo normal ML'
 
-            if not patron:
-                patron = (5, 12, 4)
+                    cantidad = max(1, cantidad)
 
-            demanda_min, demanda_max, variacion = patron
-
-            for i in range(cant_por_material):
-                # Fecha aleatoria en últimos 180 días
-                dias_atras = random.randint(0, 180)
-                fecha = fecha_base + timedelta(days=dias_atras)
-
-                # Cantidad
-                cantidad = random.randint(demanda_min, demanda_max)
-                cantidad += random.randint(-variacion, variacion)
-                cantidad = max(1, cantidad)
-
-                # Estacionalidad
-                if fecha.month in [12, 1, 2]:
-                    cantidad = int(cantidad * 1.5)
-                elif fecha.month in [6, 7, 8]:
-                    cantidad = max(1, int(cantidad * 0.8))
-
-                # Spike ocasional
-                if random.random() < 0.1:
-                    cantidad = int(cantidad * 2.5)
-
-                # Agregar a batch
-                movimientos_batch.append(
-                    Movimiento(
-                        material=material,
-                        usuario=usuario,
-                        tipo='salida',
-                        cantidad=cantidad,
-                        detalle=f'Movimiento histórico ML',
-                        fecha=fecha  # ← Ahora funciona!
+                    movimientos_batch.append(
+                        Movimiento(
+                            material=material,
+                            usuario=usuario,
+                            tipo='salida',
+                            cantidad=cantidad,
+                            detalle=detalle,
+                            fecha=current_date
+                        )
                     )
-                )
-                total_creados += 1
+                    movs_material += 1
+                    total_creados += 1
+                
+                current_date += timedelta(days=1)
+            
+            # Bulk create parcial
+            if len(movimientos_batch) >= BATCH_SIZE:
+                Movimiento.objects.bulk_create(movimientos_batch)
+                movimientos_batch = []
 
-                # Guardar batch
-                if len(movimientos_batch) >= BATCH_SIZE:
-                    Movimiento.objects.bulk_create(movimientos_batch)
-                    movimientos_batch = []
+            # Barra de progreso
+            progreso = idx / len(materiales)
+            largo_barra = 40
+            llenos = int(progreso * largo_barra)
+            barra = '█' * llenos + '░' * (largo_barra - llenos)
+            self.stdout.write(f'\r [{barra}] {idx}/{len(materiales)} | {codigo:10s} | {movs_material} movs', ending='')
 
-            # Progreso
-            barra = '█' * (idx * 40 // len(materiales))
-            barra += '░' * (40 - idx * 40 // len(materiales))
-            self.stdout.write(
-                f'  [{barra}] {idx}/{len(materiales)} | {codigo:20s}'
-            )
-
-        # Guardar restantes
+        # Guardar remanentes
         if movimientos_batch:
             Movimiento.objects.bulk_create(movimientos_batch)
 
-        # Resumen
-        self.stdout.write('')
+        self.stdout.write('\n')
         self.stdout.write(self.style.SUCCESS('=' * 70))
-        self.stdout.write(self.style.SUCCESS('✅ GENERACIÓN COMPLETADA'))
-        self.stdout.write(self.style.SUCCESS('=' * 70))
-        self.stdout.write(f'📊 Total: {total_creados} movimientos')
-        self.stdout.write(f'📦 Materiales: {len(materiales)}')
-        self.stdout.write(f'📈 Promedio: {total_creados // len(materiales)}/material')
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('🚀 Siguiente paso:'))
-        self.stdout.write('   python manage.py calcular_stock_critico --sin-estacion')
+        self.stdout.write(f'✅ Proceso finalizado. Total: {total_creados} movimientos.')
+        self.stdout.write(f'📊 Promedio real: {total_creados // len(materiales)} movs/material')
         self.stdout.write(self.style.SUCCESS('=' * 70))
