@@ -5,21 +5,33 @@
 
 {% block extra_css %}
 <style>
-    .formset-row {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 15px;
-        position: relative;
+    .detalle-form .card-body {
+        padding: 0.75rem 0.75rem 0.5rem;
     }
-    .delete-row {
-        position: absolute;
-        top: 10px;
-        right: 10px;
+
+    .detalle-form .form-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .detalle-form select,
+    .detalle-form input[type="number"],
+    .detalle-form input[type="text"] {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+        height: 2.1rem;
+    }
+
+    .detalle-form .btn.remove-form {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    input[name$="-DELETE"] {
+        display: none !important;
     }
 </style>
 {% endblock %}
+
 
 {% block contenido %}
 <div class="dashboard-container" style="max-height: calc(100vh - 100px); overflow-y: auto;">
@@ -76,27 +88,27 @@
                         </div>
 
                         <!-- Contador visual -->
-                        <div class="row mb-3">
+                        <div class="row text-center mb-3">
                             <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body text-center py-3">
-                                        <h3 class="mb-1">
-                                            <span id="forms-count" class="text-primary">1</span> / 10
-                                        </h3>
-                                        <small class="text-muted">Materiales diferentes</small>
+                                <div class="card shadow-sm">
+                                    <div class="card-body">
+                                        <h3 id="forms-count">1</h3>
+                                        <p class="mb-0">Materiales diferentes</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body text-center py-3">
-                                        <h3 class="mb-1">
-                                            <span id="items-count" class="text-success">0</span>
-                                        </h3>
-                                        <small class="text-muted">Ítems totales</small>
+                                <div class="card shadow-sm">
+                                    <div class="card-body">
+                                        <h3 id="items-count">0</h3>
+                                        <p class="mb-0">Ítems totales</p>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div id="max-forms-warning" class="alert alert-info d-none">
+                            Ya alcanzaste el máximo de 10 materiales para esta solicitud.
                         </div>
 
                         
@@ -116,25 +128,69 @@
                             {{ formset.management_form }}
 
                             {% for form in formset %}
-                            <div class="detalle-form card mb-3 shadow-sm">
-                                {{ form.material }}
-                                {{ form.cantidad }}
-                                {{ form.id }}
-                                {{ form.DELETE }}
-                                <button type="button" class="btn btn-danger remove-form">Eliminar</button>
+                            <div class="detalle-form card mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-6 col-12">
+                                            <label class="form-label mb-1 small fw-semibold">
+                                                <i class="fas fa-box"></i> Material
+                                            </label>
+                                            {{ form.material }}
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <label class="form-label mb-1 small fw-semibold">
+                                                <i class="fas fa-hashtag"></i> Cantidad
+                                            </label>
+                                            {{ form.cantidad }}
+                                        </div>
+                                        <div class="col-md-3 col-6 text-md-end">
+                                            <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
+                                            <button type="button"
+                                                    class="btn btn-outline-danger btn-sm remove-form">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{ form.id }}
+                                    {{ form.DELETE }}
+                                </div>
                             </div>
                             {% endfor %}
                         </div>
 
                         <div id="empty-form-template" class="d-none">
-                            <div class="detalle-form card mb-3 shadow-sm">
-                                {{ formset.empty_form.material }}
-                                {{ formset.empty_form.cantidad }}
-                                {{ formset.empty_form.id }}
-                                {{ formset.empty_form.DELETE }}
-                                <button type="button" class="btn btn-danger remove-form">Eliminar</button>
+                            <div class="detalle-form card mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-6 col-12">
+                                            <label class="form-label mb-1 small fw-semibold">
+                                                <i class="fas fa-box"></i> Material
+                                            </label>
+                                            {{ formset.empty_form.material }}
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <label class="form-label mb-1 small fw-semibold">
+                                                <i class="fas fa-hashtag"></i> Cantidad
+                                            </label>
+                                            {{ formset.empty_form.cantidad }}
+                                        </div>
+                                        <div class="col-md-3 col-6 text-md-end">
+                                            <label class="form-label mb-1 d-none d-md-block">&nbsp;</label>
+                                            <button type="button"
+                                                    class="btn btn-outline-danger btn-sm remove-form">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{ formset.empty_form.id }}
+                                    {{ formset.empty_form.DELETE }}
+                                </div>
                             </div>
                         </div>
+
+
 
 
                     </div>
@@ -159,11 +215,57 @@
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    const MAX_FORMS = 10;
+    const MAX_CANTIDAD_POR_ITEM = 10;
     const totalFormsInput = $('#id_detalles-TOTAL_FORMS');
 
-    // Agregar formulario (siempre abajo)
+    // Contar formularios activos (no marcados DELETE y visibles)
+    function contarActivos() {
+        let count = 0;
+        $('.detalle-form').each(function() {
+            const deleted = $(this).find('input[name$="-DELETE"]').is(':checked');
+            if (!deleted && $(this).is(':visible')) {
+                count++;
+            }
+        });
+        return count;
+    }
+
+    // Recalcular resumen (materiales e ítems) y estado del botón
+    function updateResumen() {
+        const activos = contarActivos();
+        $('#forms-count').text(activos);
+
+        let totalItems = 0;
+        $('.detalle-form').each(function() {
+            const deleted = $(this).find('input[name$="-DELETE"]').is(':checked');
+            if (!deleted && $(this).is(':visible')) {
+                const cant = parseInt($(this).find('input[name$="-cantidad"]').val()) || 0;
+                totalItems += cant;
+            }
+        });
+        $('#items-count').text(totalItems);
+
+        // Límite visual de 10 materiales
+        if (activos >= MAX_FORMS) {
+            $('#add-form').prop('disabled', true).addClass('disabled');
+            $('#max-forms-warning').removeClass('d-none');
+        } else {
+            $('#add-form').prop('disabled', false).removeClass('disabled');
+            $('#max-forms-warning').addClass('d-none');
+        }
+    }
+
+    // Agregar formulario usando empty_form (igual que antes)
     $('#add-form').on('click', function(e) {
         e.preventDefault();
+
+        const activos = contarActivos();
+        if (activos >= MAX_FORMS) {
+            // Solo seguridad extra; el botón ya estará deshabilitado
+            alert('Máximo ' + MAX_FORMS + ' materiales por solicitud');
+            return;
+        }
 
         const currentTotal = parseInt(totalFormsInput.val());
         const newIndex = currentTotal;
@@ -174,24 +276,38 @@
         $('#detalles-container').append(html);
 
         totalFormsInput.val(currentTotal + 1);
+        updateResumen();
     });
 
-    // Eliminar formulario
+    // Eliminar formulario: marcar DELETE y ocultar (no tocar TOTAL_FORMS)
     $(document).on('click', '.remove-form', function(e) {
         e.preventDefault();
         const form = $(this).closest('.detalle-form');
 
-        const idField = form.find('input[name$="-id"]');
-        const hasId = idField.val();
+        // Marcar DELETE y ocultar
+        form.find('input[name$="-DELETE"]').prop('checked', true);
+        form.hide();
 
-        if (hasId) {
-            // Existente: marcar DELETE y ocultar
-            form.find('input[name$="-DELETE"]').prop('checked', true);
-            form.hide();
-        } else {
-            // Nuevo: quitar del DOM (no tocamos TOTAL_FORMS)
-            form.remove();
+        updateResumen();
+    });
+
+    // Validar cantidad por item (solo front, backend sigue validando)
+    $(document).on('input', 'input[name$="-cantidad"]', function() {
+        let cantidad = parseInt($(this).val());
+
+        if (cantidad > MAX_CANTIDAD_POR_ITEM) {
+            $(this).val(MAX_CANTIDAD_POR_ITEM);
+            alert('Máximo ' + MAX_CANTIDAD_POR_ITEM + ' unidades por material');
+        } else if (cantidad < 1 && $(this).val() !== '') {
+            $(this).val(1);
         }
+
+        updateResumen();
+    });
+
+    // Inicializar resumen al cargar
+    $(document).ready(function() {
+        updateResumen();
     });
 </script>
 {% endblock %}

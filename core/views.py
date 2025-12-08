@@ -374,8 +374,14 @@ def crear_solicitud(request):
         formset = DetalleSolicitudFormSet(request.POST)
         
         if form.is_valid() and formset.is_valid():
-            # ✅ FILTRAR: Solo detalles con material Y cantidad (no vacíos)
-            detalles_validos = []
+            
+            detalles_validos = [
+                 f for f in formset
+                if f.cleaned_data
+                and not f.cleaned_data.get('DELETE', False)
+                and f.cleaned_data.get('material')
+                and f.cleaned_data.get('cantidad')
+            ]
             for f in formset:
                 if f.cleaned_data and not f.cleaned_data.get('DELETE', False):
                     material = f.cleaned_data.get('material')
@@ -386,7 +392,7 @@ def crear_solicitud(request):
                         detalles_validos.append(f)
             
             if len(detalles_validos) == 0:
-                messages.error(request, '⚠️ Debes solicitar al menos 1 material.')
+                messages.error(request, 'Debes solicitar al menos 1 material.')
                 return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
                     'form': form,
                     'formset': formset,
@@ -394,7 +400,7 @@ def crear_solicitud(request):
             
             # Validar máximo 10 materiales
             if len(detalles_validos) > 10:
-                messages.error(request, '⚠️ No puedes solicitar más de 10 materiales diferentes por solicitud.')
+                messages.error(request, 'No puedes solicitar más de 10 materiales diferentes por solicitud.')
                 return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
                     'form': form,
                     'formset': formset,
@@ -406,7 +412,7 @@ def crear_solicitud(request):
                 if cantidad > 10:
                     messages.error(
                         request, 
-                        f'⚠️ No puedes solicitar más de 10 unidades del material "{detalle.cleaned_data["material"]}". Solicitaste: {cantidad}'
+                        f'No puedes solicitar más de 10 unidades del material "{detalle.cleaned_data["material"]}". Solicitaste: {cantidad}'
                     )
                     return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
                         'form': form,
@@ -419,7 +425,7 @@ def crear_solicitud(request):
                     solicitud.solicitante = request.user
                     solicitud.save()
                     
-                    # ✅ GUARDAR: Solo los detalles válidos (con datos)
+                    # GUARDAR: Solo los detalles válidos (con datos)
                     for detalle_form in detalles_validos:
                         detalle = detalle_form.save(commit=False)
                         detalle.solicitud = solicitud
@@ -439,7 +445,7 @@ def crear_solicitud(request):
                     
                     messages.success(
                         request, 
-                        f'✅ Solicitud #{solicitud.id} creada con {len(detalles_validos)} materiales ({cantidad_total} ítems totales).'
+                        f'Solicitud #{solicitud.id} creada con {len(detalles_validos)} materiales ({cantidad_total} ítems totales).'
                     )
                     return redirect('mis_solicitudes')
             except Exception as e:
