@@ -1,5 +1,5 @@
 from django import forms
-from .models import Material, Inventario, Solicitud, DetalleSolicitud, Local
+from .models import Material, Inventario, Solicitud, DetalleSolicitud, Local, Usuario
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
@@ -40,8 +40,8 @@ class MaterialInventarioForm(forms.ModelForm):
         widgets = {
             'codigo': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'unidad_medida': forms.Select(attrs={'class': 'form-select'}),  # ✅ Select
-            'categoria': forms.Select(attrs={'class': 'form-select'}),      # ✅ Select
+            'unidad_medida': forms.Select(attrs={'class': 'form-select'}),  
+            'categoria': forms.Select(attrs={'class': 'form-select'}),      
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
         }
         
@@ -169,12 +169,18 @@ class DetalleSolicitudForm(forms.ModelForm):
     
     cantidad = forms.IntegerField(
         min_value=1,
+        max_value=10,  
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'min': 1,
-            'placeholder': 'Cantidad'
+            'max': 10,  
+            'placeholder': 'Cantidad (máx. 10)'
         }),
-        label='Cantidad'
+        label='Cantidad',
+        error_messages={
+            'max_value': 'No puedes solicitar más de 10 unidades de este material.',
+            'min_value': 'Debes solicitar al menos 1 unidad.',
+        }
     )
     
     class Meta:
@@ -193,19 +199,20 @@ class DetalleSolicitudForm(forms.ModelForm):
             return f"{obj.descripcion} (Stock: {stock})"
         except:
             return f"{obj.descripcion} (Sin inventario)"
-        
-# Formset para manejar múltiples detalles
+
+
 DetalleSolicitudFormSet = inlineformset_factory(
     Solicitud,
     DetalleSolicitud,
     form=DetalleSolicitudForm,
-    extra=1,  # Número de formularios vacíos iniciales
-    min_num=1,  # Mínimo 1 material
-    max_num=10,  # Máximo 10 materiales por solicitud
+    extra=1,
+    min_num=1,
+    max_num=10,
     validate_min=True,
     validate_max=True,
     can_delete=True
 )
+
         
 class FiltroSolicitudesForm(forms.Form):
     """
@@ -325,3 +332,127 @@ class CambiarPasswordForm(PasswordChangeForm):
         model = User
         fields = ['old_password', 'new_password1', 'new_password2']
         
+class UsuarioForm(forms.ModelForm):
+    """Formulario para crear/editar usuarios (solo GERENCIA)"""
+    password = forms.CharField(
+        required=False,
+        label='Contraseña',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Dejar vacío para no cambiar (solo edición)'
+        }),
+        help_text='Mínimo 8 caracteres. Dejar vacío al editar si no quieres cambiar la contraseña.'
+    )
+    
+    confirmar_password = forms.CharField(
+        required=False,
+        label='Confirmar contraseña',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirmar contraseña'
+        })
+    )
+    
+    class Meta:
+        model = Usuario
+        fields = ['username', 'email', 'first_name', 'last_name', 'rol', 'is_active']
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de usuario'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'correo@ejemplo.com'
+            }),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Apellido'
+            }),
+            'rol': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        labels = {
+            'username': 'Nombre de usuario',
+            'email': 'Correo electrónico',
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'rol': 'Rol',
+            'is_active': 'Usuario activo'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.is_new = kwargs.pop('is_new', False)
+        super().__init__(*args, **kwargs)
+        
+        # Si es nuevo usuario, la contraseña es obligatoria
+        if self.is_new:
+            self.fields['password'].required = True
+            self.fields['confirmar_password'].required = True
+            self.fields['password'].help_text = 'Mínimo 8 caracteres.'
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        
+        # Verificar si existe otro usuario con ese username
+        if self.instance.pk:  # Editando
+            if Usuario.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+                raise ValidationError('Este nombre de usuario ya está en uso.')
+        else:  # Creando nuevo
+            if Usuario.objects.filter(username=username).exists():
+                raise ValidationError('Este nombre de usuario ya está en uso.')
+        
+        return username
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        
+        # Verificar si existe otro usuario con ese email
+        if self.instance.pk:  # Editando
+            if Usuario.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+                raise ValidationError('Este correo electrónico ya está en uso.')
+        else:  # Creando nuevo
+            if Usuario.objects.filter(email=email).exists():
+                raise ValidationError('Este correo electrónico ya está en uso.')
+        
+        return email
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        confirmar_password = cleaned_data.get('confirmar_password')
+        
+        # Validar contraseñas
+        if password or confirmar_password:
+            if password != confirmar_password:
+                raise ValidationError('Las contraseñas no coinciden.')
+            
+            if len(password) < 8:
+                raise ValidationError('La contraseña debe tener al menos 8 caracteres.')
+        
+        # Si es nuevo usuario y no hay contraseña
+        if self.is_new and not password:
+            raise ValidationError('Debes ingresar una contraseña para el nuevo usuario.')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        
+        
+        if password:
+            usuario.set_password(password)
+        
+        if commit:
+            usuario.save()
+        
+        return usuario

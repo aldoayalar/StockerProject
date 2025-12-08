@@ -525,6 +525,44 @@
                     </a>
                 </li>
                 {% endif %}
+
+                {% if user.rol == 'GERENCIA' %}
+                    <!-- Dashboard -->
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    
+                    <!-- Inventario -->
+                    <a href="{% url 'inventario' %}" class="nav-link {% if 'inventario' in request.path %}active{% endif %}">
+                        <i class="fas fa-boxes"></i> Inventario
+                    </a>
+                    
+                    <!-- Solicitudes -->
+                    <a href="{% url 'gestionar_solicitudes' %}" class="nav-link {% if 'gestionar' in request.path %}active{% endif %}">
+                        <i class="fas fa-clipboard-list"></i> Gestionar Solicitudes
+                    </a>
+                    
+                    <!-- Gestión de Usuarios -->
+                    <a href="{% url 'gestion_usuarios' %}" class="nav-link {% if 'usuarios' in request.path %}active{% endif %}">
+                        <i class="fas fa-users-cog"></i> Gestión de Usuarios
+                    </a>
+                    
+                    <!-- Locales -->
+                    <a href="{% url 'gestion_locales' %}" class="nav-link {% if 'locales' in request.path %}active{% endif %}">
+                        <i class="fas fa-building"></i> Gestión de Locales
+                    </a>
+                    
+                    <!-- Historial -->
+                    <a href="{% url 'historial_solicitudes' %}" class="nav-link {% if 'historial' in request.path %}active{% endif %}">
+                        <i class="fas fa-history"></i> Historial
+                    </a>
+                    
+                    <!-- Predicción Stock -->
+                    <a href="{% url 'prediccion_stock' %}" class="nav-link {% if 'prediccion' in request.path %}active{% endif %}">
+                        <i class="fas fa-chart-line"></i> Predicción Stock
+                    </a>
+                {% endif %}
+
                 
                 <!-- ========== PANEL ADMIN (SOLO SUPERUSUARIO) ========== -->
                 {% if user.is_superuser %}
@@ -648,118 +686,179 @@
         </footer>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        // Toggle Sidebar
-        document.getElementById('toggleSidebar').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-            document.getElementById('mainContent').classList.toggle('expanded');
-            document.getElementById('footer').classList.toggle('expanded');
-        });
-
-        // Responsive sidebar for mobile
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.getElementById('mainContent').classList.add('expanded');
-            document.getElementById('footer').classList.add('expanded');
-        }
-
-        {% if user.is_authenticated %}
-            // Sistema de Notificaciones (TODOS los roles)
-            function cargarNotificaciones() {
-                fetch("{% url 'obtener_notificaciones_json' %}")
-                    .then(response => response.json())
-                    .then(data => {
-                        const badge = document.getElementById('notif-count');
-                        const lista = document.getElementById('notificaciones-lista');
-                        
-                        if (!badge || !lista) return;
-                        
-                        // Actualizar badge
-                        if (data.count > 0) {
-                            badge.textContent = data.count > 99 ? '99+' : data.count;
-                            badge.style.display = 'block';
-                        } else {
-                            badge.style.display = 'none';
-                        }
-                        
-                        // Actualizar lista
-                        if (data.notificaciones.length > 0) {
-                            let html = '';
-                            data.notificaciones.forEach(notif => {
-                                // Determinar clase de icono según tipo
-                                let iconClass = 'aprobacion';
-                                if (notif.tipo === 'stock_critico') {
-                                    iconClass = 'stock-critico';
-                                } else if (notif.tipo === 'solicitud_pendiente') {
-                                    iconClass = 'solicitud';
-                                } else if (notif.tipo === 'material_nuevo') {
-                                    iconClass = 'material';
-                                } else if (notif.tipo === 'solicitud_aprobada') {
-                                    iconClass = 'aprobacion';
-                                } else if (notif.tipo === 'solicitud_rechazada') {
-                                    iconClass = 'stock-critico';
-                                } else if (notif.tipo === 'solicitud_despachada') {
-                                    iconClass = 'aprobacion';
-                                }
-                                
-                                html += `
-                                    <a href="/notificaciones/${notif.id}/leer/" class="notif-item no-leida">
-                                        <div class="d-flex align-items-start">
-                                            <div class="notif-item-icon ${iconClass} me-2">
-                                                <i class="fas ${notif.icono}"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <p class="mb-1 small fw-bold">${notif.mensaje}</p>
-                                                <small class="text-muted">
-                                                    <i class="far fa-clock"></i> ${notif.fecha}
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </a>
-                                `;
-                            });
-                            lista.innerHTML = html;
-                        } else {
-                            lista.innerHTML = `
-                                <div class="text-center py-4 text-muted">
-                                    <i class="far fa-bell-slash fa-2x mb-2"></i>
-                                    <p class="mb-0 small">No tienes notificaciones nuevas</p>
-                                </div>
-                            `;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error al cargar notificaciones:', error);
-                        const lista = document.getElementById('notificaciones-lista');
-                        if (lista) {
-                            lista.innerHTML = `
-                                <div class="text-center py-4 text-danger">
-                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                                    <p class="mb-0 small">Error al cargar notificaciones</p>
-                                </div>
-                            `;
-                        }
-                    });
-            }
-
-            // Cargar notificaciones al inicio
-            cargarNotificaciones();
-
-            // Actualizar cada 30 segundos
-            setInterval(cargarNotificaciones, 30000);
-
-            // Actualizar al abrir el dropdown
-            const notifDropdown = document.getElementById('notificacionesDropdown');
-            if (notifDropdown) {
-                notifDropdown.addEventListener('click', cargarNotificaciones);
-            }
-            {% endif %}
-    </script>
-    
-    {% block extra_js %}{% endblock %}
-    
 </body>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Toggle Sidebar
+    document.getElementById('toggleSidebar').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('mainContent').classList.toggle('expanded');
+        document.getElementById('footer').classList.toggle('expanded');
+    });
+
+    // Responsive sidebar for mobile
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('mainContent').classList.add('expanded');
+        document.getElementById('footer').classList.add('expanded');
+    }
+
+    {% if user.is_authenticated %}
+    // Sistema de Notificaciones (TODOS los roles)
+    let ultimoConteoNotificaciones = 0; // ✅ NUEVO: Para detectar notificaciones nuevas
+    
+    function cargarNotificaciones() {
+        fetch("{% url 'obtener_notificaciones_json' %}")
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notif-count');
+                const lista = document.getElementById('notificaciones-lista');
+                
+                if (!badge || !lista) return;
+                
+                // ✅ NUEVO: Detectar si hay nuevas notificaciones
+                if (ultimoConteoNotificaciones > 0 && data.count > ultimoConteoNotificaciones) {
+                    mostrarToastNotificacion(data.notificaciones[0]);
+                }
+                ultimoConteoNotificaciones = data.count;
+                
+                // Actualizar badge
+                if (data.count > 0) {
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+                
+                // Actualizar lista
+                if (data.notificaciones.length > 0) {
+                    let html = '';
+                    data.notificaciones.forEach(notif => {
+                        // Determinar clase de icono según tipo
+                        let iconClass = 'aprobacion';
+                        if (notif.tipo === 'stock_critico') {
+                            iconClass = 'stock-critico';
+                        } else if (notif.tipo === 'solicitud_pendiente') {
+                            iconClass = 'solicitud';
+                        } else if (notif.tipo === 'material_nuevo') {
+                            iconClass = 'material';
+                        } else if (notif.tipo === 'solicitud_aprobada') {
+                            iconClass = 'aprobacion';
+                        } else if (notif.tipo === 'solicitud_rechazada') {
+                            iconClass = 'stock-critico';
+                        } else if (notif.tipo === 'solicitud_despachada') {
+                            iconClass = 'aprobacion';
+                        }
+                        
+                        html += `
+                            <a href="/notificaciones/${notif.id}/leer/" class="notif-item no-leida">
+                                <div class="d-flex align-items-start">
+                                    <div class="notif-item-icon ${iconClass} me-2">
+                                        <i class="fas ${notif.icono}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 small fw-bold">${notif.mensaje}</p>
+                                        <small class="text-muted">
+                                            <i class="far fa-clock"></i> ${notif.fecha}
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                    });
+                    lista.innerHTML = html;
+                } else {
+                    lista.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="far fa-bell-slash fa-2x mb-2"></i>
+                            <p class="mb-0 small">No tienes notificaciones nuevas</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar notificaciones:', error);
+                const lista = document.getElementById('notificaciones-lista');
+                if (lista) {
+                    lista.innerHTML = `
+                        <div class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p class="mb-0 small">Error al cargar notificaciones</p>
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    // ✅ NUEVO: Mostrar toast de notificación
+    function mostrarToastNotificacion(notif) {
+        // Crear toast dinámico
+        const toastContainer = document.getElementById('toast-container') || crearContainerToast();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-primary border-0';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas ${notif.icono} me-2"></i>
+                    <strong>Nueva notificación</strong><br>
+                    <span class="small">${notif.mensaje}</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+        bsToast.show();
+        
+        // Eliminar del DOM después de cerrarse
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        
+        // Sonido (opcional - solo si existe el archivo)
+        try {
+            const audio = new Audio('/static/sounds/notification.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        } catch(e) {}
+    }
+
+    // ✅ NUEVO: Crear contenedor para toasts
+    function crearContainerToast() {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+        return container;
+    }
+
+    // Cargar notificaciones al inicio
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarNotificaciones();
+        
+        // Actualizar cada 30 segundos
+        setInterval(cargarNotificaciones, 30000);
+        
+        // Actualizar al abrir el dropdown
+        const notifDropdown = document.getElementById('notificacionesDropdown');
+        if (notifDropdown) {
+            notifDropdown.addEventListener('click', cargarNotificaciones);
+        }
+    });
+    {% endif %}
+</script>
+
+{% block extra_js %}
+{% endblock %}
+
+
+
 </html>

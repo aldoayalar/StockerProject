@@ -53,7 +53,8 @@ urlpatterns = [
     
     #Notificaciones
     path('notificaciones/', views.mis_notificaciones, name='mis_notificaciones'),
-    path('notificaciones/<int:id>/leer/', views.marcar_leida, name='marcar_leida'),
+    path('notificaciones/<int:id>/leer/', views.leer_notificacion, name='leer_notificacion'),
+    path('notificaciones/<int:id>/marcar/', views.marcar_leida, name='marcar_leida'),
     path('notificaciones/marcar-todas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
     path('notificaciones/<int:id>/eliminar/', views.eliminar_notificacion, name='eliminar_notificacion'),
     path('api/notificaciones/', views.obtener_notificaciones_json, name='obtener_notificaciones_json'),
@@ -70,6 +71,13 @@ urlpatterns = [
     path('locales/crear/', views.local_crear, name='local_crear'),
     path('locales/<int:local_id>/editar/', views.local_editar, name='local_editar'),
     path('locales/<int:local_id>/eliminar/', views.local_eliminar, name='local_eliminar'),
+    
+    # Gestión de usuarios (SOLO GERENCIA)
+    path('usuarios/', views.gestion_usuarios, name='gestion_usuarios'),
+    path('usuarios/crear/', views.usuario_crear, name='usuario_crear'),
+    path('usuarios/<int:usuario_id>/editar/', views.usuario_editar, name='usuario_editar'),
+    path('usuarios/<int:usuario_id>/eliminar/', views.usuario_eliminar, name='usuario_eliminar'),
+    path('usuarios/<int:usuario_id>/toggle/', views.usuario_toggle_estado, name='usuario_toggle_estado'),
     
     #calculo Stock Critico
     path('prediccion-stock/', views.prediccion_stock, name='prediccion_stock'),

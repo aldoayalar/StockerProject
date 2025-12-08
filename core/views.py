@@ -8,10 +8,12 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.urls import reverse
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import Inventario, Material, Notificacion, Solicitud, DetalleSolicitud, Movimiento, Usuario, Alerta, MLResult, Local
-from .forms import MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, DetalleSolicitudFormSet, EditarMaterialForm, LocalForm, CargaMasivaStockForm
+from .forms import (MaterialForm, MaterialInventarioForm, SolicitudForm, FiltroSolicitudesForm, CambiarPasswordForm, 
+                    DetalleSolicitudFormSet, EditarMaterialForm, LocalForm, CargaMasivaStockForm, UsuarioForm)
 from .decorators import verificar_rol
 from .ml_stock_critico import ejecutar_calculo_global
 from django.views.decorators.http import require_POST
@@ -364,7 +366,7 @@ def recalcular_stock_ml(request):
 
 # ============================================= SOLICITUDES DE MATERIALES ====================================
 @login_required
-@verificar_rol('TECNICO')  # SOLO TÉCNICO ve sus solicitudes
+@verificar_rol('TECNICO')
 def crear_solicitud(request):
     """Vista para crear una solicitud con múltiples materiales"""
     if request.method == 'POST':
@@ -372,24 +374,78 @@ def crear_solicitud(request):
         formset = DetalleSolicitudFormSet(request.POST)
         
         if form.is_valid() and formset.is_valid():
+            # ✅ FILTRAR: Solo detalles con material Y cantidad (no vacíos)
+            detalles_validos = []
+            for f in formset:
+                if f.cleaned_data and not f.cleaned_data.get('DELETE', False):
+                    material = f.cleaned_data.get('material')
+                    cantidad = f.cleaned_data.get('cantidad')
+                    
+                    # Solo agregar si tiene AMBOS campos llenos
+                    if material and cantidad:
+                        detalles_validos.append(f)
+            
+            if len(detalles_validos) == 0:
+                messages.error(request, '⚠️ Debes solicitar al menos 1 material.')
+                return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
+                    'form': form,
+                    'formset': formset,
+                })
+            
+            # Validar máximo 10 materiales
+            if len(detalles_validos) > 10:
+                messages.error(request, '⚠️ No puedes solicitar más de 10 materiales diferentes por solicitud.')
+                return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
+                    'form': form,
+                    'formset': formset,
+                })
+            
+            # Validar cada cantidad máximo 10
+            for detalle in detalles_validos:
+                cantidad = detalle.cleaned_data.get('cantidad', 0)
+                if cantidad > 10:
+                    messages.error(
+                        request, 
+                        f'⚠️ No puedes solicitar más de 10 unidades del material "{detalle.cleaned_data["material"]}". Solicitaste: {cantidad}'
+                    )
+                    return render(request, 'funcionalidad/solmat_crear_solicitud.html', {
+                        'form': form,
+                        'formset': formset,
+                    })
+            
             try:
                 with transaction.atomic():
                     solicitud = form.save(commit=False)
                     solicitud.solicitante = request.user
                     solicitud.save()
                     
-                    formset.instance = solicitud
-                    formset.save()
+                    # ✅ GUARDAR: Solo los detalles válidos (con datos)
+                    for detalle_form in detalles_validos:
+                        detalle = detalle_form.save(commit=False)
+                        detalle.solicitud = solicitud
+                        detalle.save()
+                    
+                    cantidad_total = sum(d.cleaned_data.get('cantidad', 0) for d in detalles_validos)
+                    
+                    # Notificar a BODEGA
+                    usuarios_bodega = Usuario.objects.filter(rol='BODEGA')
+                    for bodeguero in usuarios_bodega:
+                        Notificacion.objects.create(
+                            usuario=bodeguero,
+                            tipo='solicitud_pendiente',
+                            mensaje=f'Nueva solicitud #{solicitud.id} de {request.user.get_full_name()} - {len(detalles_validos)} materiales ({cantidad_total} items)',
+                            url=f'/solicitud/{solicitud.id}/'
+                        )
                     
                     messages.success(
-                        request,
-                        f'Solicitud #{solicitud.id} creada exitosamente con {solicitud.total_items()} materiales.'
+                        request, 
+                        f'✅ Solicitud #{solicitud.id} creada con {len(detalles_validos)} materiales ({cantidad_total} ítems totales).'
                     )
                     return redirect('mis_solicitudes')
             except Exception as e:
-                messages.error(request, f'Error al crear la solicitud: {str(e)}')
+                messages.error(request, f'❌ Error al crear la solicitud: {str(e)}')
         else:
-            messages.error(request, 'Por favor corrige los errores del formulario.')
+            messages.error(request, '⚠️ Por favor corrige los errores del formulario.')
     else:
         form = SolicitudForm()
         formset = DetalleSolicitudFormSet()
@@ -401,6 +457,8 @@ def crear_solicitud(request):
     
     return render(request, 'funcionalidad/solmat_crear_solicitud.html', context)
 
+
+
 @login_required
 def mis_solicitudes(request):
     """Vista para listar las solicitudes del usuario actual"""
@@ -408,11 +466,27 @@ def mis_solicitudes(request):
         solicitante=request.user
     ).prefetch_related('detalles__material').order_by('-fecha_solicitud')
     
+    # Estadísticas
+    stats = {
+        'total': solicitudes.count(),
+        'pendientes': solicitudes.filter(estado='pendiente').count(),
+        'aprobadas': solicitudes.filter(estado='aprobada').count(),
+        'rechazadas': solicitudes.filter(estado='rechazada').count(),
+        'despachadas': solicitudes.filter(estado='despachada').count(),
+    }
+    
+    paginator = Paginator(solicitudes, 10)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'solicitudes': solicitudes,
+        'solicitudes': page_obj, 
+        'page_obj': page_obj,     
+        'stats': stats,
     }
     
     return render(request, 'funcionalidad/solmat_mis_solicitudes.html', context)
+
 
 @login_required
 def detalle_solicitud(request, solicitud_id):
@@ -427,39 +501,58 @@ def detalle_solicitud(request, solicitud_id):
         if solicitud.solicitante != request.user:
             messages.error(request, 'No tienes permiso para ver esta solicitud.')
             return redirect('mis_solicitudes')
-    elif request.user.rol in ['BODEGA']:
+    elif request.user.rol in ['BODEGA', 'GERENCIA']:
         pass
     else:
         messages.error(request, 'No tienes permiso para ver solicitudes.')
         return redirect('dashboard')
     
-    
+    # Calcular stock...
     detalles_info = []
     tiene_stock_suficiente = True
     
-    if request.user.rol in ['BODEGA']:
-        for detalle in solicitud.detalles.all():
-            try:
-                inventario = detalle.material.inventario
-                stock_disponible = inventario.stock_actual
-                nuevo_stock = stock_disponible - detalle.cantidad
-                if nuevo_stock < 0:
-                    tiene_stock_suficiente = False
-            except Inventario.DoesNotExist:
-                stock_disponible = 0
-                nuevo_stock = 0
-            
-            detalles_info.append({
-                'detalle': detalle,
-                'stock_disponible': stock_disponible,
-                'nuevo_stock': nuevo_stock
-            })
+    for detalle in solicitud.detalles.all():
+        try:
+            inventario = detalle.material.inventario
+            stock_disponible = inventario.stock_actual
+            nuevo_stock = stock_disponible - detalle.cantidad
+            if nuevo_stock < 0:
+                tiene_stock_suficiente = False
+        except Inventario.DoesNotExist:
+            stock_disponible = 0
+            nuevo_stock = 0
+            tiene_stock_suficiente = False
+        
+        detalles_info.append({
+            'detalle': detalle,
+            'stock_disponible': stock_disponible,
+            'nuevo_stock': nuevo_stock
+        })
+    
+    # ✅ NUEVO: Detectar desde dónde vino
+    referer = request.META.get('HTTP_REFERER', '')
+    
+    if 'notificaciones' in referer:
+        url_volver = reverse('mis_notificaciones')
+        texto_volver = 'Volver a notificaciones'
+    elif request.user.rol == 'TECNICO':
+        url_volver = reverse('mis_solicitudes')
+        texto_volver = 'Volver a mis solicitudes'
+    elif request.user.rol in ['BODEGA', 'GERENCIA']:
+        url_volver = reverse('gestionar_solicitudes')
+        texto_volver = 'Volver a gestionar'
+    else:
+        url_volver = reverse('dashboard')
+        texto_volver = 'Volver al inicio'
     
     context = {
         'solicitud': solicitud,
-        'detalles_info': detalles_info, 
-        'tiene_stock_suficiente': tiene_stock_suficiente, 
-        'es_bodega': request.user.rol in ['BODEGA'] 
+        'detalles_info': detalles_info,
+        'tiene_stock_suficiente': tiene_stock_suficiente,
+        'es_bodega_gerencia': request.user.rol in ['BODEGA', 'GERENCIA'],
+        'es_bodega': request.user.rol == 'BODEGA',
+        'url_volver': url_volver,  # ✅ NUEVO
+        'texto_volver': texto_volver,  # ✅ NUEVO
     }
     
     return render(request, 'funcionalidad/solmat_detalle_solicitud.html', context)
@@ -992,15 +1085,11 @@ def mis_notificaciones(request):
 
 @login_required
 def marcar_leida(request, id):
-    """Marcar una notificación como leída"""
+    """Solo marcar como leída (sin redirigir a URL)"""
     notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
     notificacion.leida = True
     notificacion.save()
-    
-    # Si tiene URL asociada, redirigir ahí
-    if notificacion.url:
-        return redirect(notificacion.url)
-    
+    messages.success(request, 'Notificación marcada como leída.')
     return redirect('mis_notificaciones')
 
 @login_required
@@ -1014,6 +1103,18 @@ def marcar_todas_leidas(request):
         
         messages.success(request, f'✓ {count} notificaciones marcadas como leídas.')
     
+    return redirect('mis_notificaciones')
+
+@login_required
+def leer_notificacion(request, id):
+    """Leer notificación: marca como leída Y redirige a su URL"""
+    notificacion = get_object_or_404(Notificacion, id=id, usuario=request.user)
+    notificacion.leida = True
+    notificacion.save()
+    
+    # Redirigir a la URL de la notificación si existe
+    if notificacion.url:
+        return redirect(notificacion.url)
     return redirect('mis_notificaciones')
 
 @login_required
@@ -1668,6 +1769,184 @@ def local_eliminar(request, local_id):
     return render(request, 'funcionalidad/local_confirm_delete.html', context)
 
 
+# ==========================================  GESTIÓN DE USUARIOS (SOLO GERENCIA) ==========================================
+
+@login_required
+@verificar_rol('GERENCIA')
+def gestion_usuarios(request):
+    """Vista para gestión de usuarios (solo GERENCIA)"""
+    usuarios = Usuario.objects.all().order_by('-date_joined')
+    
+    # Búsqueda
+    query = request.GET.get('q', '').strip()
+    if query:
+        usuarios = usuarios.filter(
+            Q(username__icontains=query) |
+            Q(email__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        )
+    
+    # Filtro por rol
+    rol_filtro = request.GET.get('rol', '')
+    if rol_filtro:
+        usuarios = usuarios.filter(rol=rol_filtro)
+    
+    # Filtro por estado
+    estado_filtro = request.GET.get('estado', '')
+    if estado_filtro == 'activo':
+        usuarios = usuarios.filter(is_active=True)
+    elif estado_filtro == 'inactivo':
+        usuarios = usuarios.filter(is_active=False)
+    
+    # Estadísticas
+    stats = {
+        'total': Usuario.objects.count(),
+        'activos': Usuario.objects.filter(is_active=True).count(),
+        'inactivos': Usuario.objects.filter(is_active=False).count(),
+        'tecnicos': Usuario.objects.filter(rol='TECNICO').count(),
+        'bodega': Usuario.objects.filter(rol='BODEGA').count(),
+        'gerencia': Usuario.objects.filter(rol='GERENCIA').count(),
+    }
+    
+    # Paginación
+    paginator = Paginator(usuarios, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'usuarios': page_obj,
+        'page_obj': page_obj,
+        'query': query,
+        'rol_filtro': rol_filtro,
+        'estado_filtro': estado_filtro,
+        'stats': stats,
+        'roles': Usuario.ROL_CHOICES,
+    }
+    
+    return render(request, 'funcionalidad/usuarios_gestion.html', context)
+
+
+@login_required
+@verificar_rol('GERENCIA')
+def usuario_crear(request):
+    """Vista para crear un nuevo usuario (solo GERENCIA)"""
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, is_new=True)
+        
+        if form.is_valid():
+            usuario = form.save()
+            messages.success(
+                request, 
+                f'✅ Usuario "{usuario.username}" creado exitosamente con rol {usuario.get_rol_display()}.'
+            )
+            return redirect('gestion_usuarios')
+    else:
+        form = UsuarioForm(is_new=True)
+    
+    context = {
+        'form': form,
+        'titulo': 'Crear Usuario',
+        'accion': 'Crear'
+    }
+    
+    return render(request, 'funcionalidad/usuarios_form.html', context)
+
+
+@login_required
+@verificar_rol('GERENCIA')
+def usuario_editar(request, usuario_id):
+    """Vista para editar un usuario existente (solo GERENCIA)"""
+    usuario = get_object_or_404(Usuario, pk=usuario_id)
+    
+    # Prevenir que se edite a sí mismo (opcional)
+    if usuario == request.user:
+        messages.warning(request, '⚠️ No puedes editar tu propio usuario. Usa "Cambiar Contraseña" en tu perfil.')
+        return redirect('gestion_usuarios')
+    
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, instance=usuario, is_new=False)
+        
+        if form.is_valid():
+            usuario = form.save()
+            messages.success(
+                request, 
+                f'✅ Usuario "{usuario.username}" actualizado exitosamente.'
+            )
+            return redirect('gestion_usuarios')
+    else:
+        form = UsuarioForm(instance=usuario, is_new=False)
+    
+    context = {
+        'form': form,
+        'usuario': usuario,
+        'titulo': f'Editar Usuario: {usuario.username}',
+        'accion': 'Actualizar'
+    }
+    
+    return render(request, 'funcionalidad/usuarios_form.html', context)
+
+
+@login_required
+@verificar_rol('GERENCIA')
+def usuario_eliminar(request, usuario_id):
+    """Vista para eliminar/desactivar un usuario (solo GERENCIA)"""
+    usuario = get_object_or_404(Usuario, pk=usuario_id)
+    
+    # Prevenir que se elimine a sí mismo
+    if usuario == request.user:
+        messages.error(request, '❌ No puedes eliminar tu propio usuario.')
+        return redirect('gestion_usuarios')
+    
+    if request.method == 'POST':
+        # Verificar si tiene solicitudes asociadas
+        solicitudes_count = Solicitud.objects.filter(solicitante=usuario).count()
+        
+        if solicitudes_count > 0:
+            # No eliminar, solo desactivar
+            usuario.is_active = False
+            usuario.save()
+            messages.warning(
+                request, 
+                f'⚠️ Usuario "{usuario.username}" desactivado (tiene {solicitudes_count} solicitudes asociadas).'
+            )
+        else:
+            # Eliminar permanentemente
+            nombre = f"{usuario.username}"
+            usuario.delete()
+            messages.success(request, f'✅ Usuario "{nombre}" eliminado exitosamente.')
+        
+        return redirect('gestion_usuarios')
+    
+    # Contar solicitudes
+    solicitudes_count = Solicitud.objects.filter(solicitante=usuario).count()
+    
+    context = {
+        'usuario': usuario,
+        'solicitudes_count': solicitudes_count,
+    }
+    
+    return render(request, 'funcionalidad/usuarios_confirm_delete.html', context)
+
+
+@login_required
+@verificar_rol('GERENCIA')
+def usuario_toggle_estado(request, usuario_id):
+    """Activar/desactivar usuario rápidamente"""
+    if request.method == 'POST':
+        usuario = get_object_or_404(Usuario, pk=usuario_id)
+        
+        if usuario == request.user:
+            messages.error(request, '❌ No puedes cambiar tu propio estado.')
+            return redirect('gestion_usuarios')
+        
+        usuario.is_active = not usuario.is_active
+        usuario.save()
+        
+        estado = "activado" if usuario.is_active else "desactivado"
+        messages.success(request, f'✅ Usuario "{usuario.username}" {estado}.')
+    
+    return redirect('gestion_usuarios')
 
 
 @login_required

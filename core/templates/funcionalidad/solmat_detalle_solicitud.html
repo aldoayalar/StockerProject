@@ -13,9 +13,19 @@
                     <i class="fas fa-clipboard-list text-primary"></i>
                     Solicitud #{{ solicitud.id }}
                 </h2>
-                <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Volver
-                </a>
+                 {% if user.rol == 'TECNICO' %}
+                    <a href="{% url 'mis_solicitudes' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Mis solicitudes
+                    </a>
+                {% elif user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
+                    <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Gestionar
+                    </a>
+                {% else %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Inicio
+                    </a>
+                {% endif %}
             </div>
 
             <!-- ESTADO BADGE -->

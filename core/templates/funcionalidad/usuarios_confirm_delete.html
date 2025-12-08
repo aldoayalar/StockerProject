@@ -1,0 +1,110 @@
+{% extends 'general/base.html' %}
+{% load static %}
+
+{% block titulo %}Eliminar Usuario{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-circle"></i> 
+                            ¿Estás seguro?
+                        </h5>
+                        <p class="mb-0">
+                            Esta acción <strong>no se puede deshacer</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Información del usuario -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-user"></i> 
+                                {{ usuario.username }}
+                            </h5>
+                            <ul class="list-unstyled mb-0">
+                                <li>
+                                    <strong>Nombre:</strong> 
+                                    {{ usuario.get_full_name|default:"No especificado" }}
+                                </li>
+                                <li>
+                                    <strong>Email:</strong> 
+                                    {{ usuario.email }}
+                                </li>
+                                <li>
+                                    <strong>Rol:</strong> 
+                                    <span class="badge 
+                                        {% if usuario.rol == 'TECNICO' %}bg-info
+                                        {% elif usuario.rol == 'BODEGA' %}bg-warning text-dark
+                                        {% elif usuario.rol == 'GERENCIA' %}bg-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ usuario.get_rol_display }}
+                                    </span>
+                                </li>
+                                <li>
+                                    <strong>Registrado:</strong> 
+                                    {{ usuario.date_joined|date:"d/m/Y H:i" }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Advertencias según datos asociados -->
+                    {% if solicitudes_count > 0 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Atención:</strong> Este usuario tiene:
+                            <ul class="mb-0 mt-2">
+                                <li>
+                                    <strong>{{ solicitudes_count }}</strong> 
+                                    solicitud{{ solicitudes_count|pluralize:"es" }} registrada{{ solicitudes_count|pluralize }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                El usuario será <strong>desactivado</strong> en lugar de eliminado 
+                                para mantener el historial de solicitudes.
+                            </p>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Este usuario no tiene datos asociados y será 
+                            <strong>eliminado permanentemente</strong>.
+                        </div>
+                    {% endif %}
+
+                    <!-- Formulario de confirmación -->
+                    <form method="POST" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between gap-2">
+                            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary flex-fill">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger flex-fill">
+                                <i class="fas fa-trash"></i> 
+                                {% if solicitudes_count > 0 %}
+                                    Desactivar Usuario
+                                {% else %}
+                                    Eliminar Usuario
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

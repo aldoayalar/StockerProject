@@ -1,0 +1,197 @@
+{% extends 'general/base.html' %}
+{% load static %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-{% if usuario %}edit{% else %}plus{% endif %}"></i> 
+                        {{ titulo }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Mostrar errores generales -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Información básica -->
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="fas fa-info-circle"></i> Información Básica
+                        </h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    {{ form.username.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.username.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="text-muted">Usado para iniciar sesión</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    {{ form.email.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.email.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    {{ form.first_name.label }}
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.first_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    {{ form.last_name.label }}
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.last_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Rol y Estado -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-user-tag"></i> Rol y Permisos
+                        </h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.rol.id_for_label }}" class="form-label">
+                                    {{ form.rol.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.rol }}
+                                {% if form.rol.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.rol.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="text-muted d-block mt-1">
+                                    <strong>TECNICO:</strong> Solicita materiales<br>
+                                    <strong>BODEGA:</strong> Aprueba/despacha solicitudes<br>
+                                    <strong>GERENCIA:</strong> Acceso completo
+                                </small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label d-block">Estado</label>
+                                <div class="form-check form-switch mt-2">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        {{ form.is_active.label }}
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.is_active.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="text-muted d-block mt-2">
+                                    Usuarios inactivos no pueden iniciar sesión
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Contraseña -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-lock"></i> Contraseña
+                            {% if usuario %}
+                                <span class="badge bg-info small">Opcional al editar</span>
+                            {% else %}
+                                <span class="badge bg-danger small">Requerida</span>
+                            {% endif %}
+                        </h5>
+
+                        {% if not usuario %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                La contraseña debe tener al menos 8 caracteres.
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Deja estos campos vacíos si no quieres cambiar la contraseña.
+                            </div>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.password.id_for_label }}" class="form-label">
+                                    {{ form.password.label }}
+                                    {% if not usuario %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.password.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if form.password.help_text %}
+                                    <small class="text-muted">{{ form.password.help_text }}</small>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.confirmar_password.id_for_label }}" class="form-label">
+                                    {{ form.confirmar_password.label }}
+                                    {% if not usuario %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {{ form.confirmar_password }}
+                                {% if form.confirmar_password.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.confirmar_password.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> {{ accion }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

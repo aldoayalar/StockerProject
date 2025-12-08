@@ -1,115 +1,281 @@
-{% extends "general/base.html" %}
+{% extends 'general/base.html' %}
 {% load static %}
 
-{% block title %}<h2><i class="fas fa-clipboard-list"></i> Mis Solicitudes</h2>{% endblock %}
-
-{% block extra_css %}
-<style>
-    .solicitud-card {
-        transition: transform 0.2s;
-        border-left: 4px solid #6c757d;
-    }
-    .solicitud-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .solicitud-card.pendiente {
-        border-left-color: #ffc107;
-    }
-    .solicitud-card.aprobada {
-        border-left-color: #28a745;
-    }
-    .solicitud-card.rechazada {
-        border-left-color: #dc3545;
-    }
-    .solicitud-card.despachada {
-        border-left-color: #17a2b8;
-    }
-    .material-item {
-        padding: 8px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        margin-bottom: 5px;
-    }
-</style>
-{% endblock %}
+{% block titulo %}Mis Solicitudes{% endblock %}
 
 {% block contenido %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-end align-items-center mb-4">
-        
-        <a href="{% url 'crear_solicitud' %}" class="btn btn-success">
+<div class="container mt-4">
+    <!-- Header con botón crear -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-clipboard-list"></i> Mis Solicitudes
+        </h2>
+        <a href="{% url 'crear_solicitud' %}" class="btn btn-primary btn-lg">
             <i class="fas fa-plus"></i> Nueva Solicitud
         </a>
     </div>
 
-    {% if solicitudes %}
-        <div class="row">
-            {% for solicitud in solicitudes %}
-            <div class="col-12 col-md-6 col-lg-4 mb-4">
-                <div class="card solicitud-card {{ solicitud.estado }} shadow-sm h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><strong>Solicitud #{{ solicitud.id }}</strong></span>
-                        {% if solicitud.estado == 'pendiente' %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                        {% elif solicitud.estado == 'aprobada' %}
-                            <span class="badge bg-success">Aprobada</span>
-                        {% elif solicitud.estado == 'rechazada' %}
-                            <span class="badge bg-danger">Rechazada</span>
-                        {% elif solicitud.estado == 'despachada' %}
-                            <span class="badge bg-info">Despachada</span>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-2">
-                            <i class="far fa-calendar-alt"></i> 
-                            {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
-                        </p>
-                        
-                        <p class="mb-2"><strong>Motivo:</strong></p>
-                        <p class="text-muted small">{{ solicitud.motivo|truncatewords:15 }}</p>
-                        
-                        <hr>
-                        
-                        <p class="mb-2"><strong>Materiales ({{ solicitud.total_items }}):</strong></p>
-                        {% for detalle in solicitud.detalles.all|slice:":3" %}
-                        <div class="material-item small">
-                            <i class="fas fa-box"></i> {{ detalle.material.descripcion }}
-                            <span class="float-end badge bg-secondary">x{{ detalle.cantidad }}</span>
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body py-4">
+                    <h2 class="text-primary mb-2">{{ stats.total }}</h2>
+                    <p class="text-muted mb-0">Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body py-4">
+                    <h2 class="text-warning mb-2">{{ stats.pendientes }}</h2>
+                    <p class="text-muted mb-0">Pendientes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body py-4">
+                    <h2 class="text-success mb-2">{{ stats.aprobadas }}</h2>
+                    <p class="text-muted mb-0">Aprobadas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body py-4">
+                    <h2 class="text-danger mb-2">{{ stats.rechazadas }}</h2>
+                    <p class="text-muted mb-0">Rechazadas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de solicitudes -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history"></i> Historial de Solicitudes
+                </h5>
+                {% if page_obj %}
+                    <small>Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }}</small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if solicitudes %}
+                <div class="list-group list-group-flush">
+                    {% for solicitud in solicitudes %}
+                    <a href="{% url 'detalle_solicitud' solicitud.id %}" 
+                       class="list-group-item list-group-item-action py-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-3">
+                                    <h5 class="mb-0 me-3">
+                                        <i class="fas fa-file-alt text-primary"></i>
+                                        Solicitud #{{ solicitud.id }}
+                                    </h5>
+                                    <span class="badge fs-6
+                                        {% if solicitud.estado == 'pendiente' %}bg-warning text-dark
+                                        {% elif solicitud.estado == 'aprobada' %}bg-success
+                                        {% elif solicitud.estado == 'rechazada' %}bg-danger
+                                        {% elif solicitud.estado == 'despachada' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ solicitud.get_estado_display }}
+                                    </span>
+                                </div>
+                                
+                                <p class="mb-2 text-muted">
+                                    <i class="far fa-calendar me-2"></i>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                                    <span class="ms-4">
+                                        <i class="fas fa-boxes me-2"></i>{{ solicitud.total_items }} material(es)
+                                    </span>
+                                </p>
+                                
+                                <p class="mb-2">
+                                    <strong><i class="fas fa-comment-dots me-2"></i>Motivo:</strong> {{ solicitud.motivo|truncatewords:15 }}
+                                </p>
+                                
+                                <!-- Materiales solicitados -->
+                                <div class="mt-3 mb-2">
+                                    <strong class="text-muted small">
+                                        <i class="fas fa-list me-2"></i>Materiales:
+                                    </strong>
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        {% for detalle in solicitud.detalles.all|slice:":3" %}
+                                            <span class="badge bg-secondary fs-6">
+                                                {{ detalle.material.descripcion|truncatewords:3 }} × {{ detalle.cantidad }}
+                                            </span>
+                                        {% endfor %}
+                                        {% if solicitud.total_items > 3 %}
+                                            <span class="badge bg-dark fs-6">
+                                                +{{ solicitud.total_items|add:"-3" }} más
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Observaciones si fue rechazada -->
+                                {% if solicitud.observaciones %}
+                                <div class="alert alert-danger mt-3 mb-0 py-2">
+                                    <small>
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        <strong>Motivo rechazo:</strong> {{ solicitud.observaciones|truncatewords:10 }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="ms-3 align-self-center">
+                                <i class="fas fa-chevron-right fa-lg text-muted"></i>
+                            </div>
                         </div>
-                        {% endfor %}
-                        
-                        {% if solicitud.total_items > 3 %}
-                        <p class="text-muted small mt-2">
-                            <i class="fas fa-ellipsis-h"></i> Y {{ solicitud.total_items|add:"-3" }} más...
-                        </p>
-                        {% endif %}
-                        
-                        {% if solicitud.observaciones %}
-                        <div class="alert alert-info mt-3 mb-0 small">
-                            <strong>Observaciones:</strong><br>
-                            {{ solicitud.observaciones|truncatewords:10 }}
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">No tienes solicitudes aún</h4>
+                    <p class="text-muted mb-4">Crea tu primera solicitud para empezar a gestionar materiales</p>
+                    <a href="{% url 'crear_solicitud' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Crear Primera Solicitud
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Paginación de solicitudes" class="mb-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-angle-left"></i> Anterior
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        <i class="fas fa-angle-double-left"></i>
+                    </span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        <i class="fas fa-angle-left"></i> Anterior
+                    </span>
+                </li>
+            {% endif %}
+            
+            <!-- Números de página -->
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                        Siguiente <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Siguiente <i class="fas fa-angle-right"></i>
+                    </span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        <i class="fas fa-angle-double-right"></i>
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Info útil -->
+    <div class="row mt-4 mb-4">
+        <div class="col-md-12">
+            <div class="card border-info shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>Información Útil
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                            <small>Puedes crear solicitudes desde el botón "Nueva Solicitud".</small>
                         </div>
-                        {% endif %}
-                    </div>
-                    <div class="card-footer bg-light">
-                        <a href="{% url 'detalle_solicitud' solicitud.id %}" class="btn btn-sm btn-primary w-100">
-                            <i class="fas fa-eye"></i> Ver Detalle
-                        </a>
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            <small>Las solicitudes pendientes serán revisadas por bodega.</small>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-bell text-success me-2"></i>
+                            <small>Recibirás notificaciones cuando sean procesadas.</small>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
-    {% else %}
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle fa-3x mb-3"></i>
-            <h5>No tienes solicitudes registradas</h5>
-            <p class="mb-3">Crea tu primera solicitud para empezar a gestionar materiales</p>
-            <a href="{% url 'crear_solicitud' %}" class="btn btn-success">
-                <i class="fas fa-plus"></i> Crear Primera Solicitud
-            </a>
-        </div>
-    {% endif %}
+    </div>
 </div>
+
+<!-- Estilos adicionales -->
+<style>
+.list-group-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #0d6efd;
+    transform: translateX(5px);
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.pagination .page-link {
+    padding: 0.5rem 1rem;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
 {% endblock %}
