@@ -10,3 +10,5 @@ StockerEnv
 db.sqlite3
 
 .env
+
+staticfiles/
