@@ -340,53 +340,150 @@ def carga_masiva_stock(request):
 
 
 @login_required
-@verificar_rol(['SISTEMA'])  # o incluye BODEGA/GERENCIA si quieres
+@verificar_rol(['SISTEMA']) 
 @require_POST
 def recalcular_stock_ml(request):
+    print(f"DEBUG: Datos recibidos -> {request.POST}") # Ver en consola
+
     # Fórmula
     formula = request.POST.get("formula", "conservadora")
     usar_conservadora = (formula == "conservadora")
 
-    # Estación / estacionalidad
-    estacion_opcion = request.POST.get("estacion", "")
+    # Estación
+    estacion_opcion = request.POST.get("estacion_manual", "")
+    print(f"DEBUG: Opción elegida -> '{estacion_opcion}'")
+
     if estacion_opcion == "sin_estacion":
         usar_estacion = False
         estacion_manual = None
+        print("DEBUG: Sin estación (usar todo el año)")
+        
     elif estacion_opcion in ["Verano", "Otoño", "Invierno", "Primavera"]:
         usar_estacion = True
         estacion_manual = estacion_opcion
+        print(f"DEBUG: Forzando estación MANUAL -> {estacion_manual}")
+        
     else:
+        # Caso "Detectar automáticamente" (value="")
         usar_estacion = True
-        estacion_manual = None  # auto
+        estacion_manual = None 
+        print("DEBUG: Automático (Usará fecha del servidor)")
 
-    # Ventana de historial
+    # Días e Historial
     try:
         dias_historial = int(request.POST.get("dias_historial", "180"))
-    except ValueError:
-        dias_historial = 180
-
-    # Nivel de servicio
-    try:
         nivel_servicio = float(request.POST.get("nivel_servicio", "0.95"))
     except ValueError:
+        dias_historial = 180
         nivel_servicio = 0.95
 
+    # Ejecutar
     resultados = ejecutar_calculo_global(
         usar_formula_conservadora=usar_conservadora,
         usar_estacion=usar_estacion,
-        estacion_manual=estacion_manual,
+        estacion_manual=estacion_manual, # <--- IMPORTANTE
         dias_historial=dias_historial,
         nivel_servicio=nivel_servicio,
     )
 
     count = len(resultados) if resultados else 0
+    
+    # Mensaje de éxito
+    msg_estacion = estacion_manual if estacion_manual else ("Automática" if usar_estacion else "Desactivada")
+    
     messages.success(
         request,
-        f"Stock crítico recalculado para {count} materiales "
-        f"({formula}, {dias_historial} días, "
-        f"{'con' if usar_estacion else 'sin'} estacionalidad)."
+        f"Stock recalculado: {count} mats | Estación: {msg_estacion} | Historial: {dias_historial}d"
     )
+    
     return redirect("prediccion_stock")
+
+
+@login_required
+@verificar_rol('SISTEMA')
+def prediccion_stock(request):
+    total_materiales = Material.objects.count()
+    
+    # Obtener TODOS los resultados ordenados por fecha (el más reciente primero)
+    todos_resultados = MLResult.objects.select_related('material', 'material__inventario').order_by('-fecha_calculo')
+    
+    # Filtrar en Python para quedarnos solo con el último de cada material
+    # Usamos un dict para rastrear si ya procesamos ese material
+    resultados_unicos = {}
+    ultimo_parametro = None
+
+    for res in todos_resultados:
+        if res.material.codigo not in resultados_unicos:
+            resultados_unicos[res.material.codigo] = res
+            # Guardamos el primer resultado (el más reciente de todos) para sacar info de parámetros
+            if ultimo_parametro is None:
+                ultimo_parametro = res
+    
+    # Convertir a lista
+    resultados = list(resultados_unicos.values())
+    
+    # Procesar para la tabla
+    tabla_resultados = []
+    en_riesgo = 0
+    
+    for res in resultados:
+        try:
+            inv = res.material.inventario
+            stock_actual = inv.stock_actual
+            stock_critico = res.stock_min_calculado
+            diferencia = stock_actual - stock_critico
+            
+            estado = 'OK'
+            clase_css = 'success'
+            
+            if stock_actual <= 0:
+                estado = 'QUIEBRE'
+                clase_css = 'dark'
+                en_riesgo += 1
+            elif stock_actual < stock_critico:
+                estado = 'CRÍTICO'
+                clase_css = 'danger'
+                en_riesgo += 1
+            elif stock_actual < (stock_critico * 1.2):
+                estado = 'ALERTA'
+                clase_css = 'warning'
+            
+            tabla_resultados.append({
+                'codigo': res.material.codigo,
+                'descripcion': res.material.descripcion,
+                'demanda_promedio': res.demanda_promedio,
+                'desviacion': res.desviacion,
+                'stock_critico': stock_critico,
+                'stock_actual': stock_actual,
+                'estado': estado,
+                'clase_css': clase_css,
+                'diferencia': diferencia,
+                'stock_seguridad': getattr(res, 'stock_seguridad', 0),
+                'coeficiente_variacion': getattr(res, 'coeficiente_variacion', 0),
+                'metodo': getattr(res, 'metodo_utilizado', ''),
+                'demanda_leadtime': res.stock_min_calculado - getattr(res, 'stock_seguridad', 0),
+            })
+        except Inventario.DoesNotExist:
+            continue
+
+    
+    info_calculo = {
+        'fecha': ultimo_parametro.fecha_calculo if ultimo_parametro else None,
+        'modelo': ultimo_parametro.version_modelo if ultimo_parametro else 'N/A',
+        
+    }
+
+    tabla_resultados.sort(key=lambda x: x['diferencia'])
+
+    context = {
+        'total_materiales': total_materiales,
+        'materiales_calculados': len(tabla_resultados),
+        'total_en_riesgo': en_riesgo,
+        'tabla_resultados': tabla_resultados,
+        'info_calculo': info_calculo
+    }
+    
+    return render(request, 'funcionalidad/prediccion_stock.html', context)
 
 
 
@@ -1966,91 +2063,7 @@ def usuario_toggle_estado(request, usuario_id):
     
     return redirect('gestion_usuarios')
 
-@login_required
-@verificar_rol('SISTEMA')
-def prediccion_stock(request):
-    total_materiales = Material.objects.count()
-    
-    # Obtener TODOS los resultados ordenados por fecha (el más reciente primero)
-    todos_resultados = MLResult.objects.select_related('material', 'material__inventario').order_by('-fecha_calculo')
-    
-    # Filtrar en Python para quedarnos solo con el último de cada material
-    # Usamos un dict para rastrear si ya procesamos ese material
-    resultados_unicos = {}
-    ultimo_parametro = None
 
-    for res in todos_resultados:
-        if res.material.codigo not in resultados_unicos:
-            resultados_unicos[res.material.codigo] = res
-            # Guardamos el primer resultado (el más reciente de todos) para sacar info de parámetros
-            if ultimo_parametro is None:
-                ultimo_parametro = res
-    
-    # Convertir a lista
-    resultados = list(resultados_unicos.values())
-    
-    # Procesar para la tabla
-    tabla_resultados = []
-    en_riesgo = 0
-    
-    for res in resultados:
-        try:
-            inv = res.material.inventario
-            stock_actual = inv.stock_actual
-            stock_critico = res.stock_min_calculado
-            diferencia = stock_actual - stock_critico
-            
-            estado = 'OK'
-            clase_css = 'success'
-            
-            if stock_actual <= 0:
-                estado = 'QUIEBRE'
-                clase_css = 'dark'
-                en_riesgo += 1
-            elif stock_actual < stock_critico:
-                estado = 'CRÍTICO'
-                clase_css = 'danger'
-                en_riesgo += 1
-            elif stock_actual < (stock_critico * 1.2):
-                estado = 'ALERTA'
-                clase_css = 'warning'
-            
-            tabla_resultados.append({
-                'codigo': res.material.codigo,
-                'descripcion': res.material.descripcion,
-                'demanda_promedio': res.demanda_promedio,
-                'desviacion': res.desviacion,
-                'stock_critico': stock_critico,
-                'stock_actual': stock_actual,
-                'estado': estado,
-                'clase_css': clase_css,
-                'diferencia': diferencia,
-                'stock_seguridad': getattr(res, 'stock_seguridad', 0),
-                'coeficiente_variacion': getattr(res, 'coeficiente_variacion', 0),
-                'metodo': getattr(res, 'metodo_utilizado', ''),
-                'demanda_leadtime': res.stock_min_calculado - getattr(res, 'stock_seguridad', 0),
-            })
-        except Inventario.DoesNotExist:
-            continue
-
-    
-    info_calculo = {
-        'fecha': ultimo_parametro.fecha_calculo if ultimo_parametro else None,
-        'modelo': ultimo_parametro.version_modelo if ultimo_parametro else 'N/A',
-        
-    }
-
-    tabla_resultados.sort(key=lambda x: x['diferencia'])
-
-    context = {
-        'total_materiales': total_materiales,
-        'materiales_calculados': len(tabla_resultados),
-        'total_en_riesgo': en_riesgo,
-        'tabla_resultados': tabla_resultados,
-        'info_calculo': info_calculo
-    }
-    
-    return render(request, 'funcionalidad/prediccion_stock.html', context)
 
 
 

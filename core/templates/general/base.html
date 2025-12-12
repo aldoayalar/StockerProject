@@ -399,7 +399,7 @@
 
             <ul class="sidebar-menu">
                 {% block sidebar_menu %}
-                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
+                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' or user.rol == 'TECNICO'%}
                 <li>
                     <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                         <i class="fas fa-home"></i> Dashboard
@@ -430,7 +430,7 @@
                 {% endif %}
                 
                 <!-- ========== MENÚ DE SOLICITUDES (ADAPTADO POR ROL) ========== -->
-                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
+                {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' or user.rol == 'TECNICO'%}
                 <li class="dropdown">
                     <a class="dropdown-toggle {% if 'solicitud' in request.resolver_match.url_name %}active{% endif %}" 
                        href="#" id="sidebarSolicitudesMenu" role="button" data-bs-toggle="dropdown">
@@ -565,7 +565,6 @@
 
         <!-- Main Content -->
         <div class="main-content" id="mainContent">
-            <!-- Top Navbar con título desde block title -->
             <nav class="top-navbar">
                 <div class="navbar-left">
                     <span class="toggle-sidebar" id="toggleSidebar">

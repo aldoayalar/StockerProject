@@ -138,9 +138,7 @@ class LocalForm(forms.ModelForm):
 
         
 class SolicitudForm(forms.ModelForm):
-    """
-    Formulario para la cabecera de la solicitud
-    """
+
     motivo = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -150,9 +148,20 @@ class SolicitudForm(forms.ModelForm):
         label='Motivo de la solicitud'
     )
     
+    local_destino = forms.ModelChoiceField(
+        queryset=Local.objects.all().order_by('codigo'), 
+        empty_label="Seleccione una sucursal...",
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'select-local' # 
+        }),
+        label='Sucursal / Local de destino'
+    )
+
     class Meta:
         model = Solicitud
-        fields = ['motivo', 'local_destino']
+        fields = ['local_destino', 'motivo']
+
         
 class DetalleSolicitudForm(forms.ModelForm):
     """

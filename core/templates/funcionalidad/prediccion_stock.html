@@ -42,7 +42,7 @@
         <!-- Estacionalidad -->
         <div class="col-md-3">
           <label class="form-label small">Estacionalidad</label>
-          <select name="estacion" class="form-select form-select-sm" id="select-estacion">
+          <select name="estacion_manual" class="form-select form-select-sm" id="select-estacion">
             <option value="">Detectar automáticamente</option>
             <option value="Verano">Forzar Verano</option>
             <option value="Otoño">Forzar Otoño</option>
@@ -259,7 +259,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Mostrar barra de progreso y deshabilitar controles
     cont.style.display = 'block';
     btn.disabled = true;
-    if (selectEst) selectEst.disabled = true;
 
     // Animación simple de progreso
     let progress = 0;

@@ -109,10 +109,10 @@ class Usuario(AbstractUser):
     """
     
     ROL_CHOICES = [
-        ('GERENCIA', 'Gerencia'),
-        ('BODEGA', 'Bodega'),
-        ('TECNICO', 'Técnico'),
-        ('SISTEMA', 'Sistema'),
+        ('GERENCIA', 'GERENCIA'),
+        ('BODEGA', 'BODEGA'),
+        ('TECNICO', 'TECNICO'),
+        ('SISTEMA', 'SISTEMA'),
     ]
     
     rol = models.CharField(
