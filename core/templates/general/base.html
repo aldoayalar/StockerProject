@@ -678,16 +678,29 @@
 <script>
     // Toggle Sidebar
     document.getElementById('toggleSidebar').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-        document.getElementById('mainContent').classList.toggle('expanded');
-        document.getElementById('footer').classList.toggle('expanded');
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('mainContent');
+        const footer = document.getElementById('footer');
+        
+        // Detectar si es móvil (ancho menor a 768px)
+        if (window.innerWidth <= 768) {
+            // EN MÓVIL: Usamos la clase 'show' que definiste en tu CSS
+            sidebar.classList.toggle('show');
+            
+            // Opcional: Cerrar el menú si se hace clic fuera (mejora de UX)
+        } else {
+            // EN PC: Usamos la lógica de 'collapsed' y 'expanded'
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+            footer.classList.toggle('expanded');
+        }
     });
 
-    // Responsive sidebar for mobile
+    // Ajuste inicial (esto estaba bien, pero lo limpiamos un poco)
     if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.add('collapsed');
-        document.getElementById('mainContent').classList.add('expanded');
-        document.getElementById('footer').classList.add('expanded');
+        // En móvil aseguramos que NO tenga la clase show al cargar
+        document.getElementById('sidebar').classList.remove('show');
+        // Las clases expanded en content no afectan en móvil porque tu CSS ya pone margin:0
     }
 
     {% if user.is_authenticated %}
