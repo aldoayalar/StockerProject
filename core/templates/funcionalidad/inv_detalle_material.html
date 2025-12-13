@@ -101,14 +101,14 @@
                             <div class="stat-value {% if material.inventario.stock_actual <= material.inventario.stock_seguridad %}critico{% endif %}">
                                 {{ material.inventario.stock_actual }}
                             </div>
-                            <small class="text-muted">{{ material.unidad_medida }}</small>
+                            <small class="text-muted">{{ material.get_unidad_medida_display }}</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <p class="text-muted mb-1">Stock de Seguridad</p>
                             <div class="stat-value text-warning">
                                 {{ material.inventario.stock_seguridad }}
                             </div>
-                            <small class="text-muted">{{ material.unidad_medida }}</small>
+                            <small class="text-muted">{{ material.get_unidad_medida_display }}</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <p class="text-muted mb-1">Estado</p>
@@ -208,7 +208,7 @@
                             {{ ultimo.tipo|upper }}
                         </span>
                         <br>
-                        <strong>{{ ultimo.cantidad }} {{ material.unidad_medida }}</strong>
+                        <strong>{{ ultimo.cantidad }} {{ material.get_unidad_medida_display }}</strong>
                         <br>
                         {{ ultimo.fecha|date:"d/m/Y H:i" }}
                     </p>

@@ -8,10 +8,6 @@ def verificar_rol(rol_requerido):
     """
     Decorador para verificar el rol del usuario.
     Acepta un solo rol (str) o una lista de roles (list).
-    
-    Uso:
-        @verificar_rol('BODEGA')
-        @verificar_rol(['BODEGA', 'GERENCIA'])
     """
     def decorator(view_func):
         @wraps(view_func)

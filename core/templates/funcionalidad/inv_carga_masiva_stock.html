@@ -17,9 +17,26 @@
         </div>
 
         <div class="card-body">
+          
+          <!-- SECCIÓN DE DESCARGA DE PLANTILLA -->
+          <div class="alert alert-info d-flex align-items-center shadow-sm">
+            <i class="fas fa-file-excel fa-2x text-success me-3"></i>
+            <div>
+              <h6 class="fw-bold mb-1">¿Necesitas la plantilla actualizada?</h6>
+              <p class="mb-2 small">
+                Descarga un Excel con <strong>todos tus materiales</strong> (código y nombre) listos para inventariar.
+              </p>
+              
+              <a href="{% url 'descargar_plantilla_stock' %}" class="btn btn-sm btn-success text-white">
+                <i class="fas fa-download me-1"></i> Descargar Plantilla con mis Materiales
+              </a>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
           <p class="text-muted mb-4">
-            Sube un archivo Excel con las columnas
-            <strong>Código</strong> y <strong>NuevoStock</strong>.
+            Sube el archivo Excel completado con la columna <strong>NuevoStock</strong>.
             Puedes elegir si quieres <strong>reemplazar</strong> el stock actual
             o <strong>sumar</strong> al existente.
           </p>
@@ -30,9 +47,6 @@
             <div class="mb-3">
               <label class="form-label fw-semibold">Archivo Excel</label>
               {{ form.archivo }}
-              <div class="form-text">
-                Formato recomendado: plantilla oficial de carga masiva.
-              </div>
             </div>
 
             <div class="mb-4">
@@ -49,31 +63,64 @@
                   <i class="fas fa-times me-1"></i> Cancelar
                 </a>
               </div>
-              <div class="text-end">
-                <small class="text-muted d-block">
-                  ¿No tienes el formato?
-                </small>
-                <a href="{% static 'plantillas/plantilla_carga_masiva_stock.xlsx' %}"
-                   class="small"
-                   download>
-                  <i class="fas fa-download me-1"></i>
-                  Descargar plantilla de carga masiva
-                </a>
-              </div>
             </div>
           </form>
 
-          <hr>
-
-          <div class="small text-muted">
+          <div class="small text-muted mt-3">
             <strong>Notas:</strong>
             <ul class="mb-0">
-              <li>Los códigos deben coincidir exactamente con los materiales existentes.</li>
-              <li>Los valores de <strong>NuevoStock</strong> deben ser números enteros.</li>
+              <li>El archivo descargado incluye los códigos exactos. No los modifiques.</li>
+              <li>Solo rellena la columna <strong>NuevoStock</strong>.</li>
+              <li>Si dejas vacío un stock, se ignorará esa fila.</li>
             </ul>
           </div>
         </div>
       </div>
+
+      <!-- Resultados de la Carga -->
+      {% if reporte_carga %}
+      <div class="card mt-4 shadow-sm">
+          <div class="card-header bg-success text-white">
+              <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Resultado de la Carga</h5>
+          </div>
+          <div class="card-body p-0">
+              <div class="table-responsive">
+                  <table class="table table-striped mb-0">
+                      <thead>
+                          <tr>
+                              <th>Fila</th>
+                              <th>Código</th>
+                              <th>Material</th> <!-- AQUÍ SALDRÁ EL NOMBRE -->
+                              <th>Estado</th>
+                              <th>Detalle</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {% for item in reporte_carga %}
+                          <tr>
+                              <td>{{ item.fila }}</td>
+                              <td><strong>{{ item.codigo }}</strong></td>
+                              <td>{{ item.material }}</td>
+                              <td>
+                                  {% if item.estado == 'success' %}
+                                      <span class="badge bg-success">OK</span>
+                                  {% elif item.estado == 'omitido' %}
+                                      <!-- Estado neutral para celdas vacías -->
+                                      <span class="badge bg-secondary text-light">Omitido</span>
+                                  {% else %}
+                                      <span class="badge bg-danger">Error</span>
+                                  {% endif %}
+                              </td>
+                              <td class="small">{{ item.mensaje }}</td>
+                          </tr>
+                          {% endfor %}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+      {% endif %}
+
 
     </div>
   </div>

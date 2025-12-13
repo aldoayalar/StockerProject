@@ -41,7 +41,7 @@ def verificar_stock_critico(sender, instance, **kwargs):
                 f"Stock crítico: {material.descripcion} "
                 f"({material.codigo}) - Stock: {instance.stock_actual}"
             ),
-            url=f"/materiales/{material.id}/",
+            url=f"/material/{material.id}/",
         )
 
 
@@ -62,7 +62,7 @@ def notificar_material_nuevo(sender, instance, created, **kwargs):
             usuario=usuario,
             tipo="material_nuevo",
             mensaje=f"Nuevo material creado: {instance.descripcion} ({instance.codigo})",
-            url=f"/materiales/{instance.id}/",
+            url=f"/material/{instance.id}/",
         )
 
 

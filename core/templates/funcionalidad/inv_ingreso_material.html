@@ -87,7 +87,7 @@
             <div class="info-box">
                 <i class="fas fa-info-circle"></i>
                 <strong>Nota:</strong> Los campos marcados con <span class="text-danger">*</span> son obligatorios.
-                El código se genera automáticamente pero puedes modificarlo.
+                El código se genera automáticamente pero puedes modificarlo si es necesario.
             </div>
             
             <form method="post" id="formMaterial">
@@ -107,14 +107,12 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_codigo" class="form-label required-field">Código</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-barcode"></i>
-                                </span>
+                                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
                                 {{ form.codigo }}
                             </div>
                             {% if form.codigo.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.codigo.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.codigo.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -125,14 +123,12 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_categoria" class="form-label required-field">Categoría</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-tags"></i>
-                                </span>
+                                <span class="input-group-text"><i class="fas fa-tags"></i></span>
                                 {{ form.categoria }}
                             </div>
                             {% if form.categoria.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.categoria.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.categoria.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -144,14 +140,12 @@
                     <div class="mb-3">
                         <label for="id_descripcion" class="form-label required-field">Descripción</label>
                         <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-file-alt"></i>
-                            </span>
+                            <span class="input-group-text"><i class="fas fa-file-alt"></i></span>
                             {{ form.descripcion }}
                         </div>
                         {% if form.descripcion.errors %}
                         <div class="text-danger small mt-1">
-                            <i class="fas fa-exclamation-circle"></i> {{ form.descripcion.errors }}
+                            <i class="fas fa-exclamation-circle"></i> {{ form.descripcion.errors.0 }}
                         </div>
                         {% endif %}
                         <div class="help-text">
@@ -167,14 +161,12 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_unidad_medida" class="form-label required-field">Unidad de Medida</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-ruler"></i>
-                                </span>
+                                <span class="input-group-text"><i class="fas fa-ruler"></i></span>
                                 {{ form.unidad_medida }}
                             </div>
                             {% if form.unidad_medida.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.unidad_medida.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.unidad_medida.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -185,14 +177,12 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_ubicacion" class="form-label">Ubicación en Bodega</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </span>
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
                                 {{ form.ubicacion }}
                             </div>
                             {% if form.ubicacion.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.ubicacion.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.ubicacion.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -209,17 +199,13 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_stock_actual" class="form-label required-field">Stock Inicial</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-boxes"></i>
-                                </span>
+                                <span class="input-group-text"><i class="fas fa-boxes"></i></span>
                                 {{ form.stock_actual }}
-                                <span class="input-group-text bg-light text-dark" id="unidad-stock-actual">
-                                    unidades
-                                </span>
+                                <span class="input-group-text bg-light text-dark" id="unidad-stock-actual">unidades</span>
                             </div>
                             {% if form.stock_actual.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.stock_actual.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.stock_actual.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -230,17 +216,13 @@
                         <div class="col-md-6 mb-3">
                             <label for="id_stock_seguridad" class="form-label required-field">Stock de Seguridad</label>
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </span>
+                                <span class="input-group-text bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i></span>
                                 {{ form.stock_seguridad }}
-                                <span class="input-group-text bg-warning text-dark" id="unidad-stock-seguridad">
-                                    alerta
-                                </span>
+                                <span class="input-group-text bg-light text-dark" id="unidad-stock-seguridad">alerta</span>
                             </div>
                             {% if form.stock_seguridad.errors %}
                             <div class="text-danger small mt-1">
-                                <i class="fas fa-exclamation-circle"></i> {{ form.stock_seguridad.errors }}
+                                <i class="fas fa-exclamation-circle"></i> {{ form.stock_seguridad.errors.0 }}
                             </div>
                             {% endif %}
                             <div class="help-text">
@@ -250,13 +232,11 @@
                     </div>
                     
                     <!-- Visualización del nivel de stock -->
-                      <div class="alert alert-info">
-                          <i class="fas fa-info-circle"></i>
-                          <strong>Información:</strong> Recibirás una notificación cuando el stock llegue o esté por debajo del nivel de seguridad.
-                        </div>
+                    <div class="alert alert-info mt-2">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Información:</strong> Recibirás una notificación cuando el stock llegue o esté por debajo del nivel de seguridad.
                     </div>
-                    </div>
-                    
+                </div>
                 
                 <!-- Botones -->
                 <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
@@ -291,7 +271,7 @@
         
         if (unidadSelect && unidadStockActual && unidadStockSeguridad) {
             const unidadSeleccionada = unidadSelect.value;
-            const unidadTexto = unidadesMap[unidadSeleccionada] || unidadSeleccionada;
+            const unidadTexto = unidadesMap[unidadSeleccionada] || unidadSeleccionada || 'unidades';
             
             unidadStockActual.textContent = unidadTexto;
             unidadStockSeguridad.textContent = unidadTexto;
@@ -307,12 +287,6 @@
         if (unidadSelect) {
             unidadSelect.addEventListener('change', actualizarUnidades);
         }
-        
-        // Autocompletar código sugerido
-        const codigoInput = document.getElementById('id_codigo');
-        if (codigoInput && codigoInput.value) {
-            codigoInput.setAttribute('placeholder', codigoInput.value);
-        }
     });
     
     // Validación en tiempo real
@@ -320,7 +294,7 @@
         const stockActual = document.getElementById('id_stock_actual').value;
         const stockSeguridad = document.getElementById('id_stock_seguridad').value;
         
-        if (parseInt(stockActual) < parseInt(stockSeguridad)) {
+        if (stockActual && stockSeguridad && parseInt(stockActual) < parseInt(stockSeguridad)) {
             const confirmar = confirm('⚠️ El stock inicial es menor al stock de seguridad. ¿Deseas continuar?');
             if (!confirmar) {
                 e.preventDefault();
@@ -329,4 +303,3 @@
     });
 </script>
 {% endblock %}
-

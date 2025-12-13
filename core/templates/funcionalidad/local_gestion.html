@@ -69,40 +69,56 @@
             </thead>
             <tbody>
                 {% for local in locales %}
-                <tr>
-                    <td><span class="badge bg-secondary">{{ local.codigo }}</span></td>
-                    <td><strong>{{ local.nombre }}</strong></td>
+                <tr {% if not local.activo %}class="table-secondary text-muted"{% endif %}>
+                    
+                    <td>
+                        <span class="badge {% if local.activo %}bg-secondary{% else %}bg-dark{% endif %}">
+                            {{ local.codigo }}
+                        </span>
+                    </td>
+                    
+                    
+                    <td>
+                        <strong>{{ local.nombre }}</strong>
+                        {% if not local.activo %}
+                            <span class="badge bg-danger ms-2" style="font-size: 0.7em;">INACTIVO</span>
+                        {% endif %}
+                    </td>
+                    
+                    
                     <td>{{ local.direccion }}{% if local.numero %} {{ local.numero }}{% endif %}</td>
                     <td>{{ local.comuna }}</td>
                     <td>{{ local.region }}</td>
+                    
+                   
                     <td>
-                        <span class="badge bg-info">
+                        <span class="badge {% if local.activo %}bg-info text-dark{% else %}bg-secondary{% endif %}">
                             {{ local.solicitudes.count }} solicitudes
                         </span>
                     </td>
+                    
+                    
                     <td>
-                        <a href="{% url 'local_editar' local.id %}" 
-                           class="btn btn-warning btn-sm" 
-                           title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{% url 'local_eliminar' local.id %}" 
-                           class="btn btn-danger btn-sm" 
-                           title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted">
-                        {% if query %}
-                            No se encontraron locales que coincidan con "<strong>{{ query }}</strong>".
+                        {% if local.activo %}
+                            <!-- Botones Normales -->
+                            <a href="{% url 'local_editar' local.id %}" class="btn btn-warning btn-sm" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'local_eliminar' local.id %}" class="btn btn-danger btn-sm" title="Eliminar / Desactivar">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         {% else %}
-                            No hay locales registrados. <a href="{% url 'local_crear' %}">Crear el primero</a>
+                            <!-- Botón Reactivar -->
+                            <form action="{% url 'local_reactivar' local.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-sm" title="Reactivar Local" onclick="return confirm('¿Reactivar este local?');">
+                                    <i class="fas fa-redo-alt"></i> Activar
+                                </button>
+                            </form>
                         {% endif %}
                     </td>
                 </tr>
+
                 {% endfor %}
             </tbody>
         </table>

@@ -60,14 +60,20 @@ class MaterialInventarioForm(forms.ModelForm):
             return codigo
         
 class EditarMaterialForm(forms.ModelForm):
-    """
-    Formulario para editar un material existente
-    """
+    # Campo extra del modelo Inventario
+    stock_seguridad = forms.IntegerField(
+        min_value=0,
+        label="Stock Crítico / Seguridad",
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        help_text="Nivel mínimo deseado."
+    )
+
     class Meta:
         model = Material
         fields = ['codigo', 'descripcion', 'unidad_medida', 'categoria', 'ubicacion']
         widgets = {
-            'codigo': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo': forms.TextInput(attrs={'class': 'form-control'}), 
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'unidad_medida': forms.Select(attrs={'class': 'form-select'}),
             'categoria': forms.Select(attrs={'class': 'form-select'}),
@@ -75,24 +81,31 @@ class EditarMaterialForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
-        self.instance_id = kwargs.get('instance').id if kwargs.get('instance') else None
         super().__init__(*args, **kwargs)
-    
-    def clean_codigo(self):
-        """
-        Valida que el código no exista, excepto para el material actual
-        """
-        codigo = self.cleaned_data.get('codigo')
         
-        # Verificar si existe otro material con ese código (excluyendo el actual)
-        exists = Material.objects.filter(codigo=codigo).exclude(id=self.instance_id).exists()
-        
-        if exists:
-            raise ValidationError(
-                f'El código "{codigo}" ya está registrado en otro material. Por favor usa otro código.'
-            )
-        
-        return codigo
+        # 1. Cargar stock de seguridad
+        if self.instance.pk and hasattr(self.instance, 'inventario'):
+            self.fields['stock_seguridad'].initial = self.instance.inventario.stock_seguridad
+
+        # 2. BLOQUEAR EL CÓDIGO (Read-only real)
+        # Esto previene que se modifique en el HTML y en el servidor
+        self.fields['codigo'].disabled = True 
+        self.fields['codigo'].help_text = "El código no se puede modificar una vez creado."
+
+    # Ya NO necesitas clean_codigo aquí, porque el campo está deshabilitado
+    # Django usará el valor original automáticamente.
+
+    def save(self, commit=True):
+        material = super().save(commit=False)
+        if commit:
+            material.save()
+            # Guardar cambios del Inventario
+            if hasattr(material, 'inventario'):
+                material.inventario.stock_seguridad = self.cleaned_data.get('stock_seguridad', 0)
+                material.inventario.save()
+        return material
+
+
     
 class CargaMasivaStockForm(forms.Form):
     archivo = forms.FileField(label="Archivo Excel")
@@ -105,7 +118,7 @@ class CargaMasivaStockForm(forms.Form):
     )
     
 class LocalForm(forms.ModelForm):
-    #crear/editar locales
+   
     class Meta:
         model = Local
         fields = ['codigo', 'nombre', 'direccion', 'numero', 'comuna', 'region']

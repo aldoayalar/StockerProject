@@ -1,0 +1,128 @@
+{% extends "general/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        Editar Local: {{ form.instance.nombre }}
+    {% else %}
+        Crear Nuevo Local
+    {% endif %}
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid">
+
+    <!-- Título y Breadcrumb -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            {% if form.instance.pk %}
+                <i class="fas fa-store-alt me-2 text-primary"></i>Editar Local
+            {% else %}
+                <i class="fas fa-plus-circle me-2 text-success"></i>Nuevo Local
+            {% endif %}
+        </h1>
+        <a href="{% url 'gestion_locales' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Información de la Sucursal</h6>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Errores Globales -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Código (Identificador único) -->
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.codigo.id_for_label }}" class="form-label fw-bold">Código Interno</label>
+                                {{ form.codigo }}
+                                {% if form.codigo.errors %}
+                                    <div class="text-danger small mt-1">{{ form.codigo.errors.0 }}</div>
+                                {% endif %}
+                                <small class="text-muted">Ej: LOC-001</small>
+                            </div>
+
+                            <!-- Nombre del Local -->
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.nombre.id_for_label }}" class="form-label fw-bold">Nombre de Fantasía</label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}
+                                    <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+                        <h6 class="text-muted mb-3"><i class="fas fa-map-marker-alt me-1"></i> Ubicación Geográfica</h6>
+
+                        <div class="row">
+                            <!-- Dirección -->
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.direccion.id_for_label }}" class="form-label">Calle / Avenida</label>
+                                {{ form.direccion }}
+                                {% if form.direccion.errors %}
+                                    <div class="text-danger small mt-1">{{ form.direccion.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Número -->
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.numero.id_for_label }}" class="form-label">Número</label>
+                                {{ form.numero }}
+                                {% if form.numero.errors %}
+                                    <div class="text-danger small mt-1">{{ form.numero.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Comuna -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.comuna.id_for_label }}" class="form-label">Comuna</label>
+                                {{ form.comuna }}
+                                {% if form.comuna.errors %}
+                                    <div class="text-danger small mt-1">{{ form.comuna.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Región -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.region.id_for_label }}" class="form-label">Región</label>
+                                {{ form.region }}
+                                {% if form.region.errors %}
+                                    <div class="text-danger small mt-1">{{ form.region.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{% url 'gestion_locales' %}" class="btn btn-light border me-2">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-1"></i>
+                                {% if form.instance.pk %}Guardar Cambios{% else %}Crear Local{% endif %}
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

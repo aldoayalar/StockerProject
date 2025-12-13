@@ -1,92 +1,129 @@
-{% extends 'general/base.html' %}
+{% extends "general/base.html" %}
 {% load static %}
+
+{% block title %}Editar Material: {{ material.descripcion }}{% endblock %}
 
 {% block contenido %}
 <div class="container mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-warning text-dark">
-      <h4>
-        <i class="fas fa-edit"></i> Editar Material: {{ material.descripcion }}
-      </h4>
+    
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gray-800 h3">
+            <i class="fas fa-edit text-warning me-2"></i>Editar Material
+        </h2>
+        <a href="{% url 'inventario' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al inventario
+        </a>
     </div>
-    <div class="card-body">
-      <form method="post">
-        {% csrf_token %}
-        
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="id_codigo" class="form-label">
-              <i class="fas fa-barcode"></i> Código
-            </label>
-            {{ form.codigo }}
-            {% if form.codigo.errors %}
-              <div class="text-danger small mt-1">
-                {{ form.codigo.errors }}
-              </div>
-            {% endif %}
-          </div>
 
-          <div class="col-md-6 mb-3">
-            <label for="id_categoria" class="form-label">
-              <i class="fas fa-tags"></i> Categoría
-            </label>
-            {{ form.categoria }}
-            {% if form.categoria.errors %}
-              <div class="text-danger small mt-1">
-                {{ form.categoria.errors }}
-              </div>
-            {% endif %}
-          </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <form method="post" class="needs-validation">
+                {% csrf_token %}
+                
+                <div class="card shadow border-0">
+                    <!-- Header Tarjeta -->
+                    <div class="card-header bg-warning text-dark py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="m-0 fw-bold">{{ material.descripcion }}</h5>
+                            <span class="badge bg-dark text-white">{{ material.codigo }}</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        
+                        <!-- Sección 1: Datos Generales -->
+                        <h6 class="text-muted text-uppercase small fw-bold mb-3">
+                            <i class="fas fa-info-circle me-1"></i> Información Básica
+                        </h6>
+                        
+                        <div class="row g-3 mb-4">
+                            <!-- Código (Solo lectura) -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Código</label>
+                                {{ form.codigo }}
+                                <div class="form-text text-muted small">El código no se puede modificar.</div>
+                            </div>
+
+                            <!-- Categoría -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Categoría</label>
+                                {{ form.categoria }}
+                            </div>
+
+                            <!-- Unidad -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Unidad de Medida</label>
+                                {{ form.unidad_medida }}
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Descripción</label>
+                                {{ form.descripcion }}
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Sección 2: Logística e Inventario -->
+                        <h6 class="text-muted text-uppercase small fw-bold mb-3">
+                            <i class="fas fa-boxes me-1"></i> Parámetros de Logística
+                        </h6>
+
+                        <div class="row g-3">
+                            <!-- Ubicación -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Ubicación Física</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                    {{ form.ubicacion }}
+                                </div>
+                            </div>
+
+                            <!-- Stock Crítico -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-danger">Stock Crítico (Seguridad)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text text-danger"><i class="fas fa-shield-alt"></i></span>
+                                    {{ form.stock_seguridad }}
+                                </div>
+                                <div class="form-text">
+                                    Valor sugerido por ML: <strong>{{ material.resultados_ml.first.stock_min_calculado|default:"N/A" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info extra (Readonly) -->
+                        <div class="alert alert-light border mt-4">
+                            <div class="row text-center">
+                                <div class="col-4 border-end">
+                                    <small class="text-muted d-block">Stock Actual</small>
+                                    <h4 class="fw-bold text-primary">{{ material.inventario.stock_actual }}</h4>
+                                </div>
+                                <div class="col-4 border-end">
+                                    <small class="text-muted d-block">Último Movimiento</small>
+                                    <span class="fw-bold small">{{ material.movimientos.first.fecha|date:"d/m/Y"|default:"-" }}</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Creación</small>
+                                    <span class="fw-bold small">{{ material.fecha_creacion|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Footer Botones -->
+                    <div class="card-footer bg-light py-3 d-flex justify-content-end gap-2">
+                        <a href="{% url 'inventario' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="fas fa-save me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-
-        <div class="mb-3">
-          <label for="id_descripcion" class="form-label">
-            <i class="fas fa-info-circle"></i> Descripción
-          </label>
-          {{ form.descripcion }}
-          {% if form.descripcion.errors %}
-            <div class="text-danger small mt-1">
-              {{ form.descripcion.errors }}
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="id_unidad_medida" class="form-label">
-              <i class="fas fa-ruler"></i> Unidad de medida
-            </label>
-            {{ form.unidad_medida }}
-            {% if form.unidad_medida.errors %}
-              <div class="text-danger small mt-1">
-                {{ form.unidad_medida.errors }}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label for="id_ubicacion" class="form-label">
-              <i class="fas fa-map-marker-alt"></i> Ubicación
-            </label>
-            {{ form.ubicacion }}
-            {% if form.ubicacion.errors %}
-              <div class="text-danger small mt-1">
-                {{ form.ubicacion.errors }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-          <a href="{% url 'inventario' %}" class="btn btn-secondary">
-            <i class="fas fa-times"></i> Cancelar
-          </a>
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-save"></i> Guardar cambios
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
 {% endblock %}

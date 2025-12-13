@@ -74,7 +74,7 @@
             <div class="col-md-3 text-end">
                 <p class="mb-1">Stock Actual</p>
                 <h2 class="mb-1">
-                    {{ material.inventario.stock_actual }} {{ material.unidad_medida }}
+                    {{ material.inventario.stock_actual }} {{ material.get_unidad_medida_display }}
                 </h2>
 
                 <!-- BOTÓN EXPORTAR SOLO DE ESTE MATERIAL -->
@@ -142,7 +142,7 @@
                                                 <span class="badge bg-warning">AJUSTE</span>
                                             {% endif %}
 
-                                            <strong>{{ mov.cantidad }} {{ material.unidad_medida }}</strong>
+                                            <strong>{{ mov.cantidad }} {{ material.get_unidad_medida_display }}</strong>
                                         </h6>
 
                                         <p class="mb-2 text-muted">

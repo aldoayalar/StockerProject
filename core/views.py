@@ -2,7 +2,7 @@ import json
 import pandas as pd
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db import models, transaction
-from django.db.models import Avg, Sum, Count, Q, F
+from django.db.models import Avg, Sum, Count, Q, F, ProtectedError
 from django.db.models.functions import TruncDate
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
@@ -188,7 +188,7 @@ def detalle_material(request, id):
     return render(request, 'funcionalidad/inv_detalle_material.html', context)
 
 @login_required
-@verificar_rol('BODEGA')  # SOLO BODEGA puede editar
+@verificar_rol(['BODEGA'])
 def editar_material(request, id):
     material = get_object_or_404(Material, id=id)
     
@@ -199,14 +199,16 @@ def editar_material(request, id):
             messages.success(request, f'Material {material.codigo} actualizado exitosamente.')
             return redirect('inventario')
         else:
-            messages.error(request, 'Por favor corrige los errores del formulario.')
+            messages.error(request, 'Error al actualizar: Verifica que el código no esté duplicado.')
     else:
         form = EditarMaterialForm(instance=material)
+    
     
     return render(request, 'funcionalidad/inv_editar_material.html', {
         'form': form,
         'material': material
     })
+
 
 @login_required
 @verificar_rol('BODEGA')  # SOLO BODEGA puede ingresar
@@ -260,6 +262,8 @@ def crear_material(request):
 @login_required
 @verificar_rol(['BODEGA'])
 def carga_masiva_stock(request):
+    reporte_carga = []  # Lista para guardar el detalle de lo que pasó
+
     if request.method == 'POST':
         form = CargaMasivaStockForm(request.POST, request.FILES)
         if form.is_valid():
@@ -268,75 +272,148 @@ def carga_masiva_stock(request):
 
             try:
                 df = pd.read_excel(archivo, engine='openpyxl')
-            except Exception:
-                messages.error(request, "No se pudo leer el archivo. Verifica que sea un Excel válido (.xlsx).")
+                df.columns = df.columns.map(str)
+                
+                # Normalizar nombres de columnas (ignorar mayúsculas/espacios)
+                df.columns = df.columns.str.strip().str.title() 
+                # Ahora buscará 'Código' y 'Nuevostock' (Title Case)
+
+                if 'Código' not in df.columns or 'Nuevostock' not in df.columns:
+                    messages.error(request, "El archivo debe tener las columnas 'Código' y 'NuevoStock'.")
+                    return redirect('carga_masiva_stock')
+
+                with transaction.atomic():
+                    for index, row in df.iterrows():
+                        fila_n = index + 2  # Excel empieza en fila 1 + cabecera
+                        codigo = str(row['Código']).strip()
+                        
+                        # Datos básicos para el reporte
+                        resultado = {
+                            'fila': fila_n,
+                            'codigo': codigo,
+                            'material': '-',
+                            'estado': 'error',
+                            'mensaje': ''
+                        }
+
+                        if not codigo:
+                            continue
+
+                        try:
+                            # 1. Validar si viene vacío PRIMERO
+                            val_stock = row['Nuevostock']
+                            
+                            # Si está vacío (nan) o es cadena vacía, marcamos OMITIDO
+                            if pd.isna(val_stock) or str(val_stock).strip() == '':
+                                resultado['estado'] = 'omitido'
+                                resultado['mensaje'] = "Sin dato de stock."
+                                
+                                # Intentamos buscar el nombre solo para que la tabla se vea bien
+                                try:
+                                    m_temp = Material.objects.get(codigo=codigo)
+                                    resultado['material'] = m_temp.descripcion
+                                except:
+                                    resultado['material'] = '-'
+                                    
+                                # Guardamos y saltamos al siguiente
+                                reporte_carga.append(resultado)
+                                continue 
+                            
+                            # 2. Si llegamos aquí, ES un valor. Intentamos convertir a entero.
+                            nuevo_stock = int(val_stock)
+                            
+                            # 3. Buscar Material y procesar (esto sigue igual)
+                            material = Material.objects.get(codigo=codigo)
+                            resultado['material'] = material.descripcion 
+                            
+                            inv, _ = Inventario.objects.get_or_create(material=material)
+
+                            # Lógica de Movimiento
+                            if modo == 'ajuste':
+                                diferencia = nuevo_stock - inv.stock_actual
+                                inv.stock_actual = nuevo_stock
+                                tipo_mov = 'ajuste'
+                                detalle_mov = f"Carga Masiva: Ajuste a {nuevo_stock}"
+                            else:  # entrada (sumar)
+                                diferencia = nuevo_stock
+                                inv.stock_actual += nuevo_stock
+                                tipo_mov = 'entrada'
+                                detalle_mov = f"Carga Masiva: +{nuevo_stock}"
+
+                            inv.save()
+
+                            if diferencia != 0:
+                                Movimiento.objects.create(
+                                    material=material, usuario=request.user,
+                                    tipo=tipo_mov, cantidad=abs(diferencia), detalle=detalle_mov
+                                )
+
+                            resultado['estado'] = 'success'
+                            resultado['mensaje'] = f"Stock actualizado a {inv.stock_actual}"
+                            
+                        except Material.DoesNotExist:
+                            resultado['mensaje'] = "Código no existe en el sistema"
+                        except (ValueError, TypeError):
+                            resultado['mensaje'] = f"Valor de stock inválido: {row.get('Nuevostock')}"
+                        except Exception as e:
+                            resultado['mensaje'] = f"Error: {str(e)}"
+
+                        reporte_carga.append(resultado)
+
+                messages.success(request, "Proceso completado. Revisa el detalle abajo.")
+                return render(request, 'funcionalidad/inv_carga_masiva_stock.html', {
+                    'form': CargaMasivaStockForm(), 
+                    'reporte_carga': reporte_carga  
+                })
+
+            except Exception as e:
+                messages.error(request, f"Error procesando el archivo: {str(e)}")
                 return redirect('carga_masiva_stock')
-
-            # Debug rápido: cuántas filas y qué columnas vienen
-            print("DF rows:", len(df), "cols:", list(df.columns))
-
-            # Normalizar nombres de columnas a str
-            df.columns = df.columns.map(str)
-
-            if 'Código' not in df.columns or 'NuevoStock' not in df.columns:
-                messages.error(request, "El archivo debe tener las columnas 'Código' y 'NuevoStock'.")
-                return redirect('carga_masiva_stock')
-
-            actualizados = 0
-            no_encontrados = []
-
-            with transaction.atomic():
-                for _, row in df.iterrows():
-                    codigo = str(row['Código']).strip()
-                    if not codigo:
-                        continue
-
-                    try:
-                        nuevo_stock = int(row['NuevoStock'])
-                    except (TypeError, ValueError):
-                        continue
-
-                    try:
-                        material = Material.objects.get(codigo=codigo)
-                    except Material.DoesNotExist:
-                        no_encontrados.append(codigo)
-                        continue
-
-                    inv, _ = Inventario.objects.get_or_create(material=material)
-
-                    if modo == 'ajuste':
-                        diferencia = nuevo_stock - inv.stock_actual
-                        inv.stock_actual = nuevo_stock
-                        tipo_mov = 'ajuste'
-                        detalle = f"Ajuste masivo desde archivo. Nuevo stock={nuevo_stock}"
-                    else:  # entrada
-                        diferencia = nuevo_stock
-                        inv.stock_actual += nuevo_stock
-                        tipo_mov = 'entrada'
-                        detalle = f"Entrada masiva desde archivo. +{nuevo_stock}"
-
-                    inv.save()
-
-                    if diferencia != 0:
-                        Movimiento.objects.create(
-                            material=material,
-                            usuario=request.user,
-                            tipo=tipo_mov,
-                            cantidad=abs(diferencia),
-                            detalle=detalle,
-                        )
-
-                    actualizados += 1
-
-            messages.success(
-                request,
-                f"Stock actualizado para {actualizados} materiales. No encontrados: {len(no_encontrados)}"
-            )
-            return redirect('inventario')
     else:
         form = CargaMasivaStockForm()
 
     return render(request, 'funcionalidad/inv_carga_masiva_stock.html', {'form': form})
+
+
+
+
+@login_required
+def descargar_plantilla_stock(request):
+    """
+    Genera un Excel con todos los materiales existentes para facilitar la carga.
+    """
+    # 1. Obtenemos todos los materiales ordenados
+    materiales = Material.objects.all().order_by('codigo')
+    
+    # 2. Preparamos los datos para el DataFrame
+    data = []
+    for m in materiales:
+        data.append({
+            'Código': m.codigo,          # Columna A
+            'Descripción': m.descripcion,# Columna B
+            'NuevoStock': ''             # Columna C (Vacía para que escriban)
+        })
+
+    # 3. Creamos el DataFrame
+    df = pd.DataFrame(data)
+
+    # 4. Configuramos la respuesta HTTP para descargar archivo
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_toma_inventario.xlsx"'
+
+    # 5. Escribimos el Excel
+    # Usamos engine='openpyxl' que es el estándar para .xlsx
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='CargaStock')
+        
+        # Ajuste cosmético: Anchar las columnas automáticamente (Opcional)
+        worksheet = writer.sheets['CargaStock']
+        worksheet.column_dimensions['A'].width = 15
+        worksheet.column_dimensions['B'].width = 50
+        worksheet.column_dimensions['C'].width = 15
+
+    return response
+
 
 
 @login_required
@@ -1858,29 +1935,41 @@ def local_editar(request, local_id):
 @login_required
 @verificar_rol('SISTEMA')
 def local_eliminar(request, local_id):
-    
     local = get_object_or_404(Local, pk=local_id)
     
+    solicitudes_count = local.solicitudes.count() 
+
     if request.method == 'POST':
-        # Verificar si tiene solicitudes asociadas
-        if local.solicitudes.exists():
-            messages.error(
-                request,
-                f'No se puede eliminar el local {local.codigo} - {local.nombre} '
-                f'porque tiene {local.solicitudes.count()} solicitudes asociadas.'
-            )
-            return redirect('gestion_locales')
-        
-        nombre = str(local)
-        local.delete()
-        messages.success(request, f'✓ Local {nombre} eliminado exitosamente.')
+        try:
+            local.delete()
+            messages.success(request, f'El local "{local.nombre}" fue eliminado permanentemente.')
+            
+        except ProtectedError:
+            if hasattr(local, 'activo'):
+                local.activo = False
+                local.save()
+                messages.warning(request, f'El local "{local.nombre}" no se pudo eliminar porque tiene historial, pero fue DESACTIVADO.')
+            else:
+                messages.error(request, 'No se puede eliminar este local porque tiene registros asociados.')
+                
         return redirect('gestion_locales')
-    
+
     context = {
         'local': local,
-        'solicitudes_count': local.solicitudes.count()
+        'solicitudes_count': solicitudes_count
     }
     return render(request, 'funcionalidad/local_confirm_delete.html', context)
+
+
+@login_required
+@verificar_rol(['SISTEMA'])
+@require_POST
+def local_reactivar(request, local_id):
+    local = get_object_or_404(Local, pk=local_id)
+    local.activo = True
+    local.save()
+    messages.success(request, f'El local "{local.nombre}" ha sido reactivado exitosamente.')
+    return redirect('gestion_locales')
 
 
 # ==========================================  GESTIÓN DE USUARIOS ==========================================

@@ -1,0 +1,95 @@
+{% extends "general/base.html" %}
+
+{% block title %}Eliminar Local{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-5">
+            
+            <!-- Tarjeta Principal -->
+            <div class="card shadow-lg border-0 rounded-lg">
+                
+                <!-- Encabezado dinámico según el riesgo -->
+                <div class="card-header py-3 text-white text-center {% if solicitudes_count > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                    <h5 class="m-0 font-weight-bold text-uppercase">
+                        {% if solicitudes_count > 0 %}
+                            <i class="fas fa-archive me-2"></i> Desactivar Local
+                        {% else %}
+                            <i class="fas fa-trash-alt me-2"></i> Eliminar Local
+                        {% endif %}
+                    </h5>
+                </div>
+                
+                <div class="card-body text-center px-4 py-5">
+                    
+                    <!-- Icono Gigante -->
+                    <div class="mb-4">
+                        {% if solicitudes_count > 0 %}
+                            <i class="fas fa-store-slash fa-4x text-warning"></i>
+                        {% else %}
+                            <i class="fas fa-ban fa-4x text-danger"></i>
+                        {% endif %}
+                    </div>
+
+                    <h4 class="text-gray-900 mb-2">¿Estás seguro?</h4>
+                    <p class="text-muted mb-4">Estás a punto de realizar una acción sobre el siguiente local:</p>
+                    
+                    <!-- Ficha del Local -->
+                    <div class="bg-light p-3 rounded border mb-4 shadow-sm">
+                        <h5 class="font-weight-bold text-dark mb-1">{{ local.nombre }}</h5>
+                        <div class="text-muted small">
+                            <span class="d-block">Código: <strong>{{ local.codigo }}</strong></span>
+                            <span class="d-block"><i class="fas fa-map-marker-alt me-1"></i> {{ local.direccion }}, {{ local.comuna }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Mensaje condicional de Advertencia -->
+                    {% if solicitudes_count > 0 %}
+                        <div class="alert alert-warning text-start small">
+                            <div class="d-flex">
+                                <i class="fas fa-exclamation-triangle fa-2x me-3 align-self-center"></i>
+                                <div>
+                                    <strong>¡Atención! Historial detectado.</strong><br>
+                                    Este local tiene <strong>{{ solicitudes_count }} solicitudes</strong> asociadas. 
+                                    <br>No será eliminado, solo <strong>desactivado</strong> para proteger los datos históricos.
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger text-start small">
+                            <div class="d-flex">
+                                <i class="fas fa-radiation fa-2x me-3 align-self-center"></i>
+                                <div>
+                                    <strong>Acción Destructiva.</strong><br>
+                                    Este local no tiene historial. Se eliminará de forma <strong>permanente</strong> y no podrás recuperarlo.
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Botones de Acción -->
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-center">
+                            <a href="{% url 'gestion_locales' %}" class="btn btn-secondary px-4 me-md-2">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            
+                            <button type="submit" class="btn {% if solicitudes_count > 0 %}btn-warning text-dark{% else %}btn-danger{% endif %} px-4">
+                                {% if solicitudes_count > 0 %}
+                                    <i class="fas fa-power-off me-1"></i> Confirmar Desactivación
+                                {% else %}
+                                    <i class="fas fa-trash me-1"></i> Confirmar Eliminación
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -7,9 +7,6 @@ from django.utils import timezone
 # ==================== CONFIGURACION ====================
 
 class Configuracion(models.Model):
-    """
-    Configuración global del sistema.
-    """
     tiempo_cancelacion_minutos = models.PositiveIntegerField(
         default=5,
         help_text='Minutos permitidos para cancelar una solicitud aprobada.'
@@ -26,13 +23,12 @@ class Configuracion(models.Model):
         verbose_name_plural = 'Configuración'
     
     def save(self, *args, **kwargs):
-        """Obliga a que solo exista un registro."""
+
         self.pk = 1
         super().save(*args, **kwargs)
     
     @classmethod
     def get_solo(cls):
-        """Retorna la instancia única."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
     
@@ -48,13 +44,15 @@ class Rol(models.Model):
     def __str__(self):
         return self.nombre
     
+    class Meta:
+        verbose_name = 'Rol'
+        verbose_name_plural = 'Roles'
+    
 
 # ==================== LOCAL ====================
 
 class Local(models.Model):
-    """
-    Local o sucursal donde se entregan los materiales.
-    """
+  
     codigo = models.CharField(
         max_length=50,
         unique=True,
@@ -83,6 +81,9 @@ class Local(models.Model):
     region = models.CharField(
         max_length=100,
         verbose_name='Región'
+    )
+    activo = models.BooleanField(
+        default=True, verbose_name="Activo"
     )
     
     class Meta:
@@ -153,10 +154,10 @@ class Usuario(AbstractUser):
 
 class Material(models.Model):
     UNIDAD_CHOICES = [
-        ('unidad', 'Unidad'),
-        ('kg', 'Kilogramo'),
-        ('metro', 'Metro'),
-        ('litro', 'Litro'),
+        ('unidad', 'Unidades'),
+        ('kg', 'Kilogramos'),
+        ('metro', 'Metros'),
+        ('litro', 'Litros'),
     ]
     
     CATEGORIA_CHOICES = [
@@ -180,7 +181,7 @@ class Material(models.Model):
     
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
-
+    
 
 # ==================== INVENTARIO ====================
 
@@ -276,6 +277,7 @@ class Solicitud(models.Model):
     observaciones = models.TextField(blank=True, null=True)
     
     class Meta:
+        verbose_name_plural = "Solicitudes"
         ordering = ['-fecha_solicitud']
         indexes = [
             models.Index(fields=['estado', 'fecha_solicitud']),
@@ -375,6 +377,7 @@ class Notificacion(models.Model):
     actualizada_en = models.DateTimeField(default=timezone.now)
     
     class Meta:
+        verbose_name_plural = "Notificaciones"
         ordering = ['-creada_en']
     
     def __str__(self):

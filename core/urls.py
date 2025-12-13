@@ -26,6 +26,7 @@ urlpatterns = [
     path('ingreso-material/', views.ingreso_material, name='ingreso_material'),
     path('materiales/nuevo/', views.crear_material, name='material_crear'),
     path("inventario/carga-masiva/", views.carga_masiva_stock, name="carga_masiva_stock"),
+    path('inventario/descargar-plantilla/', views.descargar_plantilla_stock, name='descargar_plantilla_stock'),
     path("inventario/recalcular-ml/", views.recalcular_stock_ml, name="recalcular_stock_ml"),
 
     
@@ -71,8 +72,10 @@ urlpatterns = [
     path('locales/crear/', views.local_crear, name='local_crear'),
     path('locales/<int:local_id>/editar/', views.local_editar, name='local_editar'),
     path('locales/<int:local_id>/eliminar/', views.local_eliminar, name='local_eliminar'),
+    path('locales/<int:local_id>/reactivar/', views.local_reactivar, name='local_reactivar'),
+
     
-    # Gestión de usuarios (SOLO GERENCIA)
+    # Gestión de usuarios
     path('usuarios/', views.gestion_usuarios, name='gestion_usuarios'),
     path('usuarios/crear/', views.usuario_crear, name='usuario_crear'),
     path('usuarios/<int:usuario_id>/editar/', views.usuario_editar, name='usuario_editar'),
@@ -82,6 +85,7 @@ urlpatterns = [
     #calculo Stock Critico
     path('prediccion-stock/', views.prediccion_stock, name='prediccion_stock'),
     
+    #HOME sistema
     path('sistema/', views.sistema_home, name='sistema_home'),
 
 ]

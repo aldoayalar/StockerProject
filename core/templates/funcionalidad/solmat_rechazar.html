@@ -57,7 +57,7 @@
                             <li class="mb-1">
                                 <i class="fas fa-chevron-right text-muted"></i>
                                 {{ detalle.material.descripcion }} 
-                                <span class="badge bg-secondary">{{ detalle.cantidad }} {{ detalle.material.unidad_medida }}</span>
+                                <span class="badge bg-secondary">{{ detalle.cantidad }} {{ detalle.material.get_unidad_medida_display }}</span>
                             </li>
                             {% endfor %}
                         </ul>

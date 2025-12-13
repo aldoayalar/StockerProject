@@ -33,7 +33,7 @@
             </div>
             <div class="col-md-4 text-end">
                 <p class="mb-1">Stock Actual</p>
-                <span class="stock-badge">{{ inventario.stock_actual }} {{ material.unidad_medida }}</span>
+                <span class="stock-badge">{{ inventario.stock_actual }} {{ material.get_unidad_medida_display }}</span>
             </div>
         </div>
     </div>
@@ -64,7 +64,7 @@
                                 placeholder="0"
                                 autofocus
                             >
-                            <span class="input-group-text">{{ material.unidad_medida }}</span>
+                            <span class="input-group-text">{{ material.get_unidad_medida_display }}</span>
                         </div>
                         <div class="form-text">Cantidad de unidades a agregar al inventario</div>
                     </div>
@@ -76,7 +76,7 @@
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-calculator"></i>
                             <strong id="stock-resultante">{{ inventario.stock_actual }}</strong> 
-                            {{ material.unidad_medida }}
+                            {{ material.get_unidad_medida_display }}
                         </div>
                     </div>
                 </div>
