@@ -410,7 +410,7 @@
                 {% if user.rol == 'BODEGA' or user.rol == 'GERENCIA' %}
                 <li>
                     <a href="{% url 'inventario' %}" class="{% if 'inventario' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-warehouse"></i> Inventario
+                        <i class="fas fa-clipboard-check"></i> Inventario
                     </a>
                 </li>
                 {% endif %}
