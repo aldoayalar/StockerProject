@@ -32,16 +32,19 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="{{ form.username.id_for_label }}" class="form-label">
-                                    {{ form.username.label }} <span class="text-danger">*</span>
+                                <label for="{{ form.rut.id_for_label }}" class="form-label">
+                                    {{ form.rut.label }} <span class="text-danger">*</span>
                                 </label>
-                                {{ form.username }}
-                                {% if form.username.errors %}
+                                {{ form.rut }}
+                                {% if form.rut.errors %}
                                     <div class="text-danger small mt-1">
-                                        {{ form.username.errors }}
+                                        {{ form.rut.errors }}
                                     </div>
                                 {% endif %}
-                                <small class="text-muted">Usado para iniciar sesión</small>
+                                <small class="text-muted">
+                                    Formato: 12.345.678-K (con guion).
+                                    Usado para iniciar sesión.
+                                </small>
                             </div>
 
                             <div class="col-md-6">

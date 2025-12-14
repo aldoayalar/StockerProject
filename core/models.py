@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils import timezone
+from rut_chile import rut_chile
+from django.core.exceptions import ValidationError
 
 
 # ==================== CONFIGURACION ====================
@@ -116,6 +118,15 @@ class Usuario(AbstractUser):
         ('SISTEMA', 'SISTEMA'),
     ]
     
+    rut = models.CharField(
+        max_length=12, 
+        unique=True, 
+        verbose_name='RUT'
+    )
+    
+    USERNAME_FIELD = 'rut'
+    REQUIRED_FIELDS = ['username', 'email']
+    
     rol = models.CharField(
         max_length=20,
         choices=ROL_CHOICES,
@@ -148,6 +159,22 @@ class Usuario(AbstractUser):
     def get_full_name(self):
         """Retorna el nombre completo del usuario."""
         return f"{self.first_name} {self.last_name}".strip() or self.username
+    
+    def clean(self):
+        super().clean()
+        if self.rut:
+            if not rut_chile.is_valid_rut(self.rut):
+                raise ValidationError({'rut': 'El RUT ingresado no es válido.'})
+
+    def save(self, *args, **kwargs):
+        if self.rut:
+            self.rut = rut_chile.format_capitalized_rut_without_dots(self.rut)
+            
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        rut_fmt = rut_chile.format_capitalized_rut_with_dots(self.rut) if self.rut else "Sin RUT"
+        return f"{self.get_full_name()} ({rut_fmt})"
 
 
 # ==================== MATERIALES ====================

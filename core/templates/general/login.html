@@ -69,7 +69,7 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label for="username" class="form-label">
-                        <i class="fas fa-user"></i> Usuario
+                        <i class="fas fa-user"></i> RUT
                     </label>
                     <input type="text" class="form-control" id="username" name="username" 
                            required autofocus placeholder="Ingresa tu usuario">
@@ -93,4 +93,29 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Buscamos el input por nombre 'rut' (en crear usuario) o 'username' (en login)
+        const rutInput = document.querySelector('input[name="rut"]') || document.querySelector('input[name="username"]');
+
+        if (rutInput) {
+            rutInput.addEventListener('blur', function() {
+                let valor = this.value.trim();
+
+                // Si tiene algo escrito y NO tiene guion
+                if (valor.length > 1 && !valor.includes('-')) {
+                    // Asumimos que el último caracter es el Dígito Verificador
+                    const dv = valor.slice(-1);
+                    const cuerpo = valor.slice(0, -1);
+                    
+                    // Lo unimos con el guion
+                    this.value = `${cuerpo}-${dv}`;
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}
 </html>

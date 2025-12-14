@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
+from rut_chile import rut_chile
 
 # Obtener el modelo de Usuario personalizado
 User = get_user_model()
@@ -355,13 +356,14 @@ class CambiarPasswordForm(PasswordChangeForm):
         fields = ['old_password', 'new_password1', 'new_password2']
         
 class UsuarioForm(forms.ModelForm):
-    """Formulario para crear/editar usuarios (solo GERENCIA)"""
+    
     password = forms.CharField(
         required=False,
         label='Contraseña',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Dejar vacío para no cambiar (solo edición)'
+            'placeholder': 'Dejar vacío para no cambiar (solo edición)',
+            'autocomplete': 'new-password'
         }),
         help_text='Mínimo 8 caracteres. Dejar vacío al editar si no quieres cambiar la contraseña.'
     )
@@ -371,17 +373,20 @@ class UsuarioForm(forms.ModelForm):
         label='Confirmar contraseña',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Confirmar contraseña'
+            'placeholder': 'Confirmar contraseña',
+            'autocomplete': 'new-password'
         })
     )
     
     class Meta:
         model = Usuario
-        fields = ['username', 'email', 'first_name', 'last_name', 'rol', 'is_active']
+        fields = ['rut', 'email', 'first_name', 'last_name', 'rol', 'is_active']
         widgets = {
-            'username': forms.TextInput(attrs={
+            'rut': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nombre de usuario'
+                'placeholder': '12.345.678-9',
+                'autocomplete': 'off',
+                'maxlength': '12' # Límite visual 12 chars (ej: 12.345.678-K)
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
@@ -403,7 +408,7 @@ class UsuarioForm(forms.ModelForm):
             })
         }
         labels = {
-            'username': 'Nombre de usuario',
+            'rut': 'RUT',
             'email': 'Correo electrónico',
             'first_name': 'Nombre',
             'last_name': 'Apellido',
@@ -415,35 +420,41 @@ class UsuarioForm(forms.ModelForm):
         self.is_new = kwargs.pop('is_new', False)
         super().__init__(*args, **kwargs)
         
-        # Si es nuevo usuario, la contraseña es obligatoria
         if self.is_new:
             self.fields['password'].required = True
             self.fields['confirmar_password'].required = True
             self.fields['password'].help_text = 'Mínimo 8 caracteres.'
     
-    def clean_username(self):
-        username = self.cleaned_data.get('username')
+    def clean_rut(self):
+        rut_raw = self.cleaned_data.get('rut')
         
-        # Verificar si existe otro usuario con ese username
-        if self.instance.pk:  # Editando
-            if Usuario.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
-                raise ValidationError('Este nombre de usuario ya está en uso.')
-        else:  # Creando nuevo
-            if Usuario.objects.filter(username=username).exists():
-                raise ValidationError('Este nombre de usuario ya está en uso.')
+        if not rut_raw:
+            return rut_raw
+
+        if not rut_chile.is_valid_rut(rut_raw):
+            raise ValidationError('El RUT ingresado no es válido.')
+
+        rut_standarizado = rut_chile.format_capitalized_rut_without_dots(rut_raw)
+
+        qs = Usuario.objects.filter(rut=rut_standarizado)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+            
+        if qs.exists():
+            raise ValidationError('Este RUT ya está registrado en el sistema.')
         
-        return username
-    
+        return rut_standarizado
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         
-        # Verificar si existe otro usuario con ese email
-        if self.instance.pk:  # Editando
-            if Usuario.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
-                raise ValidationError('Este correo electrónico ya está en uso.')
-        else:  # Creando nuevo
-            if Usuario.objects.filter(email=email).exists():
-                raise ValidationError('Este correo electrónico ya está en uso.')
+        # Verificar duplicados
+        qs = Usuario.objects.filter(email=email)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+            
+        if qs.exists():
+            raise ValidationError('Este correo electrónico ya está en uso.')
         
         return email
     
@@ -455,21 +466,19 @@ class UsuarioForm(forms.ModelForm):
         # Validar contraseñas
         if password or confirmar_password:
             if password != confirmar_password:
-                raise ValidationError('Las contraseñas no coinciden.')
+                self.add_error('confirmar_password', 'Las contraseñas no coinciden.')
             
-            if len(password) < 8:
-                raise ValidationError('La contraseña debe tener al menos 8 caracteres.')
+            if password and len(password) < 8:
+                self.add_error('password', 'La contraseña debe tener al menos 8 caracteres.')
         
-        # Si es nuevo usuario y no hay contraseña
         if self.is_new and not password:
-            raise ValidationError('Debes ingresar una contraseña para el nuevo usuario.')
+             self.add_error('password', 'Debes ingresar una contraseña para el nuevo usuario.')
         
         return cleaned_data
     
     def save(self, commit=True):
         usuario = super().save(commit=False)
         password = self.cleaned_data.get('password')
-        
         
         if password:
             usuario.set_password(password)

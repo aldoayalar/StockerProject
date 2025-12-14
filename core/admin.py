@@ -29,7 +29,8 @@ class UsuarioAdmin(BaseUserAdmin):
         'email', 
         'first_name', 
         'last_name', 
-        'rol', 
+        'rol',
+        'rut',
         'is_active',
         'is_staff',
         'date_joined'
@@ -46,6 +47,7 @@ class UsuarioAdmin(BaseUserAdmin):
     
     # Campos de búsqueda
     search_fields = [
+        'rut',
         'username', 
         'email', 
         'first_name', 
@@ -61,7 +63,7 @@ class UsuarioAdmin(BaseUserAdmin):
             'fields': ('username', 'password')
         }),
         ('Información Personal', {
-            'fields': ('first_name', 'last_name', 'email', 'telefono')
+            'fields': ('first_name', 'last_name', 'rut', 'email', 'telefono')
         }),
         ('Rol y Permisos', {
             'fields': ('rol', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
@@ -88,6 +90,7 @@ class UsuarioAdmin(BaseUserAdmin):
                 'password1', 
                 'password2',
                 'rol',
+                'rut',
                 'is_staff',
                 'is_active'
             ),
