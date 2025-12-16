@@ -417,7 +417,7 @@ def descargar_plantilla_stock(request):
 
 
 @login_required
-@verificar_rol(['SISTEMA']) 
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 @require_POST
 def recalcular_stock_ml(request):
     print(f"DEBUG: Datos recibidos -> {request.POST}") # Ver en consola
