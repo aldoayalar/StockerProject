@@ -425,25 +425,6 @@ class UsuarioForm(forms.ModelForm):
             self.fields['confirmar_password'].required = True
             self.fields['password'].help_text = 'Mínimo 8 caracteres.'
     
-    def clean_rut(self):
-        rut_raw = self.cleaned_data.get('rut')
-        
-        if not rut_raw:
-            return rut_raw
-
-        if not rut_chile.is_valid_rut(rut_raw):
-            raise ValidationError('El RUT ingresado no es válido.')
-
-        rut_standarizado = rut_chile.format_capitalized_rut_without_dots(rut_raw)
-
-        qs = Usuario.objects.filter(rut=rut_standarizado)
-        if self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-            
-        if qs.exists():
-            raise ValidationError('Este RUT ya está registrado en el sistema.')
-        
-        return rut_standarizado
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -458,23 +439,29 @@ class UsuarioForm(forms.ModelForm):
         
         return email
     
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get('password')
-        confirmar_password = cleaned_data.get('confirmar_password')
+    def clean_rut(self):
+        rut_raw = self.cleaned_data.get('rut')
         
-        # Validar contraseñas
-        if password or confirmar_password:
-            if password != confirmar_password:
-                self.add_error('confirmar_password', 'Las contraseñas no coinciden.')
+        if not rut_raw:
+            return rut_raw
+
+        try:
+            if not rut_chile.is_valid_rut(rut_raw):
+                raise ValidationError('El RUT ingresado no es válido (Dígito verificador incorrecto).')
             
-            if password and len(password) < 8:
-                self.add_error('password', 'La contraseña debe tener al menos 8 caracteres.')
+            rut_standarizado = rut_chile.format_capitalized_rut_without_dots(rut_raw)
+
+        except ValueError:
+            raise ValidationError('Formato de RUT irreconocible. Por favor ingrese: 12345678-9')
+
+        qs = Usuario.objects.filter(rut=rut_standarizado)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+            
+        if qs.exists():
+            raise ValidationError('Este RUT ya está registrado en el sistema.')
         
-        if self.is_new and not password:
-             self.add_error('password', 'Debes ingresar una contraseña para el nuevo usuario.')
-        
-        return cleaned_data
+        return rut_standarizado
     
     def save(self, commit=True):
         usuario = super().save(commit=False)

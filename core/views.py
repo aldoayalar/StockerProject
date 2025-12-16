@@ -477,7 +477,7 @@ def recalcular_stock_ml(request):
 
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def prediccion_stock(request):
     total_materiales = Material.objects.count()
     
@@ -1856,7 +1856,7 @@ def exportar_reporte_completo_excel(request):
  # ==================================== GESTION DE LOCALES ==============================================
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def gestion_locales(request):
     
     locales = Local.objects.all().order_by('codigo', 'nombre')
@@ -1884,7 +1884,7 @@ def gestion_locales(request):
     return render(request, 'funcionalidad/local_gestion.html', context)
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def local_crear(request):
     
     if request.method == 'POST':
@@ -1907,7 +1907,7 @@ def local_crear(request):
     return render(request, 'funcionalidad/local_form.html', context)
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def local_editar(request, local_id):
     
     local = get_object_or_404(Local, pk=local_id)
@@ -1933,7 +1933,7 @@ def local_editar(request, local_id):
     return render(request, 'funcionalidad/local_form.html', context)
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def local_eliminar(request, local_id):
     local = get_object_or_404(Local, pk=local_id)
     
@@ -1975,7 +1975,7 @@ def local_reactivar(request, local_id):
 # ==========================================  GESTIÓN DE USUARIOS ==========================================
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def gestion_usuarios(request):
    
     usuarios = Usuario.objects.all().order_by('-date_joined')
@@ -2032,7 +2032,7 @@ def gestion_usuarios(request):
 
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def usuario_crear(request):
     
     if request.method == 'POST':
@@ -2058,7 +2058,7 @@ def usuario_crear(request):
 
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def usuario_editar(request, usuario_id):
     
     usuario = get_object_or_404(Usuario, pk=usuario_id)
@@ -2092,7 +2092,7 @@ def usuario_editar(request, usuario_id):
 
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def usuario_eliminar(request, usuario_id):
     
     usuario = get_object_or_404(Usuario, pk=usuario_id)
@@ -2134,7 +2134,7 @@ def usuario_eliminar(request, usuario_id):
 
 
 @login_required
-@verificar_rol('SISTEMA')
+@verificar_rol(['SISTEMA', 'GERENCIA'])
 def usuario_toggle_estado(request, usuario_id):
     """Activar/desactivar usuario rápidamente"""
     if request.method == 'POST':

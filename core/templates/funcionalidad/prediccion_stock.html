@@ -9,7 +9,7 @@
 <div class="container mt-4">
 
   <!-- Panel de recalculo ML -->
-  {% if user.rol == 'SISTEMA' %}
+  {% if user.rol == 'GERENCIA' or user.rol == 'SISTEMA' %}
   <div class="card mb-4">
     <div class="card-body">
       <h5 class="card-title mb-3">

@@ -525,6 +525,8 @@
                         <i class="fas fa-home-alt"></i> Home
                     </a>
                 </li>
+                {% endif %}
+                {% if user.rol == 'GERENCIA' or user.rol == 'SISTEMA' %}
                 <li>
                     <a href="{% url 'gestion_locales' %}" class="{% if 'locales' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-map-marker-alt"></i> Gestión de Locales

@@ -170,6 +170,8 @@ class Usuario(AbstractUser):
         if self.rut:
             self.rut = rut_chile.format_capitalized_rut_without_dots(self.rut)
             
+            self.username = self.rut
+            
         super().save(*args, **kwargs)
 
     def __str__(self):
