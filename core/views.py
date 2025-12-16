@@ -1707,10 +1707,8 @@ def exportar_solicitudes_excel(request):
 
 @login_required
 @verificar_rol(['BODEGA', 'GERENCIA'])
-def exportar_movimientos_excel(request, material_id):
-    """Exportar movimientos de UN material a Excel"""
-    material = get_object_or_404(Material, id=material_id)
-
+def exportar_movimientos_excel(request, material_id=None):
+    
     # Crear workbook
     wb = Workbook()
     ws = wb.active
@@ -1732,10 +1730,23 @@ def exportar_movimientos_excel(request, material_id):
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
 
-    # SOLO movimientos de este material
-    movimientos = Movimiento.objects.select_related(
-        'material', 'usuario', 'solicitud'
-    ).filter(material=material).order_by('-fecha')
+    
+    if material_id:
+        
+        material = get_object_or_404(Material, id=material_id)
+        movimientos = Movimiento.objects.select_related(
+            'material', 'usuario', 'solicitud'
+        ).filter(material=material).order_by('-fecha')
+        
+        filename_part = f"_{material.codigo}"
+    else:
+        
+        movimientos = Movimiento.objects.select_related(
+            'material', 'usuario', 'solicitud'
+        ).all().order_by('-fecha') 
+        
+        filename_part = "_global"
+    
 
     for row_num, mov in enumerate(movimientos, 2):
         if mov.usuario:
@@ -1744,7 +1755,8 @@ def exportar_movimientos_excel(request, material_id):
             usuario_nombre = 'Sistema'
 
         solicitud_id = f"#{mov.solicitud.id}" if mov.solicitud else "-"
-        tipo_display = mov.get_tipo_display() if hasattr(mov, 'get_tipo_display') else mov.tipo
+        # Protección por si get_tipo_display falla
+        tipo_display = mov.get_tipo_display() if hasattr(mov, 'get_tipo_display') else str(mov.tipo)
 
         ws.append([
             mov.id,
@@ -1759,40 +1771,37 @@ def exportar_movimientos_excel(request, material_id):
         ])
 
     column_widths = {
-        'A': 8,   # ID
-        'B': 18,  # Fecha
-        'C': 35,  # Material
-        'D': 12,  # Código
-        'E': 12,  # Tipo
-        'F': 10,  # Cantidad
-        'G': 20,  # Usuario
-        'H': 40,  # Detalle
-        'I': 12   # Solicitud
+        'A': 8, 'B': 18, 'C': 35, 'D': 12, 'E': 12, 
+        'F': 10, 'G': 20, 'H': 40, 'I': 12
     }
     for col, width in column_widths.items():
-        ws.column_dimensions[col].width = width
+        if col in ws.column_dimensions:
+            ws.column_dimensions[col].width = width
 
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
         for cell in row:
             cell.alignment = Alignment(vertical='center', wrap_text=True)
             if cell.column == 5:  # Columna Tipo
-                if cell.value == 'ENTRADA':
+                val = str(cell.value).upper()
+                if val == 'ENTRADA':
                     cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
                     cell.font = Font(color="006100", bold=True)
-                elif cell.value == 'SALIDA':
+                elif val == 'SALIDA':
                     cell.fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
                     cell.font = Font(color="9C0006", bold=True)
-                elif cell.value == 'AJUSTE':
+                elif val == 'AJUSTE':
                     cell.fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
                     cell.font = Font(color="9C5700", bold=True)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    filename = f'movimientos_{material.codigo}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    
+    filename = f'movimientos{filename_part}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
 
 
 
